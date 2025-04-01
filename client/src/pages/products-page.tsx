@@ -125,13 +125,33 @@ export default function ProductsPage() {
       const response = await apiRequest("POST", "/api/products/import", products);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setImportModalOpen(false);
-      toast({
-        title: "Produtos importados",
-        description: "Produtos foram importados com sucesso",
-      });
+      
+      // Mostrar informações detalhadas sobre os resultados da importação
+      const { success, failed, totalSubmitted, message, errors } = data;
+      
+      if (success > 0) {
+        toast({
+          title: "Produtos importados",
+          description: message || `${success} produtos importados com sucesso. ${failed > 0 ? `${failed} produtos falharam.` : ''}`,
+          variant: "default",
+        });
+      } 
+      
+      if (failed > 0) {
+        toast({
+          title: "Atenção: Alguns produtos não foram importados",
+          description: `${failed} de ${totalSubmitted} produtos não puderam ser importados. Verifique os detalhes no console do navegador.`,
+          variant: "destructive",
+        });
+        
+        // Logar erros detalhados no console para debug
+        if (errors && errors.length > 0) {
+          console.error("Erros na importação:", errors);
+        }
+      }
     },
     onError: (error) => {
       toast({
@@ -323,7 +343,7 @@ export default function ProductsPage() {
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : (
+        ) : products && products.length > 0 ? (
           <DataTable
             columns={[
               {
@@ -461,6 +481,24 @@ export default function ProductsPage() {
             searchPlaceholder="Buscar produtos por nome, código, categoria ou marca..."
             onRowClick={user?.role === "admin" ? openEditProductModal : undefined}
           />
+        ) : (
+          <div className="text-center p-8 border rounded-lg bg-background">
+            <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium mb-2">Nenhum produto encontrado</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Você ainda não tem produtos cadastrados ou a importação falhou.
+            </p>
+            <Button onClick={() => setImportModalOpen(true)} className="mr-2">
+              <Import className="mr-2 h-4 w-4" />
+              Importar Produtos
+            </Button>
+            {user?.role === "admin" && (
+              <Button onClick={openNewProductModal} variant="outline">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Manualmente
+              </Button>
+            )}
+          </div>
         )}
 
         {/* Product Form Dialog */}
