@@ -88,12 +88,36 @@ export function ImportModal({
   };
 
   const downloadTemplate = () => {
-    const csvContent = templateFields.join(",") + "\n";
+    // Usar nomes de cabeçalho mais descritivos para o modelo
+    const headers = [];
+    templateFields.forEach(field => {
+      switch(field) {
+        case 'code':
+          headers.push('Código do Cliente');
+          break;
+        case 'name':
+          headers.push('Nome do Cliente');
+          break;
+        case 'city':
+          headers.push('Cidade');
+          break;
+        case 'cnpj':
+          headers.push('CNPJ');
+          break;
+        case 'phone':
+          headers.push('WhatsApp');
+          break;
+        default:
+          headers.push(field);
+      }
+    });
+    
+    const csvContent = headers.join(",") + "\n";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", "template.csv");
+    link.setAttribute("download", "modelo-importacao-clientes.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -145,9 +169,18 @@ export function ImportModal({
               
               <div className="flex flex-col space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm text-gray-500 dark:text-gray-400">
-                    Campos necessários: {templateFields.join(", ")}
-                  </Label>
+                  <div>
+                    <Label className="text-sm text-gray-500 dark:text-gray-400 block mb-1">
+                      Campos aceitos:
+                    </Label>
+                    <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
+                      <li>Código do Cliente / Cod. do Cliente / CODIGO / code</li>
+                      <li>Nome do Cliente / NOME / name</li>
+                      <li>Cidade / CIDADE / city</li>
+                      <li>CNPJ / cnpj</li>
+                      <li>WhatsApp / Whatsapp / WHATSAPP / phone</li>
+                    </ul>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"

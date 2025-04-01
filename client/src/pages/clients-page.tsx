@@ -110,23 +110,72 @@ export default function ClientsPage() {
   const importClientsMutation = useMutation({
     mutationFn: async (clients: any[]) => {
       // Process one by one to ensure proper validation
+      const successfulImports = [];
+      const errors = [];
+      
       for (const client of clients) {
-        await apiRequest("POST", "/api/clients", {
-          ...client,
-          active: client.active === "true" || client.active === true,
-          representativeId: client.representativeId ? parseInt(client.representativeId) : undefined,
-          regionId: client.regionId ? parseInt(client.regionId) : undefined,
-        });
+        try {
+          // Mapear os campos da estrutura importada para a estrutura esperada pela API
+          // Tratando os possíveis nomes de campos do arquivo importado
+          const clientData = {
+            name: client.name || client["Nome do Cliente"] || client["NOME"] || "",
+            code: client.code || client["Código do Cliente"] || client["Cod. do Cliente"] || client["CODIGO"] || "",
+            cnpj: client.cnpj || client["CNPJ"] || "",
+            city: client.city || client["Cidade"] || client["CIDADE"] || "",
+            phone: client.phone || client["WhatsApp"] || client["Whatsapp"] || client["TELEFONE"] || client["WHATSAPP"] || "",
+            // Campos opcionais mas úteis
+            address: client.address || client["Endereço"] || client["ENDERECO"] || "",
+            state: client.state || client["Estado"] || client["ESTADO"] || "",
+            email: client.email || client["Email"] || client["EMAIL"] || "",
+            // Para representantes, usar o ID do usuário logado
+            representativeId: client.representativeId 
+              ? parseInt(client.representativeId) 
+              : (user?.role === "representative" ? user.id : undefined),
+            regionId: client.regionId ? parseInt(client.regionId) : undefined,
+            active: true
+          };
+          
+          // Verificar campos obrigatórios
+          if (!clientData.name || !clientData.code || !clientData.cnpj) {
+            throw new Error(`Cliente com dados incompletos: ${clientData.name || clientData.code || "Desconhecido"}`);
+          }
+          
+          // Formatação do CNPJ (remover caracteres não numéricos)
+          clientData.cnpj = clientData.cnpj.replace(/\D/g, "");
+          
+          await apiRequest("POST", "/api/clients", clientData);
+          successfulImports.push(clientData);
+        } catch (error: any) {
+          errors.push({ 
+            name: client.name || client["Nome do Cliente"] || "Desconhecido", 
+            error: error.message 
+          });
+          console.error("Erro ao importar cliente:", error);
+        }
       }
-      return clients.length;
+
+      // Retornar informações de sucesso e erros
+      return {
+        successCount: successfulImports.length,
+        errors
+      };
     },
-    onSuccess: (count) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setImportModalOpen(false);
-      toast({
-        title: "Clientes importados",
-        description: `${count} clientes foram importados com sucesso`,
-      });
+      
+      if (result.errors.length > 0) {
+        toast({
+          title: "Importação parcial",
+          description: `${result.successCount} clientes importados com sucesso. ${result.errors.length} falhas.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Clientes importados",
+          description: `${result.successCount} clientes foram importados com sucesso`,
+        });
+      }
     },
     onError: (error) => {
       toast({
@@ -514,8 +563,8 @@ export default function ClientsPage() {
           onClose={() => setImportModalOpen(false)}
           onImport={handleImport}
           title="Importar Clientes"
-          description="Importe uma lista de clientes a partir de arquivo CSV ou Excel. O arquivo deve conter as colunas abaixo."
-          templateFields={["name", "cnpj", "code", "address", "city", "state", "phone", "email", "active"]}
+          description="Importe sua lista de clientes a partir de arquivo CSV ou Excel. O sistema reconhecerá os campos: Código do Cliente, Nome do Cliente, Cidade, CNPJ e WhatsApp."
+          templateFields={["code", "name", "city", "cnpj", "phone"]}
           loading={importClientsMutation.isPending}
         />
       </div>
