@@ -285,10 +285,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all products
   app.get("/api/products", isAuthenticated, async (req, res) => {
     try {
+      console.log("Buscando todos os produtos...");
       const products = await storage.listProducts();
-      res.json(products);
+      console.log(`Produtos encontrados: ${products?.length || 0}`);
+      res.json(products || []);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching products" });
+      console.error("Erro ao buscar produtos:", error);
+      res.status(500).json({ message: "Error fetching products", details: error instanceof Error ? error.message : String(error) });
     }
   });
 

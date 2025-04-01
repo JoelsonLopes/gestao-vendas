@@ -268,8 +268,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async importProducts(productsList: InsertProduct[]): Promise<number> {
-    const productsData = productsList.map(product => ({ ...product }));
-    const result = await db.insert(products).values(productsData).returning();
+    // Criar um array para inserir no banco de dados
+    const productsToInsert = [];
+    
+    // Processar cada produto individualmente
+    for (const product of productsList) {
+      productsToInsert.push({
+        code: product.code,
+        name: product.name,
+        description: product.description,
+        barcode: product.barcode,
+        category: product.category,
+        brand: product.brand,
+        conversion: product.conversion,
+        conversionBrand: product.conversionBrand,
+        price: product.price,
+        stockQuantity: product.stockQuantity || 0,
+        active: product.active !== false
+      });
+    }
+    
+    console.log(`Preparando para inserir ${productsToInsert.length} produtos no banco de dados`);
+    const result = await db.insert(products).values(productsToInsert).returning();
+    console.log(`${result.length} produtos inseridos com sucesso`);
     return result.length;
   }
 

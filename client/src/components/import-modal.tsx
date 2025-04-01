@@ -124,7 +124,10 @@ export function ImportModal({
 
   const handleImport = () => {
     if (parsedData.length > 0) {
+      console.log(`Enviando ${parsedData.length} registros para importação`);
       onImport(parsedData);
+      // Não fechamos o modal aqui para que a UI mostre o estado de carregamento
+      // O modal será fechado pelo callback de sucesso da mutação
     }
   };
 

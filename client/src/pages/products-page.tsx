@@ -129,6 +129,13 @@ export default function ProductsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setImportModalOpen(false);
       
+      // Mostrar resultado da importação
+      toast({
+        title: "Importação concluída",
+        description: data.message || `${data.success} produtos importados com sucesso`,
+        variant: "default",
+      });
+      
       // Mostrar informações detalhadas sobre os resultados da importação
       const { success, failed, totalSubmitted, message, errors } = data;
       
