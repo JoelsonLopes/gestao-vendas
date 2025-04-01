@@ -217,11 +217,15 @@ export function ImportModal({
                       Campos aceitos:
                     </Label>
                     <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
-                      <li>Código do Cliente / Cod. do Cliente / CODIGO / code</li>
-                      <li>Nome do Cliente / NOME / name</li>
-                      <li>Cidade / CIDADE / city</li>
-                      <li>CNPJ / cnpj</li>
-                      <li>WhatsApp / Whatsapp / WHATSAPP / phone</li>
+                      <li>Código / Cod / CODIGO / code</li>
+                      <li>Nome / Produto / NOME / name</li>
+                      <li>Descrição / Description / DESCRICAO</li>
+                      <li>Preço / Valor / PRECO / price</li>
+                      <li>Estoque / Quantidade / stockQuantity</li>
+                      <li>Categoria / Category / CATEGORIA</li>
+                      <li>Marca / Brand / MARCA</li>
+                      <li>Código de Barras / EAN / barcode</li>
+                      <li>Ativo / Status / active</li>
                     </ul>
                   </div>
                   <Button
