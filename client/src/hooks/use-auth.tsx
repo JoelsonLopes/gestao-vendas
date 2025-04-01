@@ -22,10 +22,10 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 // Extended schema for registration with password confirmation
 const registerSchema = insertUserSchema.extend({
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
   passwordConfirm: z.string(),
 }).refine((data) => data.password === data.passwordConfirm, {
-  message: "Passwords don't match",
+  message: "As senhas não coincidem",
   path: ["passwordConfirm"],
 });
 
@@ -49,14 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.name}!`,
+        title: "Login bem-sucedido",
+        description: `Bem-vindo de volta, ${user.name}!`,
       });
+      // Forçar atualização para reconhecer o usuário imediatamente
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
-        title: "Login failed",
+        title: "Falha no login",
         description: error.message,
         variant: "destructive",
       });
@@ -72,14 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: "Registration successful",
-        description: `Welcome, ${user.name}!`,
+        title: "Registro bem-sucedido",
+        description: `Bem-vindo, ${user.name}!`,
       });
+      // Forçar atualização para reconhecer o usuário imediatamente
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
-        title: "Registration failed",
+        title: "Falha no registro",
         description: error.message,
         variant: "destructive",
       });
@@ -93,13 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
       toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
+        title: "Logout realizado",
+        description: "Você saiu do sistema com sucesso.",
       });
+      // Redirecionar para tela de login
+      window.location.href = "/auth";
     },
     onError: (error: Error) => {
       toast({
-        title: "Logout failed",
+        title: "Falha no logout",
         description: error.message,
         variant: "destructive",
       });
@@ -125,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 }
