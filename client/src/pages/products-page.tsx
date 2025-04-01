@@ -201,13 +201,63 @@ export default function ProductsPage() {
 
   const handleImport = (data: any[]) => {
     if (data.length > 0) {
-      // Transform data if needed
-      const transformedData = data.map(item => ({
-        ...item,
-        price: parseFloat(item.price) || 0,
-        stockQuantity: parseInt(item.stockQuantity) || 0,
-        active: item.active === "true" || item.active === true,
-      }));
+      // Processar registros e normalizar os dados para o formato esperado pela API
+      const transformedData = data.map(item => {
+        // Log para debug
+        console.log("Processando item:", item);
+        
+        // Mapeamento de campos para lidar com diferentes nomenclaturas
+        const processedItem = {
+          name: item.name || item.Nome || item.NOME || item.produto || item.PRODUTO || "",
+          code: item.code || item.Codigo || item.CODIGO || item.código || item.CÓDIGO || "",
+          description: item.description || item.Description || item.descricao || item.DESCRICAO || "",
+          barcode: item.barcode || item.Barcode || item.codigoBarras || item.CODIGOBARRAS || item.ean || item.EAN || "",
+          category: item.category || item.Category || item.categoria || item.CATEGORIA || "",
+          brand: item.brand || item.Brand || item.marca || item.MARCA || "",
+          
+          // Campos numéricos precisam ser convertidos corretamente
+          price: parseFloat(String(item.price || item.Price || item.preco || item.PRECO || item.valor || item.VALOR || "0").replace(',', '.')),
+          stockQuantity: parseInt(String(item.stockQuantity || item.StockQuantity || item.estoque || item.ESTOQUE || "0")),
+          
+          // Campo booleano
+          active: item.active === true || 
+                  item.active === "true" || 
+                  item.active === "sim" || 
+                  item.active === "yes" || 
+                  item.active === "1" || 
+                  item.active === 1 ||
+                  item.ativo === true || 
+                  item.ativo === "true" || 
+                  item.ativo === "sim" || 
+                  item.ativo === "yes" || 
+                  item.ativo === "1" || 
+                  item.ativo === 1 || 
+                  true, // Por padrão, produtos são ativos
+        };
+        
+        // Validação básica: se não tiver nome ou código, gerar um código aleatório
+        if (!processedItem.code) {
+          processedItem.code = `PROD${Date.now().toString().substring(7)}`;
+        }
+        
+        // Se não tiver nome, usar o código como nome
+        if (!processedItem.name) {
+          processedItem.name = `Produto ${processedItem.code}`;
+        }
+        
+        // Garantir que o preço seja um número válido
+        if (isNaN(processedItem.price) || processedItem.price < 0) {
+          processedItem.price = 0;
+        }
+        
+        // Garantir que o estoque seja um número válido
+        if (isNaN(processedItem.stockQuantity) || processedItem.stockQuantity < 0) {
+          processedItem.stockQuantity = 0;
+        }
+        
+        console.log("Item processado:", processedItem);
+        return processedItem;
+      });
       
       importProductsMutation.mutate(transformedData);
     }
@@ -572,7 +622,7 @@ export default function ProductsPage() {
           onClose={() => setImportModalOpen(false)}
           onImport={handleImport}
           title="Importar Produtos"
-          description="Importe uma lista de produtos a partir de arquivo CSV ou Excel. O arquivo deve conter as colunas abaixo."
+          description="Importe seu catálogo de produtos a partir de arquivo CSV ou Excel. O sistema reconhecerá diferentes formatos de cabeçalho."
           templateFields={["name", "code", "description", "barcode", "category", "brand", "price", "stockQuantity", "active"]}
           loading={importProductsMutation.isPending}
         />

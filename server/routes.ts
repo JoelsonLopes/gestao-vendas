@@ -388,26 +388,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Expected array of products" });
       }
       
-      // Validate each product
+      // Processar e validar cada produto
       const validatedProducts = [];
-      for (const product of products) {
+      const errors = [];
+      
+      for (let i = 0; i < products.length; i++) {
+        const product = products[i];
         try {
-          const validatedProduct = insertProductSchema.parse(product);
+          // Implementar regras de negócio específicas
+          
+          // Garantir que código seja único
+          if (product.code) {
+            const existingProduct = await storage.getProductByCode(product.code);
+            if (existingProduct) {
+              throw new Error(`Produto com código '${product.code}' já existe no sistema`);
+            }
+          }
+          
+          // Converter tipos de dados para o formato correto
+          const processedProduct = {
+            ...product,
+            price: typeof product.price === 'number' ? 
+              product.price.toString() : 
+              (typeof product.price === 'string' ? product.price : '0'),
+            stockQuantity: typeof product.stockQuantity === 'number' ? 
+              product.stockQuantity : 
+              (typeof product.stockQuantity === 'string' ? parseInt(product.stockQuantity) || 0 : 0)
+          };
+          
+          // Validar usando o esquema Zod
+          const validatedProduct = insertProductSchema.parse(processedProduct);
           validatedProducts.push(validatedProduct);
         } catch (error) {
-          // Skip invalid products
+          // Registrar o erro para retorná-lo ao cliente
+          const errorMessage = error instanceof Error ? error.message : 'Erro de validação';
+          errors.push({
+            row: i + 1,
+            data: product,
+            error: errorMessage
+          });
           continue;
         }
       }
       
+      // Se não houver produtos válidos, retornar erro com detalhes
       if (validatedProducts.length === 0) {
-        return res.status(400).json({ message: "No valid products found" });
+        return res.status(400).json({ 
+          message: "Nenhum produto válido encontrado", 
+          errors,
+          totalErrors: errors.length,
+          totalSubmitted: products.length
+        });
       }
       
+      // Importar produtos válidos
       const count = await storage.importProducts(validatedProducts);
-      res.status(201).json({ message: `${count} products imported successfully` });
+      
+      // Retornar estatísticas detalhadas da importação
+      res.status(201).json({ 
+        message: `${count} produtos importados com sucesso`, 
+        success: count,
+        failed: errors.length,
+        totalSubmitted: products.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
     } catch (error) {
-      res.status(500).json({ message: "Error importing products" });
+      console.error("Erro ao importar produtos:", error);
+      res.status(500).json({ 
+        message: "Erro ao importar produtos",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 
