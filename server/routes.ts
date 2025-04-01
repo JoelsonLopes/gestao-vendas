@@ -1,0 +1,607 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import { z } from "zod";
+import { 
+  insertClientSchema, 
+  insertProductSchema, 
+  insertOrderSchema, 
+  insertOrderItemSchema,
+  insertRegionSchema
+} from "@shared/schema";
+
+// Middleware to check if user is authenticated
+const isAuthenticated = (req: Request, res: Response, next: Function) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Not authenticated" });
+};
+
+// Middleware to check if user is an admin
+const isAdmin = (req: Request, res: Response, next: Function) => {
+  if (req.isAuthenticated() && req.user.role === 'admin') {
+    return next();
+  }
+  res.status(403).json({ message: "Not authorized" });
+};
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication routes
+  setupAuth(app);
+
+  // Get all users (admin only)
+  app.get("/api/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.listUsers();
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+
+  // Get all representatives
+  app.get("/api/representatives", isAuthenticated, async (req, res) => {
+    try {
+      const representatives = await storage.listRepresentatives();
+      const repsWithoutPasswords = representatives.map(({ password, ...rep }) => rep);
+      res.json(repsWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching representatives" });
+    }
+  });
+
+  // REGIONS API
+
+  // Get all regions
+  app.get("/api/regions", isAuthenticated, async (req, res) => {
+    try {
+      const regions = await storage.listRegions();
+      res.json(regions);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching regions" });
+    }
+  });
+
+  // Create region (admin only)
+  app.post("/api/regions", isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertRegionSchema.parse(req.body);
+      const region = await storage.createRegion(validatedData);
+      res.status(201).json(region);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error creating region" });
+    }
+  });
+
+  // Update region (admin only)
+  app.put("/api/regions/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertRegionSchema.partial().parse(req.body);
+      const region = await storage.updateRegion(id, validatedData);
+      if (!region) {
+        return res.status(404).json({ message: "Region not found" });
+      }
+      res.json(region);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error updating region" });
+    }
+  });
+
+  // Delete region (admin only)
+  app.delete("/api/regions/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteRegion(id);
+      if (!success) {
+        return res.status(404).json({ message: "Region not found" });
+      }
+      res.json({ message: "Region deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting region" });
+    }
+  });
+
+  // CLIENTS API
+
+  // Get all clients
+  app.get("/api/clients", isAuthenticated, async (req, res) => {
+    try {
+      let clients;
+      // If rep, show only their clients
+      if (req.user.role === 'representative') {
+        clients = await storage.listClientsByRepresentative(req.user.id);
+      } else {
+        clients = await storage.listClients();
+      }
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching clients" });
+    }
+  });
+
+  // Search clients
+  app.get("/api/clients/search", isAuthenticated, async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      let clients = await storage.searchClients(q);
+      
+      // If representative, filter only their clients
+      if (req.user.role === 'representative') {
+        clients = clients.filter(client => client.representativeId === req.user.id);
+      }
+      
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Error searching clients" });
+    }
+  });
+
+  // Get client by ID
+  app.get("/api/clients/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const client = await storage.getClient(id);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to view this client" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client" });
+    }
+  });
+
+  // Create client
+  app.post("/api/clients", isAuthenticated, async (req, res) => {
+    try {
+      let validatedData = insertClientSchema.parse(req.body);
+      
+      // If representative, force their ID as representative
+      if (req.user.role === 'representative') {
+        validatedData = { ...validatedData, representativeId: req.user.id };
+      }
+      
+      const client = await storage.createClient(validatedData);
+      
+      // Add to history
+      await storage.addClientHistory({
+        clientId: client.id,
+        userId: req.user.id,
+        action: 'created',
+        details: { client }
+      });
+      
+      res.status(201).json(client);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error creating client" });
+    }
+  });
+
+  // Update client
+  app.put("/api/clients/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const client = await storage.getClient(id);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this client" });
+      }
+      
+      const validatedData = insertClientSchema.partial().parse(req.body);
+      
+      // If rep trying to change representativeId, prevent it
+      if (req.user.role === 'representative' && 
+          validatedData.representativeId && 
+          validatedData.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to change representative" });
+      }
+      
+      const updatedClient = await storage.updateClient(id, validatedData);
+      
+      // Add to history
+      await storage.addClientHistory({
+        clientId: id,
+        userId: req.user.id,
+        action: 'updated',
+        details: { 
+          before: client,
+          after: updatedClient
+        }
+      });
+      
+      res.json(updatedClient);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error updating client" });
+    }
+  });
+
+  // Get client history
+  app.get("/api/clients/:id/history", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const client = await storage.getClient(id);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to view this client's history" });
+      }
+      
+      const history = await storage.getClientHistory(id);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client history" });
+    }
+  });
+
+  // PRODUCTS API
+
+  // Get all products
+  app.get("/api/products", isAuthenticated, async (req, res) => {
+    try {
+      const products = await storage.listProducts();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching products" });
+    }
+  });
+
+  // Search products
+  app.get("/api/products/search", isAuthenticated, async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+      
+      const products = await storage.searchProducts(q);
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ message: "Error searching products" });
+    }
+  });
+
+  // Get product by ID
+  app.get("/api/products/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching product" });
+    }
+  });
+
+  // Create product (admin only)
+  app.post("/api/products", isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertProductSchema.parse(req.body);
+      const product = await storage.createProduct(validatedData);
+      res.status(201).json(product);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error creating product" });
+    }
+  });
+
+  // Update product
+  app.put("/api/products/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      
+      // Check if user is admin for certain fields
+      const validatedData = insertProductSchema.partial().parse(req.body);
+      
+      // If not admin, limit updatable fields
+      if (req.user.role !== 'admin') {
+        const { price, description, stockQuantity } = validatedData;
+        // Only allow updating these fields for non-admin users
+        const allowedUpdates = { price, description, stockQuantity };
+        Object.keys(allowedUpdates).forEach(key => {
+          if (allowedUpdates[key] === undefined) delete allowedUpdates[key];
+        });
+        
+        const updatedProduct = await storage.updateProduct(id, allowedUpdates);
+        return res.json(updatedProduct);
+      }
+      
+      const updatedProduct = await storage.updateProduct(id, validatedData);
+      res.json(updatedProduct);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error updating product" });
+    }
+  });
+
+  // Import products (admin only)
+  app.post("/api/products/import", isAdmin, async (req, res) => {
+    try {
+      const products = req.body;
+      
+      if (!Array.isArray(products)) {
+        return res.status(400).json({ message: "Expected array of products" });
+      }
+      
+      // Validate each product
+      const validatedProducts = [];
+      for (const product of products) {
+        try {
+          const validatedProduct = insertProductSchema.parse(product);
+          validatedProducts.push(validatedProduct);
+        } catch (error) {
+          // Skip invalid products
+          continue;
+        }
+      }
+      
+      if (validatedProducts.length === 0) {
+        return res.status(400).json({ message: "No valid products found" });
+      }
+      
+      const count = await storage.importProducts(validatedProducts);
+      res.status(201).json({ message: `${count} products imported successfully` });
+    } catch (error) {
+      res.status(500).json({ message: "Error importing products" });
+    }
+  });
+
+  // DISCOUNTS API
+
+  // Get all discounts
+  app.get("/api/discounts", isAuthenticated, async (req, res) => {
+    try {
+      const discounts = await storage.listDiscounts();
+      res.json(discounts);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching discounts" });
+    }
+  });
+
+  // ORDERS API
+
+  // Get all orders
+  app.get("/api/orders", isAuthenticated, async (req, res) => {
+    try {
+      let orders;
+      // If rep, show only their orders
+      if (req.user.role === 'representative') {
+        orders = await storage.listOrdersByRepresentative(req.user.id);
+      } else {
+        orders = await storage.listOrders();
+      }
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching orders" });
+    }
+  });
+
+  // Get order by ID with items
+  app.get("/api/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const orderData = await storage.getOrderWithItems(id);
+      
+      if (!orderData) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if rep has access to this order
+      if (req.user.role === 'representative' && orderData.order.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to view this order" });
+      }
+      
+      res.json(orderData);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching order" });
+    }
+  });
+
+  // Get orders by client
+  app.get("/api/clients/:id/orders", isAuthenticated, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to view this client's orders" });
+      }
+      
+      const orders = await storage.listOrdersByClient(clientId);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching client orders" });
+    }
+  });
+
+  // Create order
+  app.post("/api/orders", isAuthenticated, async (req, res) => {
+    try {
+      let { order, items } = req.body;
+      
+      if (!order || !items || !Array.isArray(items)) {
+        return res.status(400).json({ message: "Invalid order data" });
+      }
+      
+      // Validate order
+      let validatedOrder = insertOrderSchema.parse(order);
+      
+      // If representative, force their ID as representative
+      if (req.user.role === 'representative') {
+        validatedOrder = { ...validatedOrder, representativeId: req.user.id };
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative') {
+        const client = await storage.getClient(validatedOrder.clientId);
+        if (!client || client.representativeId !== req.user.id) {
+          return res.status(403).json({ message: "Not authorized to create order for this client" });
+        }
+      }
+      
+      // Create order
+      const newOrder = await storage.createOrder(validatedOrder);
+      
+      // Create order items
+      const orderItems = [];
+      for (const item of items) {
+        try {
+          const validatedItem = insertOrderItemSchema.parse({
+            ...item,
+            orderId: newOrder.id
+          });
+          
+          const newItem = await storage.createOrderItem(validatedItem);
+          orderItems.push(newItem);
+        } catch (error) {
+          // Log error and continue
+          console.error("Error creating order item:", error);
+        }
+      }
+      
+      res.status(201).json({
+        order: newOrder,
+        items: orderItems
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error creating order:", error);
+      res.status(500).json({ message: "Error creating order" });
+    }
+  });
+
+  // Update order status
+  app.put("/api/orders/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || !['cotacao', 'confirmado'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const order = await storage.getOrder(id);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if rep has access to this order
+      if (req.user.role === 'representative' && order.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this order" });
+      }
+      
+      const updatedOrder = await storage.updateOrderStatus(id, status);
+      res.json(updatedOrder);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating order status" });
+    }
+  });
+
+  // DASHBOARD/STATS API
+
+  // Get dashboard stats
+  app.get("/api/stats/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const orderStats = await storage.getOrderStats();
+      const productStats = await storage.getProductStats();
+      const clientStats = await storage.getClientStats();
+      
+      res.json({
+        orders: orderStats,
+        products: productStats,
+        clients: clientStats
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching dashboard stats" });
+    }
+  });
+
+  // Get sales by representative
+  app.get("/api/stats/sales-by-representative", isAuthenticated, async (req, res) => {
+    try {
+      const salesByRep = await storage.getSalesByRepresentative();
+      res.json(salesByRep);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching sales by representative" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
