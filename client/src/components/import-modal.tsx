@@ -47,28 +47,71 @@ export function ImportModal({
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
-        const { data, errors } = results;
+      transformHeader: function(header) {
+        // Normalizar cabeçalhos para evitar duplicatas
+        const normalizedHeader = header.trim().toLowerCase();
+        
+        // Mapeamento de cabeçalhos comuns para nomes padronizados
+        if (normalizedHeader.includes('cod') || normalizedHeader.includes('código')) {
+          return 'code';
+        } else if (normalizedHeader.includes('nome')) {
+          return 'name';
+        } else if (normalizedHeader.includes('cidade')) {
+          return 'city';
+        } else if (normalizedHeader.includes('cnpj')) {
+          return 'cnpj';
+        } else if (normalizedHeader.includes('whatsapp') || normalizedHeader.includes('telefone') || normalizedHeader.includes('fone')) {
+          return 'phone';
+        } else if (normalizedHeader.includes('endereço') || normalizedHeader.includes('endereco')) {
+          return 'address';
+        } else if (normalizedHeader.includes('estado') || normalizedHeader.includes('uf')) {
+          return 'state';
+        } else if (normalizedHeader.includes('email') || normalizedHeader.includes('e-mail')) {
+          return 'email';
+        }
+        
+        // Se não tiver um mapeamento específico, manter o cabeçalho original
+        return header;
+      },
+      complete: (results: any) => {
+        const { data, errors, meta } = results;
         
         if (errors.length > 0) {
-          setError("Erro ao processar o arquivo. Verifique o formato.");
+          console.warn("Erros durante o parse:", errors);
+          setError(`Erro ao processar o arquivo: ${errors[0].message || "Formato inválido"}`);
           return;
         }
         
-        // Basic validation of required fields
-        const firstRow = data[0] as Record<string, any>;
-        const missingFields = templateFields.filter(field => !Object.keys(firstRow).includes(field));
+        // Log para debug
+        console.log("Meta info:", meta);
+        console.log("Primeiras linhas:", data.slice(0, 2));
         
-        if (missingFields.length > 0) {
-          setError(`Campos obrigatórios não encontrados: ${missingFields.join(", ")}`);
+        if (data.length === 0) {
+          setError("Arquivo vazio ou sem dados válidos.");
+          return;
+        }
+        
+        // Verificar se temos pelo menos os campos mínimos necessários
+        const firstRow = data[0];
+        if (!firstRow) {
+          setError("Não foi possível ler os dados do arquivo.");
+          return;
+        }
+        
+        // Verificar se temos pelo menos nome e/ou código para identificar o cliente
+        const hasRequiredFields = firstRow.hasOwnProperty('name') || firstRow.hasOwnProperty('code');
+        
+        if (!hasRequiredFields) {
+          setError("O arquivo deve conter pelo menos o nome ou código do cliente.");
           return;
         }
         
         setParsedData(data);
         setPreview(true);
       },
-      error: () => {
-        setError("Erro ao processar o arquivo. Verifique o formato.");
+      error: (error) => {
+        console.error("Erro no parse:", error);
+        setError(`Erro ao processar o arquivo: ${error.message || "Formato inválido"}`);
       }
     });
   };

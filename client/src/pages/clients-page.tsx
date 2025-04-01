@@ -116,17 +116,19 @@ export default function ClientsPage() {
       for (const client of clients) {
         try {
           // Mapear os campos da estrutura importada para a estrutura esperada pela API
-          // Tratando os possíveis nomes de campos do arquivo importado
+          console.log("Processando cliente:", client);
+          
           const clientData = {
-            name: client.name || client["Nome do Cliente"] || client["NOME"] || "",
-            code: client.code || client["Código do Cliente"] || client["Cod. do Cliente"] || client["CODIGO"] || "",
-            cnpj: client.cnpj || client["CNPJ"] || "",
-            city: client.city || client["Cidade"] || client["CIDADE"] || "",
-            phone: client.phone || client["WhatsApp"] || client["Whatsapp"] || client["TELEFONE"] || client["WHATSAPP"] || "",
+            // Dados obrigatórios com valores padrão
+            name: client.name || "",
+            code: client.code || "",
+            cnpj: client.cnpj || "",
+            city: client.city || "",
+            phone: client.phone || "",
             // Campos opcionais mas úteis
-            address: client.address || client["Endereço"] || client["ENDERECO"] || "",
-            state: client.state || client["Estado"] || client["ESTADO"] || "",
-            email: client.email || client["Email"] || client["EMAIL"] || "",
+            address: client.address || "",
+            state: client.state || "",
+            email: client.email || "",
             // Para representantes, usar o ID do usuário logado
             representativeId: client.representativeId 
               ? parseInt(client.representativeId) 
@@ -136,21 +138,51 @@ export default function ClientsPage() {
           };
           
           // Verificar campos obrigatórios
-          if (!clientData.name || !clientData.code || !clientData.cnpj) {
-            throw new Error(`Cliente com dados incompletos: ${clientData.name || clientData.code || "Desconhecido"}`);
+          if (!clientData.name) {
+            throw new Error(`Nome do cliente não informado`);
+          }
+          
+          if (!clientData.code) {
+            // Gerar código baseado no nome se estiver vazio
+            clientData.code = `CL${Date.now().toString().substring(5)}`;
+          }
+          
+          // CNPJ é obrigatório para clientes brasileiros
+          if (!clientData.cnpj) {
+            throw new Error(`CNPJ não informado para o cliente: ${clientData.name}`);
           }
           
           // Formatação do CNPJ (remover caracteres não numéricos)
-          clientData.cnpj = clientData.cnpj.replace(/\D/g, "");
+          clientData.cnpj = clientData.cnpj.toString().replace(/\D/g, "");
           
-          await apiRequest("POST", "/api/clients", clientData);
-          successfulImports.push(clientData);
+          // Validação mínima de CNPJ (pelo menos 14 dígitos)
+          if (clientData.cnpj.length < 14) {
+            clientData.cnpj = clientData.cnpj.padStart(14, '0');
+          }
+          
+          console.log("Dados do cliente formatados:", clientData);
+          
+          const response = await apiRequest("POST", "/api/clients", clientData);
+          const responseData = await response.json();
+          successfulImports.push(responseData);
         } catch (error: any) {
+          // Capturar erro específico ou mensagem genérica se for objeto vazio
+          let errorMessage = "Erro desconhecido";
+          
+          if (error instanceof Error) {
+            errorMessage = error.message || "Erro na importação";
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          } else if (error && Object.keys(error).length === 0) {
+            errorMessage = "Erro de formato ou validação de dados";
+          }
+          
           errors.push({ 
-            name: client.name || client["Nome do Cliente"] || "Desconhecido", 
-            error: error.message 
+            name: client.name || "Cliente sem nome", 
+            error: errorMessage
           });
-          console.error("Erro ao importar cliente:", error);
+          
+          console.error("Erro ao importar cliente:", client, error);
         }
       }
 
