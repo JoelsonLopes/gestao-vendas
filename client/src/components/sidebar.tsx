@@ -26,7 +26,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Mobile overlay */}
       {open && isMobile && (
         <div 
-          className="fixed inset-0 bg-gray-600 bg-opacity-75 z-10"
+          className="fixed inset-0 bg-black bg-opacity-75 z-10"
           onClick={() => setOpen(false)}
         />
       )}
@@ -39,15 +39,15 @@ export function Sidebar({ className }: SidebarProps) {
           className
         )}
       >
-        <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-0 lg:h-full flex-1">
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="w-64 border-r border-gray-700 dark:border-blue-900 bg-gray-900 dark:bg-black flex flex-col h-0 lg:h-full flex-1">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-blue-900 dark:border-purple-900 bg-gradient-to-r from-blue-900 to-black">
             <Logo />
             
             {/* Close button (mobile only) */}
             {isMobile && (
               <button
                 onClick={() => setOpen(false)}
-                className="p-2 rounded-md inline-flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                className="p-2 rounded-md inline-flex items-center justify-center text-blue-300 hover:text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 dark:text-purple-300 dark:hover:text-white dark:hover:bg-purple-900"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -64,7 +64,7 @@ export function Sidebar({ className }: SidebarProps) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="lg:hidden fixed bottom-4 right-4 z-10 p-3 rounded-full bg-primary-600 text-white shadow-lg focus:outline-none"
+          className="lg:hidden fixed bottom-4 right-4 z-10 p-3 rounded-full bg-gradient-to-r from-blue-700 to-purple-700 text-white shadow-lg focus:outline-none"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

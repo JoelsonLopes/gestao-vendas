@@ -110,8 +110,8 @@ export function MainNav({
               className={cn(
                 "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
                 location === item.href
-                  ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                  ? "bg-blue-900 bg-opacity-40 text-white border-l-4 border-purple-500"
+                  : "text-gray-300 hover:bg-blue-900 hover:bg-opacity-20 hover:text-white hover:border-l-4 hover:border-purple-400"
               )}
             >
               {item.icon}

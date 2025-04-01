@@ -76,16 +76,16 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex">
       {/* Auth Form Side */}
-      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-black dark:bg-black">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
             <Logo />
           </div>
           
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
             Sistema de Gestão de Pedidos
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-purple-400">
             Faça login ou crie uma conta para continuar
           </p>
           
@@ -252,12 +252,12 @@ export default function AuthPage() {
       </div>
       
       {/* Hero Side */}
-      <div className="hidden md:flex md:flex-1 bg-gradient-to-r from-primary-600 to-indigo-600 text-white flex-col justify-center px-12">
+      <div className="hidden md:flex md:flex-1 bg-gradient-to-r from-blue-900 to-purple-900 text-white flex-col justify-center px-12">
         <div className="max-w-xl">
           <h1 className="text-4xl font-extrabold mb-6">
             Gestão de Pedidos de forma simples e eficiente
           </h1>
-          <p className="text-xl mb-8">
+          <p className="text-xl mb-8 text-blue-200">
             Gerencie clientes, produtos e pedidos em uma única plataforma integrada. 
             Aumente sua produtividade e organização.
           </p>
@@ -265,35 +265,35 @@ export default function AuthPage() {
           <div className="space-y-4">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="ml-3 text-lg">Cadastro e gestão de clientes</p>
+              <p className="ml-3 text-lg text-blue-100">Cadastro e gestão de clientes</p>
             </div>
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="ml-3 text-lg">Catálogo completo de produtos</p>
+              <p className="ml-3 text-lg text-blue-100">Catálogo completo de produtos</p>
             </div>
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="ml-3 text-lg">Gestão de pedidos completa</p>
+              <p className="ml-3 text-lg text-blue-100">Gestão de pedidos completa</p>
             </div>
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-indigo-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="ml-3 text-lg">Relatórios e estatísticas detalhadas</p>
+              <p className="ml-3 text-lg text-blue-100">Relatórios e estatísticas detalhadas</p>
             </div>
           </div>
         </div>

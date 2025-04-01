@@ -13,10 +13,10 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, icon, color = "primary", href }: StatsCardProps) {
   const colorMap = {
-    primary: "bg-primary-500 text-white",
-    green: "bg-green-500 text-white",
-    yellow: "bg-yellow-500 text-white",
-    purple: "bg-purple-500 text-white",
+    primary: "bg-blue-600 text-white",
+    green: "bg-blue-800 text-white",
+    yellow: "bg-indigo-600 text-white",
+    purple: "bg-purple-600 text-white",
   };
 
   const cardContent = (
@@ -38,10 +38,13 @@ export function StatsCard({ title, value, icon, color = "primary", href }: Stats
           </div>
         </div>
         {href && (
-          <div className="bg-gray-50 dark:bg-gray-700 px-5 py-3">
+          <div className="bg-gray-100 dark:bg-gray-800 px-5 py-3">
             <div className="text-sm">
-              <Link to={href} className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
-                Ver todos
+              <Link to={href} className="font-medium text-blue-600 hover:text-purple-600 dark:text-purple-400 dark:hover:text-blue-400 flex items-center">
+                <span>Ver todos</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
           </div>

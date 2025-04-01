@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const recentOrders = orders?.slice(0, 5) || [];
 
   // Colors for charts
-  const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const COLORS = ['#3b82f6', '#8b5cf6', '#6d28d9', '#1e40af', '#0f172a'];
 
   // Prepare data for orders status chart
   const orderStatusData = stats?.orders ? [
@@ -162,7 +162,7 @@ export default function DashboardPage() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip formatter={(value) => [formatCurrency(value as number), 'Total']} />
-                      <Bar dataKey="totalValue" fill="#3b82f6" name="Valor Total" />
+                      <Bar dataKey="totalValue" fill="#8b5cf6" name="Valor Total" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
