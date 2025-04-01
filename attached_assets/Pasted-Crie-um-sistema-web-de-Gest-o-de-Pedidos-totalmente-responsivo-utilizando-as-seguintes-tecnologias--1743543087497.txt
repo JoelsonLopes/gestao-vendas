@@ -1,0 +1,86 @@
+Crie um sistema web de Gestão de Pedidos totalmente responsivo, utilizando as seguintes tecnologias:
+
+Frontend: React (com Tailwind CSS para estilização moderna e responsiva).
+
+Backend: Node.js com Express.js.
+
+Banco de Dados: Supabase (PostgreSQL).
+
+Autenticação: Supabase Auth (com suporte para login via e-mail e Google).
+
+Exportação de PDFs: Utilizar a biblioteca jsPDF para geração de pedidos em PDF.
+
+Importação de CSV/Excel: Implementar funcionalidade para importar clientes e produtos via papaparse.
+
+📌 Funcionalidades do Sistema:
+1️⃣ Gestão de Usuários
+Criar Administradores e Representantes com diferentes níveis de acesso.
+
+O Administrador pode criar Regiões e associar Representantes a elas.
+
+No cadastro de um Representante, deve haver uma opção para importar uma lista de clientes via CSV/Excel.
+
+O Representante verá apenas os clientes que lhe foram atribuídos.
+
+Login via e-mail/senha ou Google.
+
+2️⃣ Cadastro e Gestão de Clientes
+Pesquisa rápida por Nome, CNPJ ou Código do Cliente.
+
+Permitir edição de clientes com histórico de modificações.
+
+Exibir histórico de pedidos realizados por cada cliente.
+
+3️⃣ Catálogo de Produtos
+Importação em massa de 4.385 produtos via CSV/Excel.
+
+Pesquisa dinâmica por Nome, Categoria, Marca ou Código de Barras.
+
+Conversão de Marcas (um produto pode ter equivalência com outra marca).
+
+Edição inline de preços, descrição e estoque.
+
+4️⃣ Gestão de Pedidos
+Criar pedidos rapidamente associando Cliente + Produtos + Condições de Pagamento.
+
+Status de pedido: Cotação ou Confirmado.
+
+Aplicação de descontos por item baseado na seguinte tabela:
+
+Nome	Percentual	Comissão
+2*5	9,75%	7%
+3*5	14,26%	6%
+4*5	18,54%	5%
+5*5	22,62%	4%
+6*5	26,50%	3%
+7*5	30,17%	2%
+8*5	33,64%	2%
+8*5+3	35,65%	2%
+Cada item adicionado ao pedido terá um select para escolher o desconto.
+
+O sistema recalculará o preço unitário automaticamente.
+
+Após criar o pedido, permitir exportação para PDF para envio ao cliente e empresa.
+
+5️⃣ Relatórios e Dashboard
+Relatório de Vendas por Representante.
+
+Pedidos em Aberto vs. Finalizados.
+
+Listagem de Produtos Mais Vendidos.
+
+Clientes Ativos vs. Inativos.
+
+6️⃣ Integrações e Extras
+Exportação de Dados: Permitir gerar PDF/Excel de pedidos e clientes.
+
+Multiusuário: Representantes acessam simultaneamente sem interferência.
+
+💻 Requisitos Técnicos:
+O sistema deve ser totalmente responsivo, adaptando-se a desktop, tablets e mobile.
+
+Interface moderna e intuitiva usando Tailwind CSS.
+
+API bem estruturada no backend para garantir rapidez e eficiência.
+
+Deploy no Vercel (frontend) e Railway (backend e banco de dados).
