@@ -41,6 +41,8 @@ export default function ProductsPage() {
     barcode: z.string().optional(),
     category: z.string().optional(),
     brand: z.string().optional(),
+    conversion: z.string().optional(),
+    conversionBrand: z.string().optional(),
     equivalentBrands: z.array(z.string()).optional(),
     price: z.coerce.number().positive("Preço deve ser positivo"),
     stockQuantity: z.coerce.number().int().default(0),
@@ -165,6 +167,8 @@ export default function ProductsPage() {
       barcode: "",
       category: "",
       brand: "",
+      conversion: "",
+      conversionBrand: "",
       equivalentBrands: [],
       price: 0,
       stockQuantity: 0,
@@ -183,6 +187,8 @@ export default function ProductsPage() {
       barcode: product.barcode || "",
       category: product.category || "",
       brand: product.brand || "",
+      conversion: product.conversion || "",
+      conversionBrand: product.conversionBrand || "",
       equivalentBrands: product.equivalentBrands || [],
       price: Number(product.price),
       stockQuantity: product.stockQuantity || 0,
@@ -214,6 +220,10 @@ export default function ProductsPage() {
           barcode: item.barcode || item.Barcode || item.codigoBarras || item.CODIGOBARRAS || item.ean || item.EAN || "",
           category: item.category || item.Category || item.categoria || item.CATEGORIA || "",
           brand: item.brand || item.Brand || item.marca || item.MARCA || "",
+          
+          // Campos de conversão
+          conversion: item.conversion || item.Conversion || item.conversao || item.CONVERSAO || item.codigoConversao || item.CODIGOCONVERSAO || null,
+          conversionBrand: item.conversionBrand || item.ConversionBrand || item.marcaConversao || item.MARCACONVERSAO || item.marcaConv || item.MARCACONV || null,
           
           // Campos numéricos precisam ser convertidos corretamente
           price: parseFloat(String(item.price || item.Price || item.preco || item.PRECO || item.valor || item.VALOR || "0").replace(',', '.')),
@@ -340,6 +350,16 @@ export default function ProductsPage() {
               {
                 header: "Marca",
                 accessorKey: "brand",
+                sortable: true,
+              },
+              {
+                header: "Código Conv.",
+                accessorKey: "conversion",
+                sortable: true,
+              },
+              {
+                header: "Marca Conv.",
+                accessorKey: "conversionBrand",
                 sortable: true,
               },
               {
@@ -560,6 +580,34 @@ export default function ProductsPage() {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="conversion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Código de Conversão</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Código equivalente" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="conversionBrand"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Marca de Conversão</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Marca equivalente" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
@@ -623,7 +671,7 @@ export default function ProductsPage() {
           onImport={handleImport}
           title="Importar Produtos"
           description="Importe seu catálogo de produtos a partir de arquivo CSV ou Excel. O sistema reconhecerá diferentes formatos de cabeçalho."
-          templateFields={["name", "code", "description", "barcode", "category", "brand", "price", "stockQuantity", "active"]}
+          templateFields={["code", "name", "price", "brand", "conversion", "conversionBrand", "description", "category", "stockQuantity", "active"]}
           loading={importProductsMutation.isPending}
         />
       </div>

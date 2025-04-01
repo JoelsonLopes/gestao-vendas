@@ -53,12 +53,15 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  code: text("code").notNull().unique(),
+  code: text("code").notNull().unique(), // IdProduto na sua tabela
   barcode: text("barcode"),
   category: text("category"),
-  brand: text("brand"),
+  brand: text("brand"), // Marca na sua tabela
+  // Novos campos adicionados com base na sua estrutura
+  conversion: text("conversion"), // Conversao na sua tabela
+  conversionBrand: text("conversion_brand"), // MarcaConversao na sua tabela
   equivalentBrands: json("equivalent_brands").$type<string[]>(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // Preco na sua tabela
   stockQuantity: integer("stock_quantity").default(0),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),

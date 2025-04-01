@@ -408,12 +408,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Converter tipos de dados para o formato correto
           const processedProduct = {
             ...product,
+            code: product.code || '',
+            name: product.name || `Produto ${i+1}`,
             price: typeof product.price === 'number' ? 
               product.price.toString() : 
               (typeof product.price === 'string' ? product.price : '0'),
             stockQuantity: typeof product.stockQuantity === 'number' ? 
               product.stockQuantity : 
-              (typeof product.stockQuantity === 'string' ? parseInt(product.stockQuantity) || 0 : 0)
+              (typeof product.stockQuantity === 'string' ? parseInt(product.stockQuantity) || 0 : 0),
+            // Novos campos de conversão
+            conversion: product.conversion || null,
+            conversionBrand: product.conversionBrand || null
           };
           
           // Validar usando o esquema Zod

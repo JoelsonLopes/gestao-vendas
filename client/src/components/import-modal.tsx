@@ -52,22 +52,28 @@ export function ImportModal({
         const normalizedHeader = header.trim().toLowerCase();
         
         // Mapeamento de cabeçalhos comuns para nomes padronizados
-        if (normalizedHeader.includes('cod') || normalizedHeader.includes('código')) {
+        if (normalizedHeader.includes('idproduto') || normalizedHeader.includes('cod') || normalizedHeader.includes('código')) {
           return 'code';
-        } else if (normalizedHeader.includes('nome')) {
+        } else if (normalizedHeader.includes('nome') || normalizedHeader === 'produto') {
           return 'name';
-        } else if (normalizedHeader.includes('cidade')) {
-          return 'city';
-        } else if (normalizedHeader.includes('cnpj')) {
-          return 'cnpj';
-        } else if (normalizedHeader.includes('whatsapp') || normalizedHeader.includes('telefone') || normalizedHeader.includes('fone')) {
-          return 'phone';
-        } else if (normalizedHeader.includes('endereço') || normalizedHeader.includes('endereco')) {
-          return 'address';
-        } else if (normalizedHeader.includes('estado') || normalizedHeader.includes('uf')) {
-          return 'state';
-        } else if (normalizedHeader.includes('email') || normalizedHeader.includes('e-mail')) {
-          return 'email';
+        } else if (normalizedHeader.includes('preço') || normalizedHeader === 'preco' || normalizedHeader === 'valor') {
+          return 'price';
+        } else if (normalizedHeader === 'marca') {
+          return 'brand';
+        } else if (normalizedHeader === 'conversao' || normalizedHeader === 'conversão') {
+          return 'conversion';
+        } else if (normalizedHeader === 'marcaconversao' || normalizedHeader.includes('marca conversão')) {
+          return 'conversionBrand';
+        } else if (normalizedHeader.includes('descrição') || normalizedHeader.includes('descricao')) {
+          return 'description';
+        } else if (normalizedHeader.includes('categoria') || normalizedHeader === 'category') {
+          return 'category';
+        } else if (normalizedHeader.includes('estoque') || normalizedHeader.includes('quantidade')) {
+          return 'stockQuantity';
+        } else if (normalizedHeader.includes('barras') || normalizedHeader === 'ean' || normalizedHeader === 'barcode') {
+          return 'barcode';
+        } else if (normalizedHeader.includes('ativo') || normalizedHeader === 'status' || normalizedHeader === 'active') {
+          return 'active';
         }
         
         // Se não tiver um mapeamento específico, manter o cabeçalho original
@@ -98,11 +104,11 @@ export function ImportModal({
           return;
         }
         
-        // Verificar se temos pelo menos nome e/ou código para identificar o cliente
+        // Verificar se temos pelo menos nome e/ou código para identificar o produto
         const hasRequiredFields = firstRow.hasOwnProperty('name') || firstRow.hasOwnProperty('code');
         
         if (!hasRequiredFields) {
-          setError("O arquivo deve conter pelo menos o nome ou código do cliente.");
+          setError("O arquivo deve conter pelo menos o nome ou código do produto.");
           return;
         }
         
@@ -136,19 +142,37 @@ export function ImportModal({
     templateFields.forEach(field => {
       switch(field) {
         case 'code':
-          headers.push('Código do Cliente');
+          headers.push('IdProduto');
           break;
         case 'name':
-          headers.push('Nome do Cliente');
+          headers.push('Nome');
           break;
-        case 'city':
-          headers.push('Cidade');
+        case 'price':
+          headers.push('Preco');
           break;
-        case 'cnpj':
-          headers.push('CNPJ');
+        case 'brand':
+          headers.push('Marca');
           break;
-        case 'phone':
-          headers.push('WhatsApp');
+        case 'conversion':
+          headers.push('Conversao');
+          break;
+        case 'conversionBrand':
+          headers.push('MarcaConversao');
+          break;
+        case 'description':
+          headers.push('Descricao');
+          break;
+        case 'category':
+          headers.push('Categoria');
+          break;
+        case 'stockQuantity':
+          headers.push('Estoque');
+          break;
+        case 'barcode':
+          headers.push('CodigoBarras');
+          break;
+        case 'active':
+          headers.push('Ativo');
           break;
         default:
           headers.push(field);
@@ -160,7 +184,7 @@ export function ImportModal({
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", "modelo-importacao-clientes.csv");
+    link.setAttribute("download", "modelo-importacao-produtos.csv");
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -217,13 +241,15 @@ export function ImportModal({
                       Campos aceitos:
                     </Label>
                     <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
-                      <li>Código / Cod / CODIGO / code</li>
+                      <li>Código / IdProduto / Cod / CODIGO / code</li>
                       <li>Nome / Produto / NOME / name</li>
+                      <li>Preço / Preco / PRECO / price</li>
+                      <li>Marca / MARCA / brand</li>
+                      <li>Conversao / Conversão / conversion</li>
+                      <li>MarcaConversao / Marca Conversão / conversionBrand</li>
                       <li>Descrição / Description / DESCRICAO</li>
-                      <li>Preço / Valor / PRECO / price</li>
-                      <li>Estoque / Quantidade / stockQuantity</li>
                       <li>Categoria / Category / CATEGORIA</li>
-                      <li>Marca / Brand / MARCA</li>
+                      <li>Estoque / Quantidade / stockQuantity</li>
                       <li>Código de Barras / EAN / barcode</li>
                       <li>Ativo / Status / active</li>
                     </ul>
