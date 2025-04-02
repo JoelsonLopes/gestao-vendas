@@ -148,7 +148,15 @@ export function DataTable<T>({
                 >
                   {columns.map((column, index) => (
                     <TableCell key={index}>
-                      {column.cell ? column.cell(item) : String(item[column.accessorKey] || '')}
+                      {column.cell ? (
+                        column.cell(item)
+                      ) : column.accessorKey === 'conversion' && item[column.accessorKey] ? (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                          {String(item[column.accessorKey])}
+                        </span>
+                      ) : (
+                        String(item[column.accessorKey] || '')
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

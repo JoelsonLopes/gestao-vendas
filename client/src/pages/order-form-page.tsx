@@ -781,7 +781,11 @@ export default function OrderFormPage() {
                   return (
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle text-sm">
-                        {item.product?.conversion || '-'}
+                        {item.product?.conversion ? (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                            {item.product.conversion}
+                          </span>
+                        ) : '-'}
                       </td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
@@ -983,7 +987,7 @@ export default function OrderFormPage() {
                               <TableRow key={index}>
                                 <TableCell>
                                   {item.product?.conversion ? (
-                                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
+                                    <span className="px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-medium">
                                       {item.product.conversion}
                                     </span>
                                   ) : (
