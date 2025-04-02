@@ -37,6 +37,9 @@ export default function OrdersPage() {
     refetchOnMount: true, // Recarregar quando o componente montar
   });
   
+  // Estado para armazenar informações de itens por pedido (quantidade total de peças e comissão)
+  const [orderItemsMap, setOrderItemsMap] = useState<{[orderId: number]: {totalItems: number, totalCommission: number}}>({});
+  
   // Fetch clients for filter
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -45,6 +48,48 @@ export default function OrdersPage() {
   // Fetch discounts for display in pdf
   const { data: discounts } = useQuery<any[]>({
     queryKey: ["/api/discounts"],
+  });
+  
+  // Buscar e calcular os totais de itens e comissão para cada pedido
+  useQuery({
+    queryKey: ["orderItemsCalculation"],
+    queryFn: async () => {
+      if (!orders || orders.length === 0) return {};
+      
+      const newOrderItemsMap: {[orderId: number]: {totalItems: number, totalCommission: number}} = {};
+      
+      // Para cada pedido, buscar seus itens
+      for (const order of orders) {
+        try {
+          const response = await fetch(`/api/orders/${order.id}/items`);
+          const orderItems: OrderItem[] = await response.json();
+          
+          if (orderItems && orderItems.length > 0) {
+            // Calcular total de peças (soma das quantidades)
+            const totalItems = orderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
+            
+            // Calcular comissão total
+            let totalCommission = 0;
+            if (order.status === 'confirmado') {
+              totalCommission = orderItems.reduce((sum, item) => {
+                const unitPrice = Number(item.unitPrice || 0);
+                const quantity = Number(item.quantity || 0);
+                const commission = Number(item.commission || 0);
+                return sum + (unitPrice * quantity * commission / 100);
+              }, 0);
+            }
+            
+            newOrderItemsMap[order.id] = { totalItems, totalCommission };
+          }
+        } catch (error) {
+          console.error(`Erro ao buscar itens do pedido ${order.id}:`, error);
+        }
+      }
+      
+      setOrderItemsMap(newOrderItemsMap);
+      return newOrderItemsMap;
+    },
+    enabled: !!orders && orders.length > 0,
   });
   
   // Fetch order items for selected order
@@ -309,10 +354,29 @@ export default function OrdersPage() {
                 sortable: true,
               },
               {
+                header: "Qtd. Peças",
+                accessorKey: "id", // Usamos id como acessor, pois não temos uma propriedade de qtd na tabela
+                cell: (order) => {
+                  const orderDetails = orderItemsMap[order.id];
+                  return orderDetails ? orderDetails.totalItems : "-";
+                },
+                sortable: false,
+              },
+              {
                 header: "Total",
                 accessorKey: "total",
                 cell: (order) => formatCurrency(Number(order.total)),
                 sortable: true,
+              },
+              {
+                header: "Comissão",
+                accessorKey: "id", // Usamos id como acessor
+                cell: (order) => {
+                  if (order.status !== 'confirmado') return "-";
+                  const orderDetails = orderItemsMap[order.id];
+                  return orderDetails ? formatCurrency(orderDetails.totalCommission) : "-";
+                },
+                sortable: false,
               },
               {
                 header: "Ações",
