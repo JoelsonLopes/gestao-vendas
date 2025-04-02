@@ -82,6 +82,15 @@ export default function OrderFormPage() {
   const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totals, setTotals] = useState<{
+    subtotal: number;
+    taxes: number;
+    total: number;
+  }>({
+    subtotal: 0,
+    taxes: 0,
+    total: 0,
+  });
   
   // Get clients
   const clientsQuery = useQuery<Client[]>({
@@ -243,8 +252,8 @@ export default function OrderFormPage() {
     }
   }, [isEditMode, orderItemsData, products]);
   
-  // Calculate order totals
-  const calculateTotals = () => {
+  // Calculate order totals and update the state
+  useEffect(() => {
     // O subtotal é a soma dos subtotais de cada item (que já incluem o desconto)
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
     
@@ -260,14 +269,12 @@ export default function OrderFormPage() {
       - Total: ${formatCurrency(total)}
     `);
     
-    return {
+    setTotals({
       subtotal: Number(subtotal.toFixed(2)),
       taxes: Number(taxes.toFixed(2)),
       total: Number(total.toFixed(2)),
-    };
-  };
-  
-  const totals = calculateTotals();
+    });
+  }, [orderItems, isEditMode, order]);
   
   // Add product to order
   const addProductToOrder = () => {
