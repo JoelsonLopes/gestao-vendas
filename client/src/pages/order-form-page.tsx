@@ -668,14 +668,7 @@ export default function OrderFormPage() {
                   )}
                   Salvar Alterações
                 </Button>
-                <Button 
-                  className="bg-green-600 hover:bg-green-700 text-white" 
-                  disabled={status === "confirmado"} 
-                  onClick={() => updateOrderStatus("confirmado")}
-                >
-                  <Check className="mr-2 h-4 w-4" />
-                  Confirmar Pedido
-                </Button>
+
               </>
             ) : (
               <Button onClick={saveOrder} disabled={isSubmitting}>
