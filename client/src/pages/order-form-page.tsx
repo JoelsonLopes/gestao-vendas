@@ -509,6 +509,7 @@ export default function OrderFormPage() {
         id: item.productId,
         name: item.product?.name || `Produto #${item.productId}`,
         code: item.product?.code || "",
+        clientRef: item.product?.conversion || null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discountPercentage,
@@ -692,6 +693,7 @@ export default function OrderFormPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead>Ref. Cliente</TableHead>
                             <TableHead>Produto</TableHead>
                             <TableHead>Qtde</TableHead>
                             <TableHead>Valor Unit.</TableHead>
@@ -704,13 +706,16 @@ export default function OrderFormPage() {
                         <TableBody>
                           {orderItems.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center py-4">
+                              <TableCell colSpan={8} className="text-center py-4">
                                 Nenhum produto adicionado ao pedido
                               </TableCell>
                             </TableRow>
                           ) : (
                             orderItems.map((item, index) => (
                               <TableRow key={index}>
+                                <TableCell>
+                                  {item.product?.conversion || "-"}
+                                </TableCell>
                                 <TableCell className="font-medium">
                                   <div>
                                     <p>{item.product?.name || `Produto #${item.productId}`}</p>

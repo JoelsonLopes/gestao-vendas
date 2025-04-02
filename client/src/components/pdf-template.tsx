@@ -8,6 +8,7 @@ interface PdfItem {
   id: number;
   name: string;
   code: string;
+  clientRef?: string | null;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -88,8 +89,9 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.setFillColor(240, 240, 240);
     doc.rect(tableX, tableY - 6, 180, 7, 'F');
     doc.setFontSize(9);
-    doc.text("Código", tableX + 5, tableY - 1);
-    doc.text("Descrição", tableX + 30, tableY - 1);
+    doc.text("Ref. Cliente", tableX + 5, tableY - 1);
+    doc.text("Código", tableX + 30, tableY - 1);
+    doc.text("Descrição", tableX + 50, tableY - 1);
     doc.text("Qtd", tableX + 100, tableY - 1);
     doc.text("Preço Unit.", tableX + 115, tableY - 1);
     doc.text("Desconto", tableX + 140, tableY - 1);
@@ -110,8 +112,9 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         doc.rect(tableX, tableY, 180, 6, 'F');
       }
       
-      doc.text(item.code, tableX + 5, tableY + 4);
-      doc.text(item.name.length > 45 ? item.name.substring(0, 45) + '...' : item.name, tableX + 30, tableY + 4);
+      doc.text(item.clientRef || '-', tableX + 5, tableY + 4);
+      doc.text(item.code, tableX + 30, tableY + 4);
+      doc.text(item.name.length > 30 ? item.name.substring(0, 30) + '...' : item.name, tableX + 50, tableY + 4);
       doc.text(item.quantity.toString(), tableX + 100, tableY + 4);
       doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4);
       doc.text(item.discount > 0 ? `${item.discount}%` : '-', tableX + 140, tableY + 4);
