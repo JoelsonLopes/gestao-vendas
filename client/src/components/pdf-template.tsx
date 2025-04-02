@@ -35,7 +35,6 @@ interface PdfTemplateProps {
 
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   console.log("Items recebidos no PdfTemplate:", items);
 
@@ -247,23 +246,10 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.save(`pedido_${order.id}.pdf`);
   };
   
-  // Função para imprimir o PDF
+  // Função para imprimir usando a API nativa do navegador
   const printPdf = () => {
-    const doc = createPdfDocument();
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    
-    if (iframeRef.current) {
-      iframeRef.current.src = url;
-      iframeRef.current.onload = () => {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.print();
-        }
-      };
-    } else {
-      // Fallback se o iframe não estiver disponível
-      window.open(url, '_blank');
-    }
+    // Imprimir diretamente usando a API nativa do navegador
+    window.print();
   };
 
   // Preview content in canvas (simplified preview com design moderno)
@@ -560,7 +546,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   }, [order, items]);
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-4 order-pdf-content">
       <div className="border rounded-md p-4">
         {/* Preview em canvas */}
         <canvas 
@@ -640,7 +626,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle">
                         {item.clientRef ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="client-ref-badge">
                             {item.clientRef}
                           </span>
                         ) : '-'}
@@ -709,12 +695,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         </div>
       </div>
       
-      {/* Iframe oculto usado para impressão */}
-      <iframe 
-        ref={iframeRef} 
-        style={{position: 'absolute', width: '0', height: '0', border: '0'}}
-        title="PDF Print Frame"
-      />
+      {/* Não precisamos mais do iframe com a nova abordagem de impressão */}
       
       <div className="flex justify-end space-x-4 print:hidden">
         {onClose && (

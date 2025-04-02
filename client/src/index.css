@@ -12,7 +12,7 @@
   }
 }
 
-/* Estilos para impressão */
+/* Estilos para impressão - otimizados para API nativa do navegador */
 @media print {
   @page {
     size: A4 portrait;
@@ -403,5 +403,25 @@
   /* Layout do rodapé */
   .print-footer {
     margin-top: 8mm !important;
+  }
+  
+  /* Destaque para referências do cliente */
+  .client-ref-badge {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    border-radius: 4px !important;
+    padding: 1mm 2mm !important;
+    font-weight: 500 !important;
+    font-size: 8pt !important;
+    display: inline-block !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  /* Ajuste específico para o modo de impressão nativo */
+  .order-pdf-content {
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
   }
 }
