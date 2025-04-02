@@ -556,7 +556,7 @@ export default function OrderFormPage() {
           </div>
           
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
+            <Button variant="outline" onClick={() => window.print()}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimir
             </Button>
@@ -593,12 +593,116 @@ export default function OrderFormPage() {
           </div>
         </div>
         
+        {/* Versão para impressão - visível apenas durante a impressão */}
+        <div className="hidden print:block print-document">
+          <div className="print-header">
+            <div className="flex justify-between items-center border-b border-gray-300 pb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">PEDIDO #{id || 'Novo'}</h1>
+                <p className="text-sm text-gray-500">Data: {new Date().toLocaleDateString()}</p>
+              </div>
+              
+              <div className="inline-flex items-center px-3 py-1 rounded">
+                <span className="text-sm font-medium">{status === 'confirmado' ? 'CONFIRMADO' : 'COTAÇÃO'}</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6 mt-6">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Cliente</h2>
+                <div className="text-gray-800">
+                  <p className="font-medium text-base">{cliente?.name || 'Não selecionado'}</p>
+                  <p className="text-sm text-gray-600">{cliente?.cnpj || ''}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Data</h2>
+                  <p className="text-gray-800">{new Date().toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Pagamento</h2>
+                  <p className="text-gray-800">{paymentTerms}</p>
+                </div>
+                <div className="col-span-2">
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Representante</h2>
+                  <p className="text-gray-800">{user?.name || ''}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 print-items">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-4">Itens do Pedido</h2>
+            
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-300">
+                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Cliente</th>
+                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Unit.</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderItems.map((item, index) => {
+                  // Cálculo do preço com desconto
+                  const priceWithDiscount = item.discountPercentage > 0 
+                    ? item.unitPrice * (1 - item.discountPercentage / 100) 
+                    : item.unitPrice;
+                    
+                  return (
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="py-3 align-middle text-sm">
+                        {item.product?.conversion || '-'}
+                      </td>
+                      <td className="py-3 align-middle text-sm font-medium">{item.product?.code}</td>
+                      <td className="py-3 align-middle text-sm">{item.product?.name}</td>
+                      <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
+                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
+                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-6 flex justify-end print-footer">
+            <div className="w-1/3">
+              <div className="border-t border-gray-300 pt-4">
+                <div className="flex justify-between py-1">
+                  <span className="text-sm text-gray-600">Subtotal:</span>
+                  <span className="text-sm text-gray-800">{formatCurrency(totals.subtotal)}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-sm text-gray-600">Impostos:</span>
+                  <span className="text-sm text-gray-800">{formatCurrency(totals.taxes)}</span>
+                </div>
+                <div className="border-t border-gray-300 my-2"></div>
+                <div className="flex justify-between py-1">
+                  <span className="text-base font-medium text-gray-800">Total:</span>
+                  <span className="text-base font-medium text-gray-800">{formatCurrency(totals.total)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-xs text-center text-gray-500">
+            <p>Este documento não possui valor fiscal.</p>
+            <p>Impresso em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 print:hidden">
             <Tabs defaultValue="details">
               <TabsList>
                 <TabsTrigger value="details">Detalhes do Pedido</TabsTrigger>
