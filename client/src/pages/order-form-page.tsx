@@ -10,15 +10,12 @@ import {
   Check,
   FileDown,
   ArrowLeft,
-  Search,
-  Plus,
-  Trash2,
-  Edit,
-  ShoppingCart
+  PlusCircle,
+  Trash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { 
@@ -35,15 +32,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { DiscountSelect } from "@/components/discount-select";
 import { PdfTemplate } from "@/components/pdf-template";
 import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils";
 import { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema";
-import { Separator } from "@/components/ui/separator";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 export default function OrderFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,7 +48,7 @@ export default function OrderFormPage() {
   // Order form state
   const [clientId, setClientId] = useState<number | null>(null);
   const [status, setStatus] = useState<"cotacao" | "confirmado">("cotacao");
-  const [paymentTerms, setPaymentTerms] = useState<string>("à vista");
+  const [paymentTerms, setPaymentTerms] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   
   // Order items state
@@ -73,9 +66,7 @@ export default function OrderFormPage() {
   
   // UI state
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
-  const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-  const [productSearchQuery, setProductSearchQuery] = useState("");
   const [productQuantity, setProductQuantity] = useState(1);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,14 +79,35 @@ export default function OrderFormPage() {
   const clients = clientsQuery.data || [];
   const isLoadingClients = clientsQuery.isLoading;
   
+  // Logger para debug - executado apenas uma vez quando os dados carregarem
+  useEffect(() => {
+    if (clients && clients.length > 0) {
+      console.log(`Clientes carregados: ${clients.length}`);
+      
+      // Log de alguns clientes para verificação
+      console.log("Exemplos de clientes:", clients.slice(0, 5).map(client => ({
+        id: client.id,
+        name: client.name,
+        code: client.code
+      })));
+      
+      // Verificar se temos cliente com código específico
+      const cliente8028 = clients.find(client => client.code === "8028");
+      if (cliente8028) {
+        console.log("Cliente 8028 encontrado:", cliente8028);
+      } else {
+        console.log("Cliente 8028 NÃO encontrado nos dados carregados");
+        
+        // Listar alguns códigos de clientes para verificação
+        const sampleCodes = clients.slice(0, 20).map(c => c.code);
+        console.log("Alguns códigos de clientes disponíveis:", sampleCodes);
+      }
+    }
+  }, [clients.length]);
+  
   // Get products
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["/api/products"],
-  });
-  
-  // Get discounts
-  const { data: discounts, isLoading: isLoadingDiscounts } = useQuery({
-    queryKey: ["/api/discounts"],
   });
   
   // Get order details if in edit mode
@@ -103,41 +115,6 @@ export default function OrderFormPage() {
     queryKey: ["/api/orders", id],
     enabled: isEditMode,
   });
-  
-  // Filtered products based on search query
-  const filteredProducts = (products || []).filter(product => {
-    if (!productSearchQuery.trim()) return true;
-    
-    const query = productSearchQuery.toLowerCase().trim();
-    return Object.values(product).some(value => {
-      if (value === null || value === undefined) return false;
-      return String(value).toLowerCase().includes(query);
-    });
-  });
-  
-  // Calculate order totals
-  const calculateTotals = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const discount = orderItems.reduce((sum, item) => {
-      const itemTotal = item.quantity * item.unitPrice;
-      const discountAmount = itemTotal - item.subtotal;
-      return sum + discountAmount;
-    }, 0);
-    const taxes = 0; // Calculate taxes if needed
-    const total = subtotal - discount + taxes;
-    
-    return {
-      subtotal: Number(subtotal.toFixed(2)),
-      discount: Number(discount.toFixed(2)),
-      taxes: Number(taxes.toFixed(2)),
-      total: Number(total.toFixed(2)),
-    };
-  };
-  
-  const totals = calculateTotals();
-  
-  // Find selected client
-  const selectedClient = clients.find(c => c.id === clientId);
   
   // Create order mutation
   const createOrderMutation = useMutation({
@@ -192,21 +169,14 @@ export default function OrderFormPage() {
       
       setClientId(order.clientId);
       setStatus(order.status);
-      setPaymentTerms(order.paymentTerms || "à vista");
+      setPaymentTerms(order.paymentTerms || "");
       setNotes(order.notes || "");
       
       // Map order items with product details
       const mappedItems = items.map(item => {
         const product = products?.find(p => p.id === item.productId);
         return {
-          id: item.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          discountId: item.discountId || null,
-          discountPercentage: Number(item.discountPercentage || 0),
-          commission: Number(item.commission || 0),
-          subtotal: Number(item.subtotal),
+          ...item,
           product,
         };
       });
@@ -215,69 +185,49 @@ export default function OrderFormPage() {
     }
   }, [isEditMode, orderDetails, products]);
   
-  // Handle add/edit product
-  const handleProductConfirm = () => {
-    if (!selectedProductId || productQuantity <= 0) {
-      toast({
-        title: "Dados incompletos",
-        description: "Selecione um produto e informe a quantidade",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Calculate order totals
+  const calculateTotals = () => {
+    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const discount = orderItems.reduce((sum, item) => {
+      const itemTotal = item.quantity * item.unitPrice;
+      const discountAmount = itemTotal - item.subtotal;
+      return sum + discountAmount;
+    }, 0);
+    const taxes = 0; // Calculate taxes if needed
+    const total = subtotal - discount + taxes;
+    
+    return {
+      subtotal: Number(subtotal.toFixed(2)),
+      discount: Number(discount.toFixed(2)),
+      taxes: Number(taxes.toFixed(2)),
+      total: Number(total.toFixed(2)),
+    };
+  };
+  
+  const totals = calculateTotals();
+  
+  // Add product to order
+  const addProductToOrder = () => {
+    if (!selectedProductId || productQuantity <= 0) return;
     
     const product = products?.find(p => p.id === selectedProductId);
     if (!product) return;
     
-    if (editItemIndex !== null) {
-      // Edit existing item
-      const newItems = [...orderItems];
-      const existingItem = newItems[editItemIndex];
-      
-      const originalSubtotal = productQuantity * Number(product.price);
-      const discountedSubtotal = calculateDiscountedPrice(originalSubtotal, existingItem.discountPercentage);
-      
-      newItems[editItemIndex] = {
-        ...existingItem,
-        quantity: productQuantity,
-        unitPrice: Number(product.price),
-        subtotal: Number(discountedSubtotal.toFixed(2)),
-        product,
-      };
-      
-      setOrderItems(newItems);
-      setEditItemIndex(null);
-    } else {
-      // Add new item
-      const newItem = {
-        productId: selectedProductId,
-        quantity: productQuantity,
-        unitPrice: Number(product.price),
-        discountId: null,
-        discountPercentage: 0,
-        commission: 0,
-        subtotal: Number(product.price) * productQuantity,
-        product,
-      };
-      
-      setOrderItems([...orderItems, newItem]);
-    }
+    const newItem = {
+      productId: selectedProductId,
+      quantity: productQuantity,
+      unitPrice: Number(product.price),
+      discountId: null,
+      discountPercentage: 0,
+      commission: 0,
+      subtotal: Number(product.price) * productQuantity,
+      product,
+    };
     
-    // Reset product form
+    setOrderItems([...orderItems, newItem]);
     setAddProductModalOpen(false);
     setSelectedProductId(null);
     setProductQuantity(1);
-    setProductSearchQuery("");
-  };
-  
-  // Edit product item
-  const editOrderItem = (index: number) => {
-    const item = orderItems[index];
-    
-    setEditItemIndex(index);
-    setSelectedProductId(item.productId);
-    setProductQuantity(item.quantity);
-    setAddProductModalOpen(true);
   };
   
   // Remove product from order
@@ -327,19 +277,10 @@ export default function OrderFormPage() {
   
   // Save order
   const saveOrder = async () => {
-    if (!clientId) {
+    if (!clientId || orderItems.length === 0) {
       toast({
-        title: "Cliente não selecionado",
-        description: "Por favor, selecione um cliente para o pedido.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (orderItems.length === 0) {
-      toast({
-        title: "Pedido vazio",
-        description: "Adicione pelo menos um produto ao pedido.",
+        title: "Dados incompletos",
+        description: "Por favor, selecione um cliente e adicione pelo menos um produto ao pedido.",
         variant: "destructive",
       });
       return;
@@ -352,21 +293,21 @@ export default function OrderFormPage() {
       representativeId: user!.id,
       status,
       paymentTerms,
-      subtotal: totals.subtotal.toString(),
-      discount: totals.discount.toString(),
-      taxes: totals.taxes.toString(),
-      total: totals.total.toString(),
+      subtotal: totals.subtotal,
+      discount: totals.discount,
+      taxes: totals.taxes,
+      total: totals.total,
       notes,
     };
     
     const itemsData = orderItems.map(item => ({
       productId: item.productId,
       quantity: item.quantity,
-      unitPrice: item.unitPrice.toString(),
+      unitPrice: item.unitPrice,
       discountId: item.discountId,
-      discountPercentage: item.discountPercentage.toString(),
-      commission: item.commission.toString(),
-      subtotal: item.subtotal.toString(),
+      discountPercentage: item.discountPercentage,
+      commission: item.commission,
+      subtotal: item.subtotal,
     }));
     
     createOrderMutation.mutate({ order: orderData, items: itemsData });
@@ -413,44 +354,20 @@ export default function OrderFormPage() {
   };
   
   // Loading state
-  const isLoading = isLoadingClients || isLoadingProducts || isLoadingDiscounts || (isEditMode && isLoadingOrderDetails);
-  
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-[600px]">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Carregando informações do pedido...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-  
+  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && isLoadingOrderDetails);
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
+      <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <Button variant="ghost" size="sm" onClick={() => navigate("/orders")} className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Pedidos
+              Voltar
             </Button>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
               {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
             </h1>
-            {status === 'confirmado' && (
-              <Badge variant="success" className="ml-3">
-                Confirmado
-              </Badge>
-            )}
-            {status === 'cotacao' && (
-              <Badge variant="secondary" className="ml-3">
-                Cotação
-              </Badge>
-            )}
           </div>
           
           <div className="flex space-x-2">
@@ -461,7 +378,7 @@ export default function OrderFormPage() {
             
             {isEditMode ? (
               <Button 
-                variant="default" 
+                variant="success" 
                 disabled={status === "confirmado"} 
                 onClick={() => updateOrderStatus("confirmado")}
               >
@@ -481,418 +398,297 @@ export default function OrderFormPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Cliente e Informações Gerais */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Informações do Pedido
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client">Cliente *</Label>
-                  <ClientSearch
-                    clients={clients}
-                    selectedClientId={clientId}
-                    onClientSelect={setClientId}
-                    disabled={isEditMode}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select 
-                    value={status} 
-                    onValueChange={(value) => setStatus(value as "cotacao" | "confirmado")}
-                    disabled={isEditMode}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cotacao">Cotação</SelectItem>
-                      <SelectItem value="confirmado">Confirmado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
-                  <Select 
-                    value={paymentTerms} 
-                    onValueChange={setPaymentTerms}
-                    disabled={isEditMode}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma condição" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Pagamento Imediato</SelectLabel>
-                        <SelectItem value="à vista">À Vista</SelectItem>
-                        <SelectItem value="pix">Pix</SelectItem>
-                      </SelectGroup>
-                      
-                      <SelectSeparator />
-                      
-                      <SelectGroup>
-                        <SelectLabel>Boletos</SelectLabel>
-                        <SelectItem value="boleto_7d">Boleto Doc 7D</SelectItem>
-                        <SelectItem value="boleto_14d">Boleto Doc 14D</SelectItem>
-                        <SelectItem value="boleto_28d">Boleto Doc 28D</SelectItem>
-                        <SelectItem value="boleto_35d">Boleto Doc 35D</SelectItem>
-                        <SelectItem value="boleto_42d">Boleto Doc 42D</SelectItem>
-                      </SelectGroup>
-                      
-                      <SelectSeparator />
-                      
-                      <SelectGroup>
-                        <SelectLabel>Parcelado</SelectLabel>
-                        <SelectItem value="2x_boleto">2x Boleto</SelectItem>
-                        <SelectItem value="3x_boleto">3x Boleto</SelectItem>
-                        <SelectItem value="4x_boleto">4x Boleto</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Observações</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Instruções especiais, informações adicionais, etc."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
-                    disabled={isEditMode && status === "confirmado"}
-                  />
-                </div>
-              </CardContent>
-              {selectedClient && (
-                <CardFooter className="border-t pt-4 bg-muted/30">
-                  <div className="w-full">
-                    <h4 className="font-medium text-sm">Detalhes do Cliente:</h4>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      <p><span className="font-medium">Nome:</span> {selectedClient.name}</p>
-                      {selectedClient.cnpj && <p><span className="font-medium">CNPJ:</span> {selectedClient.cnpj}</p>}
-                      {selectedClient.city && <p><span className="font-medium">Cidade:</span> {selectedClient.city}</p>}
-                      {selectedClient.phone && <p><span className="font-medium">Telefone:</span> {selectedClient.phone}</p>}
-                    </div>
-                  </div>
-                </CardFooter>
-              )}
-            </Card>
-            
-            {/* Resumo */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumo do Pedido</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(totals.subtotal)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span>Descontos:</span>
-                  <span>- {formatCurrency(totals.discount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span>Impostos:</span>
-                  <span>{formatCurrency(totals.taxes)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center font-bold">
-                  <span>Total:</span>
-                  <span className="text-lg">{formatCurrency(totals.total)}</span>
-                </div>
-              </CardContent>
-            </Card>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          
-          {/* Produtos */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div>
-                  <CardTitle>Produtos</CardTitle>
-                  <CardDescription>
-                    {orderItems.length === 0 
-                      ? "Nenhum produto adicionado" 
-                      : `${orderItems.length} ${orderItems.length === 1 ? 'produto' : 'produtos'} no pedido`}
-                  </CardDescription>
-                </div>
-                <Button 
-                  onClick={() => {
-                    setEditItemIndex(null);
-                    setSelectedProductId(null);
-                    setProductQuantity(1);
-                    setProductSearchQuery("");
-                    setAddProductModalOpen(true);
-                  }}
-                  disabled={isEditMode && status === "confirmado"}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Produto
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {orderItems.length === 0 ? (
-                  <div className="border rounded-lg border-dashed p-8 text-center">
-                    <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                    <h3 className="font-medium text-muted-foreground">Nenhum produto adicionado</h3>
-                    <p className="text-sm text-muted-foreground/70 mt-1">
-                      Clique em "Adicionar Produto" para iniciar o pedido
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => {
-                        setEditItemIndex(null);
-                        setSelectedProductId(null);
-                        setProductQuantity(1);
-                        setProductSearchQuery("");
-                        setAddProductModalOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
+        ) : (
+          <div className="space-y-6">
+            <Tabs defaultValue="details">
+              <TabsList>
+                <TabsTrigger value="details">Detalhes do Pedido</TabsTrigger>
+                <TabsTrigger value="products">Produtos</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-4 pt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Informações do Pedido</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="client">Cliente *</Label>
+                        <ClientSearch
+                          clients={clients}
+                          selectedClientId={clientId}
+                          onClientSelect={setClientId}
+                          disabled={isEditMode}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="status">Status</Label>
+                        <Select 
+                          value={status} 
+                          onValueChange={(value) => setStatus(value as "cotacao" | "confirmado")}
+                          disabled={isEditMode}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cotacao">Cotação</SelectItem>
+                            <SelectItem value="confirmado">Confirmado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
+                        <Select 
+                          value={paymentTerms} 
+                          onValueChange={setPaymentTerms}
+                          disabled={isEditMode}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma condição" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel>Pagamento Imediato</SelectLabel>
+                              <SelectItem value="à vista">À Vista</SelectItem>
+                              <SelectItem value="pix">Pix</SelectItem>
+                            </SelectGroup>
+                            
+                            <SelectSeparator />
+                            
+                            <SelectGroup>
+                              <SelectLabel>Boletos</SelectLabel>
+                              <SelectItem value="boleto_7d">Boleto Doc 7D</SelectItem>
+                              <SelectItem value="boleto_14d">Boleto Doc 14D</SelectItem>
+                              <SelectItem value="boleto_14_28d">Boleto Doc 14/28D</SelectItem>
+                              <SelectItem value="boleto_28d">Boleto Doc 28D</SelectItem>
+                              <SelectItem value="boleto_28_35d">Boleto Doc 28/35D</SelectItem>
+                              <SelectItem value="boleto_28_35_42d">Boleto Doc 28/35/42D</SelectItem>
+                              <SelectItem value="boleto_28_42_56d">Boleto Doc 28/42/56D</SelectItem>
+                              <SelectItem value="boleto_28_56_84d">Boleto Doc 28/56/84D</SelectItem>
+                              <SelectItem value="boleto_30d">Boleto Doc 30D</SelectItem>
+                              <SelectItem value="boleto_30_45d">Boleto Doc 30/45D</SelectItem>
+                              <SelectItem value="boleto_30_45_60d">Boleto Doc 30/45/60D</SelectItem>
+                              <SelectItem value="boleto_30_45_60_75d">Boleto Doc 30/45/60/75D</SelectItem>
+                              <SelectItem value="boleto_30_45_60_75_90d">Boleto Doc 30/45/60/75/90D</SelectItem>
+                              <SelectItem value="boleto_30_60d">Boleto Doc 30/60D</SelectItem>
+                              <SelectItem value="boleto_30_60_90d">Boleto Doc 30/60/90D</SelectItem>
+                              <SelectItem value="boleto_35d">Boleto Doc 35D</SelectItem>
+                              <SelectItem value="boleto_28_35_42_49d">Boleto Doc 28/35/42/49D</SelectItem>
+                              <SelectItem value="boleto_28_42_56_70d">Boleto Doc 28/42/56/70D</SelectItem>
+                              <SelectItem value="boleto_28_42d">Boleto Doc 28/42</SelectItem>
+                              <SelectItem value="boleto_30_60_90_120d">Boleto Doc 30/60/90/120D</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="notes">Observações</Label>
+                        <Textarea 
+                          placeholder="Observações do pedido" 
+                          value={notes} 
+                          onChange={(e) => setNotes(e.target.value)}
+                          disabled={isEditMode}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="products" className="space-y-4 pt-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle>Produtos do Pedido</CardTitle>
+                    <Button onClick={() => setAddProductModalOpen(true)} disabled={isEditMode}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
                       Adicionar Produto
                     </Button>
-                  </div>
-                ) : (
-                  <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Código</TableHead>
-                          <TableHead>Produto</TableHead>
-                          <TableHead className="text-center">Qtd</TableHead>
-                          <TableHead className="text-right">Preço Unit.</TableHead>
-                          <TableHead className="text-center">Desconto</TableHead>
-                          <TableHead className="text-right">Subtotal</TableHead>
-                          <TableHead className="w-[80px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orderItems.map((item, index) => (
-                          <TableRow key={index} className="hover:bg-muted/50">
-                            <TableCell className="font-medium">
-                              {item.product?.code || ""}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <p>{item.product?.name || `Produto ${item.productId}`}</p>
-                                {item.product?.brand && (
-                                  <p className="text-xs text-muted-foreground">{item.product.brand}</p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => updateItemQuantity(index, parseInt(e.target.value) || 1)}
-                                className="w-16 text-center mx-auto"
-                                disabled={isEditMode && status === "confirmado"}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {formatCurrency(item.unitPrice)}
-                            </TableCell>
-                            <TableCell>
-                              <DiscountSelect
-                                value={item.discountId}
-                                onChange={(discountId, percentage, commission) => 
-                                  updateItemDiscount(index, discountId, percentage, commission)
-                                }
-                                disabled={isEditMode && status === "confirmado"}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(item.subtotal)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-end space-x-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => editOrderItem(index)}
-                                  disabled={isEditMode && status === "confirmado"}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
-                                  onClick={() => removeOrderItem(index)}
-                                  disabled={isEditMode && status === "confirmado"}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Qtde</TableHead>
+                            <TableHead>Valor Unit.</TableHead>
+                            <TableHead>Desconto</TableHead>
+                            <TableHead>Comissão</TableHead>
+                            <TableHead>Subtotal</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-      
-      {/* Add Product Modal */}
-      <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editItemIndex !== null ? "Editar Produto" : "Adicionar Produto"}
-            </DialogTitle>
-            <DialogDescription>
-              {editItemIndex !== null 
-                ? "Modifique o produto ou a quantidade" 
-                : "Busque e adicione um produto ao pedido"}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="product">Produto *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                  >
-                    {selectedProductId ? (
-                      products?.find(p => p.id === selectedProductId)?.name || "Selecione um produto"
-                    ) : (
-                      "Selecione um produto"
-                    )}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[500px] p-0" align="start">
-                  <Command>
-                    <CommandInput 
-                      placeholder="Busque por nome, código ou marca..."
-                      value={productSearchQuery}
-                      onValueChange={setProductSearchQuery}
-                    />
-                    <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {filteredProducts.map(product => (
-                        <CommandItem
-                          key={product.id}
-                          value={product.id.toString()}
-                          onSelect={() => {
-                            setSelectedProductId(product.id);
-                            setProductSearchQuery("");
-                          }}
-                        >
-                          <div className="flex flex-col w-full">
-                            <div className="flex items-center">
-                              <span className="font-medium">{product.name}</span>
-                              <Badge variant="outline" className="ml-2 text-xs">
-                                Cód: {product.code}
-                              </Badge>
-                              {product.brand && (
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  {product.brand}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground mt-1 flex justify-between">
-                              <span>{product.description || "Sem descrição"}</span>
-                              <span className="font-medium">
-                                {formatCurrency(Number(product.price))}
-                              </span>
-                            </div>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantidade *</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={productQuantity}
-                onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
-              />
-            </div>
-            
-            {selectedProductId && (
-              <div className="rounded-lg border p-3 bg-muted/30 mt-4">
-                <h4 className="font-medium text-sm mb-2">Detalhes do Produto:</h4>
-                {(() => {
-                  const product = products?.find(p => p.id === selectedProductId);
-                  if (!product) return <p>Produto não encontrado</p>;
-                  
-                  return (
-                    <div className="text-sm space-y-1">
-                      <p><span className="font-medium">Nome:</span> {product.name}</p>
-                      <p><span className="font-medium">Código:</span> {product.code}</p>
-                      {product.description && (
-                        <p><span className="font-medium">Descrição:</span> {product.description}</p>
-                      )}
-                      <p><span className="font-medium">Preço:</span> {formatCurrency(Number(product.price))}</p>
-                      <p>
-                        <span className="font-medium">Total:</span> {formatCurrency(Number(product.price) * productQuantity)}
-                      </p>
+                        </TableHeader>
+                        <TableBody>
+                          {orderItems.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-4">
+                                Nenhum produto adicionado ao pedido
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            orderItems.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">
+                                  <div>
+                                    <p>{item.product?.name || `Produto #${item.productId}`}</p>
+                                    <p className="text-xs text-gray-500">{item.product?.code}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    value={item.quantity}
+                                    onChange={(e) => updateItemQuantity(index, parseInt(e.target.value))}
+                                    className="w-20 h-8"
+                                    disabled={isEditMode}
+                                  />
+                                </TableCell>
+                                <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
+                                <TableCell>
+                                  <DiscountSelect
+                                    value={item.discountId}
+                                    onChange={(discountId, discountPercentage, commission) => 
+                                      updateItemDiscount(index, discountId, discountPercentage, commission)
+                                    }
+                                    label=""
+                                    className="w-32"
+                                  />
+                                </TableCell>
+                                <TableCell>{item.commission}%</TableCell>
+                                <TableCell>{formatCurrency(item.subtotal)}</TableCell>
+                                <TableCell className="text-right">
+                                  {!isEditMode && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => removeOrderItem(index)}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </div>
-                  );
-                })()}
-              </div>
-            )}
+                    
+                    {/* Order Summary */}
+                    {orderItems.length > 0 && (
+                      <div className="mt-8 flex justify-end">
+                        <div className="w-full sm:w-1/2 lg:w-1/3 bg-gray-50 dark:bg-gray-700 rounded-md p-4">
+                          <dl className="space-y-2">
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Subtotal</dt>
+                              <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatCurrency(totals.subtotal)}
+                              </dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Desconto Total</dt>
+                              <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatCurrency(totals.discount)}
+                              </dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Impostos</dt>
+                              <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatCurrency(totals.taxes)}
+                              </dd>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between">
+                              <dt className="text-base font-medium text-gray-900 dark:text-white">Total</dt>
+                              <dd className="text-base font-medium text-gray-900 dark:text-white">
+                                {formatCurrency(totals.total)}
+                              </dd>
+                            </div>
+                          </dl>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+            
+            {/* Add Product Modal */}
+            <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Adicionar Produto</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="product">Produto</Label>
+                    <Select 
+                      value={selectedProductId?.toString()} 
+                      onValueChange={(value) => setSelectedProductId(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products?.map(product => (
+                          <SelectItem key={product.id} value={product.id.toString()}>
+                            {product.name} - {formatCurrency(Number(product.price))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantidade</Label>
+                    <Input 
+                      type="number" 
+                      min="1" 
+                      value={productQuantity}
+                      onChange={(e) => setProductQuantity(parseInt(e.target.value))}
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={addProductToOrder}>
+                    Adicionar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {/* PDF Preview Modal */}
+            <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Visualização do Pedido em PDF</DialogTitle>
+                </DialogHeader>
+                
+                <PdfTemplate 
+                  order={preparePdfData().order}
+                  items={preparePdfData().items}
+                  onClose={() => setShowPdfPreview(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setAddProductModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleProductConfirm}
-              disabled={!selectedProductId || productQuantity <= 0}
-            >
-              {editItemIndex !== null ? "Salvar Alterações" : "Adicionar Produto"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* PDF Preview */}
-      {showPdfPreview && (
-        <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
-          <DialogContent className="sm:max-w-[800px]">
-            <DialogHeader>
-              <DialogTitle>Visualização do Pedido</DialogTitle>
-            </DialogHeader>
-            <PdfTemplate
-              order={preparePdfData().order}
-              items={preparePdfData().items}
-              onClose={() => setShowPdfPreview(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+        )}
+      </div>
     </DashboardLayout>
   );
 }
