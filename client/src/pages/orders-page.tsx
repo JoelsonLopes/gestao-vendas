@@ -150,8 +150,14 @@ export default function OrdersPage() {
               // Converter strings para números para garantir que a operação é feita corretamente
               const quantity = Number(item.quantity);
               const unitPrice = Number(item.unitPrice || 0);
+              const discountPercentage = Number(item.discountPercentage || 0);
               const commission = Number(item.commission || 0);
-              return total + (quantity * unitPrice * commission / 100);
+              
+              // Calcular o preço com desconto
+              const discountedPrice = unitPrice * (1 - discountPercentage / 100);
+              
+              // Calcular a comissão com base no preço com desconto
+              return total + (quantity * discountedPrice * commission / 100);
             }, 0)
             : undefined
         },
