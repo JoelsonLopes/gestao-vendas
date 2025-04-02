@@ -655,7 +655,7 @@ export default function OrderFormPage() {
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Unit.</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -665,6 +665,9 @@ export default function OrderFormPage() {
                     ? item.unitPrice * (1 - item.discountPercentage / 100) 
                     : item.unitPrice;
                     
+                  // Cálculo do total do item (preço com desconto * quantidade)
+                  const totalItem = priceWithDiscount * item.quantity;
+                    
                   return (
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle text-sm">
@@ -673,7 +676,7 @@ export default function OrderFormPage() {
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
-                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(totalItem)}</td>
                     </tr>
                   );
                 })}
