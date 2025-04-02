@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, PlusCircle, Import, Package, Edit, Save, X } from "lucide-react";
+import { Loader2, PlusCircle, Import, Package, Edit, Save, X, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ import { ImportModal } from "@/components/import-modal";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { PriceCalculatorModal } from "@/components/price-calculator-modal";
 
 export default function ProductsPage() {
   const { toast } = useToast();
@@ -27,6 +28,8 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [inlineEdit, setInlineEdit] = useState<{ id: number; field: string; value: string } | null>(null);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Fetch products
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
@@ -333,6 +336,11 @@ export default function ProductsPage() {
   const cancelInlineEdit = () => {
     setInlineEdit(null);
   };
+  
+  const openPriceCalculator = (product: Product) => {
+    setSelectedProduct(product);
+    setCalculatorOpen(true);
+  };
 
   return (
     <DashboardLayout>
@@ -507,17 +515,32 @@ export default function ProductsPage() {
                   return (
                     <div className="flex items-center">
                       <span>{formatCurrency(Number(product.price))}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startInlineEdit(product.id, "price", product.price.toString());
-                        }}
-                      >
-                        <Edit size={14} />
-                      </Button>
+                      <div className="flex ml-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startInlineEdit(product.id, "price", product.price.toString());
+                          }}
+                          title="Editar preço"
+                        >
+                          <Edit size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPriceCalculator(product);
+                          }}
+                          title="Calcular preço com desconto"
+                        >
+                          <Calculator size={14} />
+                        </Button>
+                      </div>
                     </div>
                   );
                 },
@@ -819,6 +842,13 @@ export default function ProductsPage() {
           description="Importe seu catálogo de produtos a partir de arquivo CSV ou Excel. O sistema reconhecerá diferentes formatos de cabeçalho."
           templateFields={["code", "name", "price", "brand", "conversion", "conversionBrand", "description", "category", "stockQuantity", "active"]}
           loading={importProductsMutation.isPending}
+        />
+
+        {/* Calculadora de Preço */}
+        <PriceCalculatorModal
+          open={calculatorOpen}
+          onOpenChange={setCalculatorOpen}
+          product={selectedProduct}
         />
       </div>
     </DashboardLayout>
