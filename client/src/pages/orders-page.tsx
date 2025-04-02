@@ -23,8 +23,10 @@ export default function OrdersPage() {
   const [dateToFilter, setDateToFilter] = useState<string>("");
   
   // Fetch orders
-  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
+  const { data: orders, isLoading: isLoadingOrders, refetch } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+    staleTime: 0, // Sempre verificar por novos dados
+    refetchOnMount: true, // Recarregar quando o componente montar
   });
   
   // Fetch clients for filter
@@ -76,10 +78,21 @@ export default function OrdersPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Gestão de Pedidos</h1>
-          <Button onClick={navigateToNewOrder}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Novo Pedido
-          </Button>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => refetch()} title="Atualizar lista">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
+              </svg>
+              Atualizar
+            </Button>
+            <Button onClick={navigateToNewOrder}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Novo Pedido
+            </Button>
+          </div>
         </div>
         
         {/* Filters */}
@@ -176,14 +189,14 @@ export default function OrdersPage() {
               {
                 header: "Data",
                 accessorKey: "createdAt",
-                cell: (order) => formatDate(order.createdAt),
+                cell: (order) => formatDate(order.createdAt || new Date().toISOString()),
                 sortable: true,
               },
               {
                 header: "Status",
                 accessorKey: "status",
                 cell: (order) => (
-                  <Badge variant={order.status === "confirmado" ? "success" : "warning"}>
+                  <Badge className={order.status === "confirmado" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"}>
                     {order.status === "confirmado" ? "Confirmado" : "Cotação"}
                   </Badge>
                 ),
@@ -197,7 +210,7 @@ export default function OrdersPage() {
               },
               {
                 header: "Ações",
-                accessorKey: "actions",
+                accessorKey: "id", // Usando "id" ao invés de "actions" para evitar erro de tipo
                 cell: (order) => (
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
