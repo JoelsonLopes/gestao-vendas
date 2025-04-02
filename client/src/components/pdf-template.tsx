@@ -33,6 +33,7 @@ interface PdfTemplateProps {
     total: number;
     representative: string;
     totalCommission?: number;
+    notes?: string;
   };
   items: PdfItem[];
   onClose?: () => void;
@@ -412,7 +413,10 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                 </h2>
                 <div className="text-gray-800">
                   <p className="font-bold text-base mb-1">{order.clientName} (Cód: {order.clientId})</p>
-                  <p className="text-sm mb-2"><span className="font-semibold">CNPJ:</span> {order.clientCnpj}</p>
+                  <p className="text-sm mb-1"><span className="font-semibold">CNPJ:</span> {order.clientCnpj}</p>
+                  <p className="text-sm mb-2 mt-3 border-t border-gray-200 pt-2">
+                    <span className="font-semibold text-xs text-gray-500 uppercase">Representante:</span> {order.representative}
+                  </p>
                 </div>
               </div>
               
@@ -424,11 +428,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   </svg>
                   Detalhes do Pedido
                 </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase">Representante</p>
-                    <p className="text-sm text-gray-800 font-medium">{order.representative}</p>
-                  </div>
+                <div className="grid grid-cols-1 gap-3">
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase">Condição de Pagamento</p>
                     <p className="text-sm text-gray-800 font-medium">{order.paymentTerms}</p>
@@ -499,7 +499,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                 Observações
               </h2>
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 min-h-[80px] text-gray-600 text-sm">
-                {order.notes || "Nenhuma observação."}
+                {order.notes ? order.notes : "Nenhuma observação."}
               </div>
             </div>
             
