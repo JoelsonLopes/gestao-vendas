@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
+import { FileDown, Printer } from "lucide-react";
 
 interface PdfItem {
   id: number;
@@ -35,140 +35,238 @@ interface PdfTemplateProps {
 
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   console.log("Items recebidos no PdfTemplate:", items);
 
-  // Generate PDF document
-  const generatePdf = () => {
+  // Função para criar um documento PDF com design moderno
+  const createPdfDocument = () => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Add header
+    // Cores para um design mais moderno
+    const primaryColor = "#3b82f6"; // azul
+    const secondaryColor = "#f0f9ff"; // azul claro
+    const darkGray = "#374151";
+    
+    // Background header
+    doc.setFillColor(primaryColor);
+    doc.rect(0, 0, pageWidth, 22, "F");
+    
+    // Título do documento
+    doc.setTextColor(255, 255, 255); // branco
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("PEDIDO #" + order.id, 105, 20, { align: "center" });
-    
-    // Add company information
-    doc.setFontSize(12);
-    doc.text("GestãoPedidos", 15, 40);
-    doc.text("CNPJ: 00.000.000/0000-00", 15, 45);
-    doc.text("contato@gestaopedidos.com", 15, 50);
+    doc.text(`PEDIDO #${order.id}`, 15, 15);
     
     // Add status badge
     if (order.status === 'confirmado') {
-      doc.setFillColor(0, 128, 0);
+      doc.setFillColor(34, 197, 94); // verde
     } else {
-      doc.setFillColor(255, 165, 0);
+      doc.setFillColor(245, 158, 11); // amarelo
     }
-    doc.roundedRect(150, 35, 45, 10, 5, 5, 'F');
+    
+    // Badge de status moderno
+    const statusText = order.status.toUpperCase();
+    const statusX = pageWidth - 40;
+    const statusY = 15;
+    doc.roundedRect(statusX - 20, statusY - 6, 40, 12, 2, 2, "F");
     doc.setTextColor(255, 255, 255);
-    doc.text(order.status.toUpperCase(), 172.5, 41.5, { align: "center" });
-    doc.setTextColor(0, 0, 0);
-    
-    // Add customer information
-    doc.setFontSize(11);
-    doc.text("CLIENTE", 15, 65);
-    doc.line(15, 66, 35, 66);
     doc.setFontSize(10);
-    doc.text(`Nome: ${order.clientName}`, 15, 72);
-    doc.text(`CNPJ: ${order.clientCnpj}`, 15, 77);
+    doc.text(statusText, statusX, statusY);
     
-    // Add order information
-    doc.setFontSize(11);
-    doc.text("INFORMAÇÕES DO PEDIDO", 110, 65);
-    doc.line(110, 66, 180, 66);
-    doc.setFontSize(10);
-    doc.text(`Data: ${formatDate(order.date)}`, 110, 72);
-    doc.text(`Condição de Pagamento: ${order.paymentTerms}`, 110, 77);
-    doc.text(`Representante: ${order.representative}`, 110, 82);
+    // Reset de cores
+    doc.setTextColor(darkGray);
     
-    // Add items table
+    // Informações da empresa
     doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("GestãoPedidos", 15, 35);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("CNPJ: 00.000.000/0000-00", 15, 40);
+    doc.text("contato@gestaopedidos.com", 15, 45);
+    
+    // Card com informações do cliente
+    doc.setFillColor(secondaryColor);
+    doc.roundedRect(15, 55, 85, 30, 3, 3, "F");
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryColor);
+    doc.text("CLIENTE", 20, 63);
+    doc.setTextColor(darkGray);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`Nome: ${order.clientName}`, 20, 70);
+    doc.text(`CNPJ: ${order.clientCnpj}`, 20, 77);
+    
+    // Card com informações do pedido
+    doc.setFillColor(secondaryColor);
+    doc.roundedRect(110, 55, 85, 30, 3, 3, "F");
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryColor);
+    doc.text("INFORMAÇÕES DO PEDIDO", 115, 63);
+    doc.setTextColor(darkGray);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`Data: ${formatDate(order.date)}`, 115, 70);
+    doc.text(`Condição: ${order.paymentTerms}`, 115, 77);
+    doc.text(`Representante: ${order.representative}`, 115, 84);
+    
+    // Título da tabela de itens
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
     doc.text("ITENS DO PEDIDO", 15, 95);
-    doc.line(15, 96, 65, 96);
     
-    // Table headers
+    // Linha decorativa abaixo do título
+    doc.setDrawColor(primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(15, 97, 70, 97);
+    
+    // Cabeçalho da tabela com design moderno
     const tableX = 15;
     let tableY = 105;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(tableX, tableY - 6, 180, 7, 'F');
+    
+    // Fundo do cabeçalho da tabela
+    doc.setFillColor(primaryColor);
+    doc.rect(tableX, tableY - 7, 180, 8, "F");
+    
+    // Textos do cabeçalho
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
+    
     doc.text("Ref. Cliente", tableX + 5, tableY - 1);
     doc.text("Código", tableX + 30, tableY - 1);
     doc.text("Descrição", tableX + 50, tableY - 1);
     doc.text("Qtd", tableX + 95, tableY - 1);
-    doc.text("Preço Tabela", tableX + 110, tableY - 1);
-    doc.text("Desconto", tableX + 135, tableY - 1);
-    doc.text("Preço c/ Desc.", tableX + 155, tableY - 1);
-    doc.text("Subtotal", tableX + 180, tableY - 1);
+    doc.text("Preço Tabela", tableX + 115, tableY - 1);
+    doc.text("Desconto", tableX + 140, tableY - 1);
+    doc.text("Preço c/ Desc.", tableX + 163, tableY - 1);
+    doc.text("Subtotal", tableX + 190, tableY - 1);
     
-    // Add items
+    // Reset de cores
+    doc.setTextColor(darkGray);
+    
+    // Linhas da tabela
     doc.setFontSize(8);
     items.forEach((item, index) => {
-      // Check if we need a new page
+      // Nova página se necessário
       if (tableY > 270) {
         doc.addPage();
         tableY = 20;
       }
       
-      // Zebra striping for rows
+      // Zebra striping para melhor legibilidade
       if (index % 2 === 0) {
-        doc.setFillColor(250, 250, 250);
-        doc.rect(tableX, tableY, 180, 6, 'F');
+        doc.setFillColor(245, 247, 250);
+        doc.rect(tableX, tableY, 180, 7, "F");
       }
       
-      // Destaca a referência do cliente, caso exista
+      // Destaque para referência do cliente
       if (item.clientRef) {
-        // Fundo cinza claro para a célula de referência
-        doc.setFillColor(240, 240, 240);
-        doc.rect(tableX, tableY, 25, 6, 'F');
-        doc.setFont("helvetica", "bold");
-        doc.text(item.clientRef, tableX + 5, tableY + 4);
-        doc.setFont("helvetica", "normal");
+        doc.setFillColor(primaryColor);
+        doc.setTextColor(255, 255, 255);
+        doc.roundedRect(tableX + 2, tableY + 1, 22, 5, 1, 1, "F");
+        doc.text(item.clientRef, tableX + 5, tableY + 4.5);
+        doc.setTextColor(darkGray);
       } else {
-        doc.text('-', tableX + 5, tableY + 4);
+        doc.text("-", tableX + 5, tableY + 4.5);
       }
-      doc.text(item.code, tableX + 30, tableY + 4);
-      doc.text(item.name.length > 30 ? item.name.substring(0, 30) + '...' : item.name, tableX + 50, tableY + 4);
-      doc.text(item.quantity.toString(), tableX + 95, tableY + 4);
-      doc.text(formatCurrency(item.unitPrice), tableX + 110, tableY + 4);
-      doc.text(item.discount > 0 ? `${item.discount}%` : '-', tableX + 135, tableY + 4);
+      
+      // Resto dos dados do item
+      doc.text(item.code, tableX + 30, tableY + 4.5);
+      const displayName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
+      doc.text(displayName, tableX + 50, tableY + 4.5);
+      doc.text(item.quantity.toString(), tableX + 95, tableY + 4.5);
+      doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4.5);
+      doc.text(item.discount > 0 ? `${item.discount}%` : "-", tableX + 140, tableY + 4.5);
+      
+      // Preço com desconto
       const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
-      doc.text(formatCurrency(priceWithDiscount), tableX + 155, tableY + 4);
-      doc.text(formatCurrency(item.subtotal), tableX + 180, tableY + 4);
+      doc.text(formatCurrency(priceWithDiscount), tableX + 163, tableY + 4.5);
+      
+      // Subtotal
+      doc.text(formatCurrency(item.subtotal), tableX + 190, tableY + 4.5);
       
       tableY += 7;
     });
     
-    // Add totals
-    const totalsY = tableY + 10;
-    doc.line(tableX, totalsY - 5, 195, totalsY - 5);
+    // Resumo financeiro com layout moderno
+    const totalsY = tableY + 15;
     
+    // Card para os totais
+    doc.setFillColor(secondaryColor);
+    doc.roundedRect(pageWidth - 95, totalsY - 10, 80, 45, 3, 3, "F");
+    
+    // Informações de totais
     doc.setFontSize(9);
-    doc.text("Subtotal:", 150, totalsY);
-    doc.text(formatCurrency(order.subtotal), 180, totalsY);
+    doc.text("Subtotal:", pageWidth - 90, totalsY);
+    doc.text(formatCurrency(order.subtotal), pageWidth - 20, totalsY, { align: "right" });
     
-    doc.text("Desconto:", 150, totalsY + 5);
-    doc.text(formatCurrency(order.discount), 180, totalsY + 5);
+    doc.text("Desconto:", pageWidth - 90, totalsY + 8);
+    doc.text(formatCurrency(order.discount), pageWidth - 20, totalsY + 8, { align: "right" });
     
-    doc.text("Impostos:", 150, totalsY + 10);
-    doc.text(formatCurrency(order.taxes), 180, totalsY + 10);
+    doc.text("Impostos:", pageWidth - 90, totalsY + 16);
+    doc.text(formatCurrency(order.taxes), pageWidth - 20, totalsY + 16, { align: "right" });
     
+    // Linha separadora antes do total
+    doc.setDrawColor(primaryColor);
+    doc.line(pageWidth - 90, totalsY + 20, pageWidth - 20, totalsY + 20);
+    
+    // Total em destaque
     doc.setFontSize(11);
-    doc.setFont("helvetica", 'bold');
-    doc.text("Total:", 150, totalsY + 20);
-    doc.text(formatCurrency(order.total), 180, totalsY + 20);
-    doc.setFont("helvetica", 'normal');
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryColor);
+    doc.text("Total:", pageWidth - 90, totalsY + 28);
+    doc.text(formatCurrency(order.total), pageWidth - 20, totalsY + 28, { align: "right" });
     
-    // Add footer
-    const footerY = totalsY + 35;
+    // Rodapé
+    const footerY = totalsY + 50;
+    doc.setTextColor(darkGray);
     doc.setFontSize(8);
-    doc.text("Este documento não possui valor fiscal.", 105, footerY, { align: "center" });
-    doc.text(`Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, 105, footerY + 5, { align: "center" });
+    doc.setFont("helvetica", "normal");
     
-    // Save the PDF
+    // Linha divisória do rodapé
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
+    
+    // Texto do rodapé
+    doc.text("Este documento não possui valor fiscal.", pageWidth / 2, footerY, { align: "center" });
+    doc.text(`Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, pageWidth / 2, footerY + 5, { align: "center" });
+    
+    return doc;
+  };
+  
+  // Função para baixar o PDF
+  const downloadPdf = () => {
+    const doc = createPdfDocument();
     doc.save(`pedido_${order.id}.pdf`);
   };
+  
+  // Função para imprimir o PDF
+  const printPdf = () => {
+    const doc = createPdfDocument();
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    
+    if (iframeRef.current) {
+      iframeRef.current.src = url;
+      iframeRef.current.onload = () => {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.print();
+        }
+      };
+    } else {
+      // Fallback se o iframe não estiver disponível
+      window.open(url, '_blank');
+    }
+  };
 
-  // Preview content in canvas (simplified preview)
+  // Preview content in canvas (simplified preview com design moderno)
   useEffect(() => {
     if (!canvasRef.current) return;
     
@@ -176,108 +274,426 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas
+    // Cores para design moderno
+    const primaryColor = "#3b82f6"; // azul
+    const secondaryColor = "#f0f9ff"; // azul claro
+    const darkGray = "#374151";
+    
+    // Limpar canvas
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw preview
-    ctx.fillStyle = "#000000";
-    ctx.font = "bold 20px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(`PEDIDO #${order.id}`, canvas.width / 2, 30);
+    // Cabeçalho moderno
+    ctx.fillStyle = primaryColor;
+    ctx.fillRect(0, 0, canvas.width, 40);
     
-    ctx.font = "14px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText(`Cliente: ${order.clientName}`, 20, 60);
-    ctx.fillText(`Data: ${formatDate(order.date)}`, 20, 80);
-    ctx.fillText(`Total: ${formatCurrency(order.total)}`, 20, 100);
-    
-    // Draw status badge
-    ctx.fillStyle = order.status === 'confirmado' ? "#22c55e" : "#f59e0b";
-    ctx.fillRect(canvas.width - 100, 40, 80, 25);
+    // Título do pedido
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.fillText(order.status.toUpperCase(), canvas.width - 60, 57);
-    
-    // Draw items table (simplified)
-    ctx.fillStyle = "#000000";
+    ctx.font = "bold 22px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Itens do pedido:", 20, 140);
+    ctx.fillText(`PEDIDO #${order.id}`, 20, 25);
     
-    ctx.fillStyle = "#f3f4f6";
-    ctx.fillRect(20, 150, canvas.width - 40, 25);
-    
-    ctx.fillStyle = "#000000";
-    ctx.font = "12px Arial";
-    ctx.fillText("Ref. Cliente", 30, 167);
-    ctx.fillText("Descrição", 100, 167);
-    ctx.fillText("Preço", 240, 167);
-    ctx.fillText("Preço c/ Desc.", 280, 167);
-    ctx.fillText("Subtotal", 350, 167);
-    
-    ctx.font = "12px Arial";
-    let y = 190;
-    items.slice(0, 5).forEach((item, index) => {
-      ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#f9fafb";
-      ctx.fillRect(20, y - 15, canvas.width - 40, 20);
-      
-      ctx.fillStyle = "#000000";
-      
-      // Mostra a referência do cliente (ou traço)
-      if (item.clientRef) {
-        ctx.fillStyle = "#f3f4f6";
-        ctx.fillRect(25, y - 13, 65, 17);
-        ctx.fillStyle = "#000000";
-        ctx.font = "bold 12px Arial";
-        ctx.fillText(item.clientRef, 30, y);
-        ctx.font = "12px Arial";
-      } else {
-        ctx.fillText("-", 30, y);
-      }
-      
-      // Mostra o nome do produto
-      ctx.fillText(item.name.length > 25 ? item.name.substring(0, 25) + '...' : item.name, 100, y);
-      ctx.fillText(formatCurrency(item.unitPrice), 240, y);
-      
-      // Calcula e mostra o preço com desconto
-      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
-      ctx.fillText(formatCurrency(priceWithDiscount), 280, y);
-      
-      ctx.fillText(formatCurrency(item.subtotal), 350, y);
-      
-      y += 25;
-    });
-    
-    if (items.length > 5) {
-      ctx.fillText(`... e mais ${items.length - 5} itens`, 30, y);
+    // Badge de status moderno
+    if (order.status === 'confirmado') {
+      ctx.fillStyle = "#22c55e"; // verde
+    } else {
+      ctx.fillStyle = "#f59e0b"; // amarelo
     }
     
-    // Draw totals
-    y = Math.min(items.length, 5) * 25 + 210;
+    // Desenhar badge com cantos arredondados
+    ctx.beginPath();
+    // Implementação manual de retângulo com cantos arredondados
+    const badgeX = canvas.width - 100;
+    const badgeY = 10;
+    const badgeWidth = 80;
+    const badgeHeight = 25;
+    const radius = 5;
+    
+    // Desenho do retângulo arredondado manualmente
+    ctx.moveTo(badgeX + radius, badgeY);
+    ctx.lineTo(badgeX + badgeWidth - radius, badgeY);
+    ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + radius);
+    ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - radius);
+    ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - radius, badgeY + badgeHeight);
+    ctx.lineTo(badgeX + radius, badgeY + badgeHeight);
+    ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - radius);
+    ctx.lineTo(badgeX, badgeY + radius);
+    ctx.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText(order.status.toUpperCase(), canvas.width - 60, 27);
+    
+    // Cards de informações
+    // Card da empresa
+    ctx.fillStyle = darkGray;
+    ctx.textAlign = "left";
     ctx.font = "bold 14px Arial";
-    ctx.fillText(`Total: ${formatCurrency(order.total)}`, canvas.width - 150, y);
+    ctx.fillText("GestãoPedidos", 20, 55);
+    
+    ctx.font = "12px Arial";
+    ctx.fillText("CNPJ: 00.000.000/0000-00", 20, 70);
+    
+    // Card do cliente
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const clientCardX = 20;
+    const clientCardY = 85;
+    const clientCardWidth = 200;
+    const clientCardHeight = 80;
+    const clientCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(clientCardX + clientCardRadius, clientCardY);
+    ctx.lineTo(clientCardX + clientCardWidth - clientCardRadius, clientCardY);
+    ctx.quadraticCurveTo(clientCardX + clientCardWidth, clientCardY, clientCardX + clientCardWidth, clientCardY + clientCardRadius);
+    ctx.lineTo(clientCardX + clientCardWidth, clientCardY + clientCardHeight - clientCardRadius);
+    ctx.quadraticCurveTo(clientCardX + clientCardWidth, clientCardY + clientCardHeight, clientCardX + clientCardWidth - clientCardRadius, clientCardY + clientCardHeight);
+    ctx.lineTo(clientCardX + clientCardRadius, clientCardY + clientCardHeight);
+    ctx.quadraticCurveTo(clientCardX, clientCardY + clientCardHeight, clientCardX, clientCardY + clientCardHeight - clientCardRadius);
+    ctx.lineTo(clientCardX, clientCardY + clientCardRadius);
+    ctx.quadraticCurveTo(clientCardX, clientCardY, clientCardX + clientCardRadius, clientCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("CLIENTE", 30, 105);
+    
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.fillText(`Nome: ${order.clientName}`, 30, 125);
+    ctx.fillText(`CNPJ: ${order.clientCnpj}`, 30, 145);
+    
+    // Card de informações do pedido
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const infoCardX = 240;
+    const infoCardY = 85;
+    const infoCardWidth = 200;
+    const infoCardHeight = 80;
+    const infoCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(infoCardX + infoCardRadius, infoCardY);
+    ctx.lineTo(infoCardX + infoCardWidth - infoCardRadius, infoCardY);
+    ctx.quadraticCurveTo(infoCardX + infoCardWidth, infoCardY, infoCardX + infoCardWidth, infoCardY + infoCardRadius);
+    ctx.lineTo(infoCardX + infoCardWidth, infoCardY + infoCardHeight - infoCardRadius);
+    ctx.quadraticCurveTo(infoCardX + infoCardWidth, infoCardY + infoCardHeight, infoCardX + infoCardWidth - infoCardRadius, infoCardY + infoCardHeight);
+    ctx.lineTo(infoCardX + infoCardRadius, infoCardY + infoCardHeight);
+    ctx.quadraticCurveTo(infoCardX, infoCardY + infoCardHeight, infoCardX, infoCardY + infoCardHeight - infoCardRadius);
+    ctx.lineTo(infoCardX, infoCardY + infoCardRadius);
+    ctx.quadraticCurveTo(infoCardX, infoCardY, infoCardX + infoCardRadius, infoCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("INFORMAÇÕES", 250, 105);
+    
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.fillText(`Data: ${formatDate(order.date)}`, 250, 125);
+    ctx.fillText(`Pagamento: ${order.paymentTerms}`, 250, 145);
+    
+    // Título da tabela de itens
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("ITENS DO PEDIDO", 20, 190);
+    
+    // Linha decorativa
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, 195);
+    ctx.lineTo(180, 195);
+    ctx.stroke();
+    
+    // Cabeçalho da tabela
+    ctx.fillStyle = primaryColor;
+    ctx.fillRect(20, 205, canvas.width - 40, 30);
+    
+    // Textos do cabeçalho
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Ref. Cliente", 30, 225);
+    ctx.fillText("Produto", 110, 225);
+    ctx.fillText("Preço", 250, 225);
+    ctx.fillText("Preço c/ Desc.", 310, 225);
+    ctx.fillText("Subtotal", 400, 225);
+    
+    // Linhas da tabela
+    let y = 250;
+    items.slice(0, 4).forEach((item, index) => {
+      // Fundo zebrado
+      ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#f9fafb";
+      ctx.fillRect(20, y - 15, canvas.width - 40, 30);
+      
+      // Referência do cliente com destaque
+      if (item.clientRef) {
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        // Implementação manual do retângulo arredondado
+        const refX = 25;
+        const refY = y - 10;
+        const refWidth = 65;
+        const refHeight = 20;
+        const refRadius = 3;
+        
+        // Desenho do retângulo arredondado
+        ctx.moveTo(refX + refRadius, refY);
+        ctx.lineTo(refX + refWidth - refRadius, refY);
+        ctx.quadraticCurveTo(refX + refWidth, refY, refX + refWidth, refY + refRadius);
+        ctx.lineTo(refX + refWidth, refY + refHeight - refRadius);
+        ctx.quadraticCurveTo(refX + refWidth, refY + refHeight, refX + refWidth - refRadius, refY + refHeight);
+        ctx.lineTo(refX + refRadius, refY + refHeight);
+        ctx.quadraticCurveTo(refX, refY + refHeight, refX, refY + refHeight - refRadius);
+        ctx.lineTo(refX, refY + refRadius);
+        ctx.quadraticCurveTo(refX, refY, refX + refRadius, refY);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(item.clientRef, 30, y + 3);
+      } else {
+        ctx.fillStyle = darkGray;
+        ctx.fillText("-", 30, y + 3);
+      }
+      
+      // Resto dos dados
+      ctx.fillStyle = darkGray;
+      ctx.font = "12px Arial";
+      
+      // Nome do produto com limitação
+      const displayName = item.name.length > 20 ? item.name.substring(0, 20) + "..." : item.name;
+      ctx.fillText(displayName, 110, y + 3);
+      
+      // Preços
+      ctx.fillText(formatCurrency(item.unitPrice), 250, y + 3);
+      
+      // Preço com desconto
+      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
+      ctx.fillText(formatCurrency(priceWithDiscount), 310, y + 3);
+      
+      // Subtotal
+      ctx.fillText(formatCurrency(item.subtotal), 400, y + 3);
+      
+      y += 30;
+    });
+    
+    // Indicação de mais itens
+    if (items.length > 4) {
+      ctx.fillStyle = darkGray;
+      ctx.font = "italic 12px Arial";
+      ctx.fillText(`... e mais ${items.length - 4} itens`, 30, y + 5);
+    }
+    
+    // Card de totais
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const totalsCardX = canvas.width - 180;
+    const totalsCardY = y + 20;
+    const totalsCardWidth = 160;
+    const totalsCardHeight = 80;
+    const totalsCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(totalsCardX + totalsCardRadius, totalsCardY);
+    ctx.lineTo(totalsCardX + totalsCardWidth - totalsCardRadius, totalsCardY);
+    ctx.quadraticCurveTo(totalsCardX + totalsCardWidth, totalsCardY, totalsCardX + totalsCardWidth, totalsCardY + totalsCardRadius);
+    ctx.lineTo(totalsCardX + totalsCardWidth, totalsCardY + totalsCardHeight - totalsCardRadius);
+    ctx.quadraticCurveTo(totalsCardX + totalsCardWidth, totalsCardY + totalsCardHeight, totalsCardX + totalsCardWidth - totalsCardRadius, totalsCardY + totalsCardHeight);
+    ctx.lineTo(totalsCardX + totalsCardRadius, totalsCardY + totalsCardHeight);
+    ctx.quadraticCurveTo(totalsCardX, totalsCardY + totalsCardHeight, totalsCardX, totalsCardY + totalsCardHeight - totalsCardRadius);
+    ctx.lineTo(totalsCardX, totalsCardY + totalsCardRadius);
+    ctx.quadraticCurveTo(totalsCardX, totalsCardY, totalsCardX + totalsCardRadius, totalsCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Textos dos totais
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.textAlign = "left";
+    
+    const totalsX = canvas.width - 170;
+    const valuesX = canvas.width - 30;
+    let totalsY = y + 45;
+    
+    ctx.fillText("Subtotal:", totalsX, totalsY);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.subtotal), valuesX, totalsY);
+    
+    ctx.textAlign = "left";
+    ctx.fillText("Desconto:", totalsX, totalsY + 20);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.discount), valuesX, totalsY + 20);
+    
+    // Linha separadora
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(totalsX, totalsY + 30);
+    ctx.lineTo(valuesX, totalsY + 30);
+    ctx.stroke();
+    
+    // Total com destaque
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Total:", totalsX, totalsY + 50);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.total), valuesX, totalsY + 50);
+    
+    // Rodapé
+    ctx.fillStyle = "#cccccc";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Este documento não possui valor fiscal.", canvas.width / 2, canvas.height - 15);
   }, [order, items]);
 
   return (
     <div className="flex flex-col space-y-4">
       <div className="border rounded-md p-4">
+        {/* Preview em canvas */}
         <canvas 
           ref={canvasRef} 
-          width={400} 
-          height={500} 
+          width={460} 
+          height={520} 
           className="mx-auto border"
         ></canvas>
+        
+        {/* Conteúdo otimizado para impressão - só aparece na impressão */}
+        <div className="hidden print:block mt-4">
+          <div className="print-header">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold">PEDIDO #{order.id}</h1>
+              <div className={`inline-block px-3 py-1 rounded text-white ${
+                order.status === 'confirmado' ? 'bg-green-600' : 'bg-yellow-500'
+              }`}>
+                {order.status.toUpperCase()}
+              </div>
+            </div>
+            
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-4 rounded-md">
+                <h2 className="text-lg font-bold text-blue-600 mb-2">CLIENTE</h2>
+                <p>Nome: {order.clientName}</p>
+                <p>CNPJ: {order.clientCnpj}</p>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-md">
+                <h2 className="text-lg font-bold text-blue-600 mb-2">INFORMAÇÕES DO PEDIDO</h2>
+                <p>Data: {order.date}</p>
+                <p>Condição: {order.paymentTerms}</p>
+                <p>Representante: {order.representative}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 print-items">
+            <h2 className="text-xl font-bold mb-2">ITENS DO PEDIDO</h2>
+            <div className="h-1 w-40 bg-blue-600 mb-4"></div>
+            
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-blue-600 text-white">
+                  <th className="px-2 py-2 text-left">Ref. Cliente</th>
+                  <th className="px-2 py-2 text-left">Código</th>
+                  <th className="px-2 py-2 text-left">Descrição</th>
+                  <th className="px-2 py-2 text-right">Qtd</th>
+                  <th className="px-2 py-2 text-right">Preço Tabela</th>
+                  <th className="px-2 py-2 text-right">Desconto</th>
+                  <th className="px-2 py-2 text-right">Preço c/ Desc.</th>
+                  <th className="px-2 py-2 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, index) => {
+                  // Cálculo do preço com desconto
+                  const priceWithDiscount = item.discount > 0 
+                    ? item.unitPrice * (1 - item.discount / 100) 
+                    : item.unitPrice;
+                    
+                  return (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td className="px-2 py-2 border-b">
+                        {item.clientRef ? (
+                          <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
+                            {item.clientRef}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-2 py-2 border-b">{item.code}</td>
+                      <td className="px-2 py-2 border-b">{item.name}</td>
+                      <td className="px-2 py-2 border-b text-right">{item.quantity}</td>
+                      <td className="px-2 py-2 border-b text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="px-2 py-2 border-b text-right">{item.discount > 0 ? `${item.discount}%` : '-'}</td>
+                      <td className="px-2 py-2 border-b text-right">{formatCurrency(priceWithDiscount)}</td>
+                      <td className="px-2 py-2 border-b text-right">{formatCurrency(item.subtotal)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-8 flex justify-end print-footer">
+            <div className="bg-blue-50 p-4 rounded-md w-64">
+              <div className="flex justify-between py-1">
+                <span>Subtotal:</span>
+                <span>{formatCurrency(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Desconto:</span>
+                <span>{formatCurrency(order.discount)}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Impostos:</span>
+                <span>{formatCurrency(order.taxes)}</span>
+              </div>
+              <div className="h-px bg-blue-600 my-2"></div>
+              <div className="flex justify-between py-1 font-bold text-blue-600">
+                <span>Total:</span>
+                <span>{formatCurrency(order.total)}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-12 text-center text-gray-400 text-sm">
+            <p>Este documento não possui valor fiscal.</p>
+            <p>Gerado em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+          </div>
+        </div>
       </div>
       
-      <div className="flex justify-end space-x-4">
+      {/* Iframe oculto usado para impressão */}
+      <iframe 
+        ref={iframeRef} 
+        style={{position: 'absolute', width: '0', height: '0', border: '0'}}
+        title="PDF Print Frame"
+      />
+      
+      <div className="flex justify-end space-x-4 print:hidden">
         {onClose && (
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
         )}
-        <Button onClick={generatePdf}>
+        <Button variant="outline" onClick={downloadPdf}>
           <FileDown className="mr-2 h-4 w-4" />
           Baixar PDF
+        </Button>
+        <Button onClick={printPdf}>
+          <Printer className="mr-2 h-4 w-4" />
+          Imprimir
         </Button>
       </div>
     </div>

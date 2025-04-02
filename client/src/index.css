@@ -11,3 +11,66 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Estilos para impressão */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  
+  html, body {
+    width: 210mm;
+    height: 297mm;
+    font-size: 12pt;
+    background: #fff;
+    color: #000;
+  }
+  
+  .print:hidden {
+    display: none !important;
+  }
+  
+  header, nav, aside, footer, .sidebar, 
+  button:not(.print-button), 
+  .no-print, 
+  .dialog-overlay, 
+  .dialog-backdrop {
+    display: none !important;
+  }
+  
+  .dialog-content {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    transform: none !important;
+  }
+  
+  /* Ajustes para o conteúdo do PDF */
+  .pdf-content {
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  
+  /* Garante que os elementos do PDF fiquem juntos */
+  .pdf-header, .pdf-items, .pdf-footer {
+    break-inside: avoid;
+  }
+  
+  /* Esconde a scrollbar ao imprimir */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+}

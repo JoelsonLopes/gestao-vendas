@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   PlusCircle,
   Trash,
-  Search
+  Search,
+  Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -556,8 +557,8 @@ export default function OrderFormPage() {
           
           <div className="flex space-x-2">
             <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
-              <FileDown className="mr-2 h-4 w-4" />
-              Visualizar PDF
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir
             </Button>
             
             {isEditMode ? (
