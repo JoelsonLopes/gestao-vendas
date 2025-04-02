@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,17 +27,26 @@ export function ClientSearch({
     console.log("ClientSearch - Clientes recebidos:", clients.length);
   }, [clients]);
 
-  // Filtrar clientes - usando o mesmo método da DataTable
+  // Filtrar clientes - implementação específica para os campos mais importantes
   const filteredClients = clients.filter(client => {
     if (!searchQuery.trim()) return true;
     
     const query = searchQuery.toLowerCase().trim();
+    console.log("Buscando por:", query);
     
-    // Verifica se qualquer valor do cliente contém a query de busca
-    return Object.values(client).some(value => {
-      if (value === null || value === undefined) return false;
-      return String(value).toLowerCase().includes(query);
-    });
+    // Verifica apenas nos campos específicos mais utilizados
+    const nameMatch = client.name?.toLowerCase().includes(query) || false;
+    const codeMatch = client.code?.toLowerCase().includes(query) || false;
+    const cnpjMatch = client.cnpj?.toLowerCase().includes(query) || false;
+    const cityMatch = client.city?.toLowerCase().includes(query) || false;
+    const phoneMatch = client.phone?.toLowerCase().includes(query) || false;
+    
+    const matches = nameMatch || codeMatch || cnpjMatch || cityMatch || phoneMatch;
+    if (matches) {
+      console.log("Cliente encontrado na busca:", client.name);
+    }
+    
+    return matches;
   });
 
   // Cliente selecionado
@@ -102,49 +110,53 @@ export function ClientSearch({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[350px]">
-        <Command>
-          <div className="flex items-center border-b px-3">
+        <div className="flex flex-col">
+          <div className="flex items-center border-b px-3 py-2">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <CommandInput
+            <input
               ref={inputRef}
               placeholder="Buscar por nome, código, CNPJ ou telefone..."
-              className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
+              className="flex h-9 w-full rounded-md bg-transparent py-2 px-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
               value={searchQuery}
-              onValueChange={setSearchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <CommandEmpty>
-            Nenhum cliente encontrado. Tente outros termos de busca.
-          </CommandEmpty>
-          <CommandGroup className="max-h-[300px] overflow-auto">
-            {filteredClients.map((client) => (
-              <div
-                key={client.id}
-                className="px-2 py-2 hover:bg-accent cursor-pointer flex items-center"
-                onClick={() => {
-                  console.log("Clique no cliente:", client.id, client.name);
-                  onClientSelect(client.id);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedClientId === client.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <div className="flex-1">
-                  <div className="font-medium">{client.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {client.cnpj && `CNPJ: ${client.cnpj}`}
-                    {client.code && ` • Código: ${client.code}`}
-                    {client.phone && ` • Tel: ${client.phone}`}
+          
+          <div className="max-h-[300px] overflow-auto py-1">
+            {filteredClients.length === 0 ? (
+              <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                Nenhum cliente encontrado. Tente outros termos de busca.
+              </div>
+            ) : (
+              filteredClients.map((client) => (
+                <div
+                  key={client.id}
+                  className="px-2 py-2 hover:bg-accent cursor-pointer flex items-center"
+                  onClick={() => {
+                    console.log("Clique no cliente:", client.id, client.name);
+                    onClientSelect(client.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{client.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {client.cnpj && `CNPJ: ${client.cnpj}`}
+                      {client.code && ` • Código: ${client.code}`}
+                      {client.phone && ` • Tel: ${client.phone}`}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </CommandGroup>
-        </Command>
+              ))
+            )}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
