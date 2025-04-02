@@ -214,14 +214,32 @@ export default function OrderFormPage() {
     const product = products?.find(p => p.id === selectedProductId);
     if (!product) return;
     
+    // Inicialmente sem desconto
+    const unitPrice = Number(product.price);
+    const discountPercentage = 0;
+    
+    // Cálculo do preço com desconto (neste caso, sem desconto ainda)
+    const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
+    
+    // Subtotal baseado no preço unitário já com desconto (que neste momento é igual ao preço original)
+    const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
+    
+    console.log(`
+      Adicionando produto:
+      - Produto: ${product.name} (${product.code})
+      - Preço original: ${formatCurrency(unitPrice)}
+      - Quantidade: ${productQuantity}
+      - Subtotal: ${formatCurrency(subtotal)}
+    `);
+    
     const newItem = {
       productId: selectedProductId,
       quantity: productQuantity,
-      unitPrice: Number(product.price),
+      unitPrice: unitPrice,
       discountId: null,
-      discountPercentage: 0,
+      discountPercentage: discountPercentage,
       commission: 0,
-      subtotal: Number(product.price) * productQuantity,
+      subtotal: subtotal,
       product,
     };
     
@@ -243,15 +261,29 @@ export default function OrderFormPage() {
     const newItems = [...orderItems];
     const item = newItems[index];
     
-    const originalSubtotal = item.quantity * item.unitPrice;
-    const discountedSubtotal = calculateDiscountedPrice(originalSubtotal, discountPercentage);
+    // Calcular o preço unitário com desconto primeiro
+    const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
+    
+    // Calcular o subtotal com base no preço unitário já com desconto
+    const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2));
+    
+    console.log(`
+      Aplicando desconto:
+      - Produto: ${item.product?.name} (${item.product?.code})
+      - Preço original: ${formatCurrency(item.unitPrice)}
+      - Desconto: ${discountPercentage}%
+      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+      - Quantidade: ${item.quantity}
+      - Subtotal: ${formatCurrency(discountedSubtotal)}
+      - Comissão: ${commission}%
+    `);
     
     newItems[index] = {
       ...item,
       discountId,
       discountPercentage,
       commission,
-      subtotal: Number(discountedSubtotal.toFixed(2)),
+      subtotal: discountedSubtotal,
     };
     
     setOrderItems(newItems);
@@ -264,13 +296,26 @@ export default function OrderFormPage() {
     const newItems = [...orderItems];
     const item = newItems[index];
     
-    const originalSubtotal = quantity * item.unitPrice;
-    const discountedSubtotal = calculateDiscountedPrice(originalSubtotal, item.discountPercentage);
+    // Pegar o preço unitário com desconto
+    const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
+    
+    // Recalcular subtotal com base no preço unitário já com desconto
+    const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2));
+    
+    console.log(`
+      Atualizando quantidade:
+      - Produto: ${item.product?.name} (${item.product?.code})
+      - Preço original: ${formatCurrency(item.unitPrice)}
+      - Desconto: ${item.discountPercentage}%
+      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+      - Nova quantidade: ${quantity}
+      - Novo subtotal: ${formatCurrency(discountedSubtotal)}
+    `);
     
     newItems[index] = {
       ...item,
       quantity,
-      subtotal: Number(discountedSubtotal.toFixed(2)),
+      subtotal: discountedSubtotal,
     };
     
     setOrderItems(newItems);
