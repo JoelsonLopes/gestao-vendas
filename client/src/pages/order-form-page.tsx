@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { ConfirmationDialog, PromptDialog } from "@/components/custom-modals";
 import { 
   Select, 
   SelectContent, 
@@ -85,6 +86,15 @@ export default function OrderFormPage() {
   const [shouldSaveConversion, setShouldSaveConversion] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State para diálogos personalizados
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmDialogMessage, setConfirmDialogMessage] = useState("");
+  const [confirmDialogAction, setConfirmDialogAction] = useState<(() => void) | null>(null);
+  
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [promptDialogMessage, setPromptDialogMessage] = useState("");
+  const [promptDialogAction, setPromptDialogAction] = useState<((value: string) => void) | null>(null);
   const [totals, setTotals] = useState<{
     subtotal: number;
     taxes: number;
@@ -1081,6 +1091,29 @@ export default function OrderFormPage() {
                   <DialogTitle>Adicionar Produto</DialogTitle>
                 </DialogHeader>
                 
+                {/* Modais personalizados utilizando componentes */}
+                <ConfirmationDialog 
+                  open={confirmDialogOpen}
+                  onOpenChange={setConfirmDialogOpen}
+                  title="Confirmação"
+                  message={confirmDialogMessage}
+                  onConfirm={() => {
+                    if (confirmDialogAction) confirmDialogAction();
+                  }}
+                />
+                
+                <PromptDialog 
+                  open={promptDialogOpen}
+                  onOpenChange={setPromptDialogOpen}
+                  title="Informe o produto"
+                  message={promptDialogMessage}
+                  placeholder="Digite o código ou nome do produto"
+                  onConfirm={(value) => {
+                    if (promptDialogAction) promptDialogAction(value);
+                  }}
+                  confirmLabel="Buscar"
+                />
+                
                 <div className="space-y-4 py-4">
                   <Tabs defaultValue="code" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -1115,55 +1148,57 @@ export default function OrderFormPage() {
                                   if (!res.ok) {
                                     if (res.status === 404) {
                                       // Produto não encontrado, perguntar ao usuário se deseja adicionar a conversão
-                                      const shouldAddConversion = window.confirm(
+                                      // Usando nossa modal personalizada em vez do window.confirm
+                                      setConfirmDialogMessage(
                                         `Não encontramos um produto com a referência "${clientRef}". ` +
                                         `Deseja adicionar essa conversão em algum produto?`
                                       );
-                                      
-                                      if (shouldAddConversion) {
-                                        // Perguntar qual produto buscar
-                                        const productToSearch = window.prompt(
-                                          `Digite o código ou nome do produto para buscar:`
-                                        );
-                                        
-                                        if (!productToSearch) {
-                                          toast({
-                                            title: "Operação cancelada",
-                                            description: "Nenhum produto informado para busca.",
-                                            variant: "destructive",
-                                          });
-                                          return null;
-                                        }
-                                        
-                                        // Buscar o produto informado
-                                        return fetch(`/api/products/by-code/${encodeURIComponent(productToSearch)}`)
-                                          .then(res => {
-                                            if (!res.ok) {
-                                              throw new Error(`Produto ${productToSearch} não encontrado`);
-                                            }
-                                            return res.json();
-                                          })
-                                          .then(foundProduct => {
-                                            // Adicionar a conversão ao produto
-                                            foundProduct.conversion = clientRef;
-                                            setShouldSaveConversion(true); // Ativa a opção de salvar
-                                            
+                                      setConfirmDialogAction(() => {
+                                        // Após confirmar, mostrar modal de busca personalizada
+                                        setPromptDialogMessage("Digite o código ou nome do produto para buscar:");
+                                        setPromptDialogOpen(true); // Abre o diálogo de prompt após confirmar
+                                        setPromptDialogAction((productToSearch: string) => {
+                                          if (!productToSearch) {
                                             toast({
-                                              title: "Produto encontrado",
-                                              description: `A referência ${clientRef} será associada ao produto ${foundProduct.name}`,
-                                            });
-                                            
-                                            return foundProduct;
-                                          })
-                                          .catch(error => {
-                                            toast({
-                                              title: "Produto não encontrado",
-                                              description: error.message,
+                                              title: "Operação cancelada",
+                                              description: "Nenhum produto informado para busca.",
                                               variant: "destructive",
                                             });
                                             return null;
-                                          });
-                                      }
+                                          }
+                                        
+                                          // Buscar o produto informado
+                                          return fetch(`/api/products/by-code/${encodeURIComponent(productToSearch)}`)
+                                            .then(res => {
+                                              if (!res.ok) {
+                                                throw new Error(`Produto ${productToSearch} não encontrado`);
+                                              }
+                                              return res.json();
+                                            })
+                                            .then(foundProduct => {
+                                              // Adicionar a conversão ao produto
+                                              foundProduct.conversion = clientRef;
+                                              setShouldSaveConversion(true); // Ativa a opção de salvar
+                                              setSelectedProductId(foundProduct.id);
+                                              
+                                              toast({
+                                                title: "Produto encontrado",
+                                                description: `A referência ${clientRef} será associada ao produto ${foundProduct.name}`,
+                                              });
+                                              
+                                              return foundProduct;
+                                            })
+                                            .catch(error => {
+                                              toast({
+                                                title: "Produto não encontrado",
+                                                description: error.message,
+                                                variant: "destructive",
+                                              });
+                                              return null;
+                                            });
+                                        });
+                                      });
+                                      setConfirmDialogOpen(true);
                                       return null;
                                     }
                                     throw new Error("Erro ao buscar produto");
