@@ -390,8 +390,10 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Unit.</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Tabela</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Desconto</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço c/ Desc.</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -409,6 +411,14 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                       <td className="py-3 align-middle text-sm font-medium">{item.code}</td>
                       <td className="py-3 align-middle text-sm">{item.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
+                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-3 align-middle text-sm text-right">
+                        {item.discount > 0 ? (
+                          order.status === 'confirmado' && item.discountName 
+                            ? `${item.discountName} (${item.discount}%)` 
+                            : `${item.discount}%`
+                        ) : '-'}
+                      </td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
                       <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(item.subtotal)}</td>
                     </tr>
