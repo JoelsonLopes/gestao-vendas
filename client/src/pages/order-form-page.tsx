@@ -4,6 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { ClientSearch } from "@/components/client-search";
+import { ProductSearch } from "@/components/product-search";
 import {
   Loader2,
   Save,
@@ -633,21 +634,11 @@ export default function OrderFormPage() {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="product">Produto</Label>
-                    <Select 
-                      value={selectedProductId?.toString()} 
-                      onValueChange={(value) => setSelectedProductId(Number(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um produto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products?.map(product => (
-                          <SelectItem key={product.id} value={product.id.toString()}>
-                            {product.name} - {formatCurrency(Number(product.price))}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ProductSearch 
+                      products={products}
+                      selectedProductId={selectedProductId}
+                      onProductSelect={setSelectedProductId}
+                    />
                   </div>
                   
                   <div className="space-y-2">
