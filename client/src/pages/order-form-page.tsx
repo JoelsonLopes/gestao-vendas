@@ -652,7 +652,6 @@ export default function OrderFormPage() {
               <thead>
                 <tr className="border-b border-gray-300">
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Cliente</th>
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Unit.</th>
@@ -671,7 +670,6 @@ export default function OrderFormPage() {
                       <td className="py-3 align-middle text-sm">
                         {item.product?.conversion || '-'}
                       </td>
-                      <td className="py-3 align-middle text-sm font-medium">{item.product?.code}</td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
