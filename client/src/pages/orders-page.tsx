@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, PlusCircle, Filter, FileDown, Printer } from "lucide-react";
+import { Loader2, PlusCircle, Filter, FileDown, Printer, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,9 +14,11 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PdfTemplate } from "@/components/pdf-template";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -298,11 +300,36 @@ export default function OrdersPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      title="Imprimir"
-                      onClick={(e) => handleViewPdf(order, e)}
+                      title="Editar"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation(`/orders/${order.id}`);
+                      }}
                     >
-                      <Printer className="h-4 w-4" />
-                      <span className="sr-only">Imprimir</span>
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Editar</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-red-600 hover:text-red-800"
+                      title="Excluir"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Implementar confirmação de exclusão aqui
+                        if (window.confirm(`Tem certeza que deseja excluir o pedido #${order.id}?`)) {
+                          // Implementar a lógica de exclusão aqui quando for necessário
+                          // Por enquanto apenas mostra uma mensagem
+                          toast({
+                            title: "Funcionalidade em desenvolvimento",
+                            description: "A exclusão de pedidos será implementada em breve.",
+                            variant: "default"
+                          });
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Excluir</span>
                     </Button>
                   </div>
                 ),
