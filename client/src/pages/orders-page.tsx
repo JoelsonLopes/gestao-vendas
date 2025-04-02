@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery } from "@tanstack/react-query";
@@ -335,9 +335,17 @@ export default function OrdersPage() {
                       variant="outline" 
                       size="sm"
                       title="Imprimir Pedido"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        handleViewPdf(order, e);
+                        
+                        // Seleciona o pedido atual (necessário para carregar os dados)
+                        setSelectedOrder(order);
+                        
+                        // Pequeno delay para garantir que os dados estejam carregados
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                        // Aciona a impressão diretamente
+                        window.print();
                       }}
                     >
                       <Printer className="h-4 w-4" />
@@ -418,6 +426,17 @@ export default function OrdersPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Conteúdo oculto para impressão direta */}
+      <div className="hidden print:block">
+        {orderWithItems && orderWithItems.order && (
+          <PdfTemplate
+            order={orderWithItems.order}
+            items={orderWithItems.items}
+            onClose={() => {}}
+          />
+        )}
+      </div>
     </DashboardLayout>
   );
 }
