@@ -224,54 +224,245 @@ export class DatabaseStorage implements IStorage {
 
   // Product methods
   async getProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
-    return product || undefined;
+    try {
+      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      const [product] = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt
+      })
+      .from(products)
+      .where(eq(products.id, id));
+      
+      if (!product) return undefined;
+      
+      // Adicionar propriedades vazias para as novas colunas
+      return {
+        ...product,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar produto com ID ${id}:`, error);
+      throw error;
+    }
   }
   
   async getProductByCode(code: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.code, code));
-    return product || undefined;
+    try {
+      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      const [product] = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt
+      })
+      .from(products)
+      .where(eq(products.code, code));
+      
+      if (!product) return undefined;
+      
+      // Adicionar propriedades vazias para as novas colunas
+      return {
+        ...product,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar produto com código ${code}:`, error);
+      throw error;
+    }
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db
-      .insert(products)
-      .values({...product})
-      .returning();
-    return newProduct;
+    try {
+      // Extrair apenas os campos que existem no banco de dados
+      const {
+        code,
+        name,
+        description,
+        barcode,
+        category,
+        brand,
+        price,
+        stockQuantity,
+        active
+      } = product;
+      
+      // Criar o produto sem usar campos de conversão que ainda não existem
+      const [newProduct] = await db
+        .insert(products)
+        .values({
+          code,
+          name,
+          description,
+          barcode,
+          category,
+          brand,
+          price,
+          stockQuantity,
+          active
+        })
+        .returning();
+      
+      // Adicionar as propriedades de conversão ao resultado
+      return {
+        ...newProduct,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      };
+    } catch (error) {
+      console.error("Erro ao criar produto:", error);
+      throw error;
+    }
   }
 
   async updateProduct(id: number, productData: Partial<InsertProduct>): Promise<Product | undefined> {
-    const updatedData = { ...productData, updatedAt: new Date() };
-    const [updatedProduct] = await db
-      .update(products)
-      .set(updatedData)
-      .where(eq(products.id, id))
-      .returning();
-    return updatedProduct || undefined;
+    try {
+      // Extrair apenas os campos que existem no banco de dados
+      const {
+        code,
+        name,
+        description,
+        barcode,
+        category,
+        brand,
+        price,
+        stockQuantity,
+        active
+      } = productData;
+      
+      // Criar objeto apenas com campos válidos e não nulos
+      const updateFields: any = { updatedAt: new Date() };
+      if (code !== undefined) updateFields.code = code;
+      if (name !== undefined) updateFields.name = name;
+      if (description !== undefined) updateFields.description = description;
+      if (barcode !== undefined) updateFields.barcode = barcode;
+      if (category !== undefined) updateFields.category = category;
+      if (brand !== undefined) updateFields.brand = brand;
+      if (price !== undefined) updateFields.price = price;
+      if (stockQuantity !== undefined) updateFields.stockQuantity = stockQuantity;
+      if (active !== undefined) updateFields.active = active;
+      
+      // Atualizar o produto sem usar campos de conversão
+      const [updatedProduct] = await db
+        .update(products)
+        .set(updateFields)
+        .where(eq(products.id, id))
+        .returning();
+      
+      if (!updatedProduct) return undefined;
+      
+      // Adicionar as propriedades de conversão ao resultado
+      return {
+        ...updatedProduct,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      };
+    } catch (error) {
+      console.error(`Erro ao atualizar produto com ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async listProducts(): Promise<Product[]> {
-    return await db.select().from(products);
+    try {
+      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      const result = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt
+      }).from(products);
+      
+      // Adicionar propriedades vazias para as novas colunas
+      return result.map(product => ({
+        ...product,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      }));
+    } catch (error) {
+      console.error("Erro ao listar produtos:", error);
+      throw error;
+    }
   }
 
   async searchProducts(query: string): Promise<Product[]> {
-    return await db.select().from(products).where(
-      or(
-        ilike(products.name, `%${query}%`),
-        ilike(products.category, `%${query}%`),
-        ilike(products.brand, `%${query}%`),
-        ilike(products.barcode, `%${query}%`),
-        ilike(products.code, `%${query}%`)
-      )
-    );
+    try {
+      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      const result = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt
+      })
+      .from(products)
+      .where(
+        or(
+          ilike(products.name, `%${query}%`),
+          ilike(products.category, `%${query}%`),
+          ilike(products.brand, `%${query}%`),
+          ilike(products.barcode, `%${query}%`),
+          ilike(products.code, `%${query}%`)
+        )
+      );
+      
+      // Adicionar propriedades vazias para as novas colunas
+      return result.map(product => ({
+        ...product,
+        conversion: null,
+        conversionBrand: null,
+        equivalentBrands: []
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error);
+      throw error;
+    }
   }
 
   async importProducts(productsList: InsertProduct[]): Promise<number> {
     // Criar um array para inserir no banco de dados
     const productsToInsert = [];
     
-    // Processar cada produto individualmente
+    // Processar cada produto individualmente - removendo campos que ainda não existem na tabela
     for (const product of productsList) {
       productsToInsert.push({
         code: product.code,
@@ -280,18 +471,24 @@ export class DatabaseStorage implements IStorage {
         barcode: product.barcode,
         category: product.category,
         brand: product.brand,
-        conversion: product.conversion,
-        conversionBrand: product.conversionBrand,
+        // Não usar campos de conversão por enquanto
+        // conversion: product.conversion,
+        // conversionBrand: product.conversionBrand,
         price: product.price,
         stockQuantity: product.stockQuantity || 0,
         active: product.active !== false
       });
     }
     
-    console.log(`Preparando para inserir ${productsToInsert.length} produtos no banco de dados`);
-    const result = await db.insert(products).values(productsToInsert).returning();
-    console.log(`${result.length} produtos inseridos com sucesso`);
-    return result.length;
+    try {
+      console.log(`Preparando para inserir ${productsToInsert.length} produtos no banco de dados`);
+      const result = await db.insert(products).values(productsToInsert).returning();
+      console.log(`${result.length} produtos inseridos com sucesso`);
+      return result.length;
+    } catch (error) {
+      console.error("Erro ao importar produtos:", error);
+      throw error;
+    }
   }
 
   // Discount methods
