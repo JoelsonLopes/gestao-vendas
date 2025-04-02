@@ -573,103 +573,155 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         {/* Conteúdo otimizado para impressão - só aparece na impressão */}
         <div className="hidden print:block mt-4">
           <div className="print-header">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">PEDIDO #{order.id}</h1>
-              <div className={`inline-block px-3 py-1 rounded text-white ${
+            {/* Cabeçalho principal */}
+            <div className="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-md">
+              <div>
+                <h1 className="text-2xl font-bold">PEDIDO #{order.id}</h1>
+                <p className="text-sm opacity-90">Gestão de Pedidos - Sistema Profissional</p>
+              </div>
+              <div className={`inline-block px-4 py-2 rounded-md font-bold text-white ${
                 order.status === 'confirmado' ? 'bg-green-600' : 'bg-yellow-500'
               }`}>
                 {order.status.toUpperCase()}
               </div>
             </div>
             
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-4 rounded-md">
-                <h2 className="text-lg font-bold text-blue-600 mb-2">CLIENTE</h2>
-                <p>Nome: {order.clientName}</p>
-                <p>CNPJ: {order.clientCnpj}</p>
+            {/* Dados da empresa - barra inferior */}
+            <div className="bg-blue-100 p-3 flex justify-between items-center text-blue-700 text-sm">
+              <div>CNPJ: 00.000.000/0000-00</div>
+              <div>contato@gestaopedidos.com</div>
+              <div>Tel: (00) 0000-0000</div>
+            </div>
+            
+            {/* Informações do cliente e pedido */}
+            <div className="mt-6 grid grid-cols-2 gap-8">
+              <div className="border border-blue-200 p-5 rounded-md">
+                <h2 className="text-lg font-bold text-blue-600 mb-3 border-b pb-2 border-blue-200">CLIENTE</h2>
+                <div className="space-y-2">
+                  <p><span className="font-semibold">Nome:</span> {order.clientName}</p>
+                  <p><span className="font-semibold">CNPJ:</span> {order.clientCnpj}</p>
+                </div>
               </div>
               
-              <div className="bg-blue-50 p-4 rounded-md">
-                <h2 className="text-lg font-bold text-blue-600 mb-2">INFORMAÇÕES DO PEDIDO</h2>
-                <p>Data: {order.date}</p>
-                <p>Condição: {order.paymentTerms}</p>
-                <p>Representante: {order.representative}</p>
+              <div className="border border-blue-200 p-5 rounded-md">
+                <h2 className="text-lg font-bold text-blue-600 mb-3 border-b pb-2 border-blue-200">INFORMAÇÕES</h2>
+                <div className="grid grid-cols-2 gap-2">
+                  <p><span className="font-semibold">Data:</span> {order.date}</p>
+                  <p><span className="font-semibold">Condição:</span> {order.paymentTerms}</p>
+                  <p className="col-span-2"><span className="font-semibold">Representante:</span> {order.representative}</p>
+                </div>
               </div>
             </div>
           </div>
           
-          <div className="mt-8 print-items">
-            <h2 className="text-xl font-bold mb-2">ITENS DO PEDIDO</h2>
-            <div className="h-1 w-40 bg-blue-600 mb-4"></div>
+          <div className="mt-10 print-items">
+            <div className="flex items-center mb-4">
+              <h2 className="text-xl font-bold text-blue-700">ITENS DO PEDIDO</h2>
+              <div className="h-[2px] flex-grow ml-4 bg-gradient-to-r from-blue-600 to-transparent"></div>
+            </div>
             
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-blue-600 text-white">
-                  <th className="px-2 py-2 text-left">Ref. Cliente</th>
-                  <th className="px-2 py-2 text-left">Código</th>
-                  <th className="px-2 py-2 text-left">Descrição</th>
-                  <th className="px-2 py-2 text-right">Qtd</th>
-                  <th className="px-2 py-2 text-right">Preço Tabela</th>
-                  <th className="px-2 py-2 text-right">Desconto</th>
-                  <th className="px-2 py-2 text-right">Preço c/ Desc.</th>
-                  <th className="px-2 py-2 text-right">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => {
-                  // Cálculo do preço com desconto
-                  const priceWithDiscount = item.discount > 0 
-                    ? item.unitPrice * (1 - item.discount / 100) 
-                    : item.unitPrice;
-                    
-                  return (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="px-2 py-2 border-b">
-                        {item.clientRef ? (
-                          <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
-                            {item.clientRef}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="px-2 py-2 border-b">{item.code}</td>
-                      <td className="px-2 py-2 border-b">{item.name}</td>
-                      <td className="px-2 py-2 border-b text-right">{item.quantity}</td>
-                      <td className="px-2 py-2 border-b text-right">{formatCurrency(item.unitPrice)}</td>
-                      <td className="px-2 py-2 border-b text-right">{item.discount > 0 ? `${item.discount}%` : '-'}</td>
-                      <td className="px-2 py-2 border-b text-right">{formatCurrency(priceWithDiscount)}</td>
-                      <td className="px-2 py-2 border-b text-right">{formatCurrency(item.subtotal)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="border border-blue-200 rounded-md overflow-hidden">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="px-3 py-3 text-left font-semibold text-xs uppercase">Ref. Cliente</th>
+                    <th className="px-3 py-3 text-left font-semibold text-xs uppercase">Código</th>
+                    <th className="px-3 py-3 text-left font-semibold text-xs uppercase">Descrição</th>
+                    <th className="px-3 py-3 text-right font-semibold text-xs uppercase">Qtd</th>
+                    <th className="px-3 py-3 text-right font-semibold text-xs uppercase">Preço Tabela</th>
+                    <th className="px-3 py-3 text-right font-semibold text-xs uppercase">Desconto</th>
+                    <th className="px-3 py-3 text-right font-semibold text-xs uppercase">Preço c/ Desc.</th>
+                    <th className="px-3 py-3 text-right font-semibold text-xs uppercase">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => {
+                    // Cálculo do preço com desconto
+                    const priceWithDiscount = item.discount > 0 
+                      ? item.unitPrice * (1 - item.discount / 100) 
+                      : item.unitPrice;
+                      
+                    return (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="px-3 py-3 border-b border-blue-100">
+                          {item.clientRef ? (
+                            <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                              {item.clientRef}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="px-3 py-3 border-b border-blue-100 font-medium">{item.code}</td>
+                        <td className="px-3 py-3 border-b border-blue-100">{item.name}</td>
+                        <td className="px-3 py-3 border-b border-blue-100 text-right">{item.quantity}</td>
+                        <td className="px-3 py-3 border-b border-blue-100 text-right">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-3 py-3 border-b border-blue-100 text-right">
+                          {item.discount > 0 ? (
+                            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                              {item.discount}%
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="px-3 py-3 border-b border-blue-100 text-right font-medium">{formatCurrency(priceWithDiscount)}</td>
+                        <td className="px-3 py-3 border-b border-blue-100 text-right font-bold">{formatCurrency(item.subtotal)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
           
-          <div className="mt-8 flex justify-end print-footer">
-            <div className="bg-blue-50 p-4 rounded-md w-64">
-              <div className="flex justify-between py-1">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(order.subtotal)}</span>
+          <div className="mt-8 flex justify-between print-footer">
+            <div className="w-1/2">
+              <div className="border border-blue-200 rounded-md p-4 max-w-md">
+                <h3 className="text-sm font-bold text-blue-600 mb-2 uppercase">Observações</h3>
+                <p className="text-sm text-gray-600">
+                  {order.status === 'confirmado' 
+                    ? 'Pedido confirmado. Produtos serão enviados conforme condições acordadas.'
+                    : 'Esta é uma cotação. Os preços estão sujeitos a confirmação.'}
+                </p>
               </div>
-              <div className="flex justify-between py-1">
-                <span>Desconto:</span>
-                <span>{formatCurrency(order.discount)}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Impostos:</span>
-                <span>{formatCurrency(order.taxes)}</span>
-              </div>
-              <div className="h-px bg-blue-600 my-2"></div>
-              <div className="flex justify-between py-1 font-bold text-blue-600">
-                <span>Total:</span>
-                <span>{formatCurrency(order.total)}</span>
+            </div>
+            
+            <div className="w-1/3">
+              <div className="border border-blue-200 rounded-md overflow-hidden">
+                <div className="bg-blue-50 p-3 border-b border-blue-200">
+                  <h3 className="font-bold text-blue-600 text-sm">RESUMO FINANCEIRO</h3>
+                </div>
+                <div className="p-4">
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span>{formatCurrency(order.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-gray-600">Desconto:</span>
+                    <span>{formatCurrency(order.discount)}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-gray-600">Impostos:</span>
+                    <span>{formatCurrency(order.taxes)}</span>
+                  </div>
+                  <div className="h-px bg-blue-200 my-2"></div>
+                  <div className="flex justify-between py-1 font-bold">
+                    <span className="text-blue-600">TOTAL:</span>
+                    <span className="text-blue-600 text-lg">{formatCurrency(order.total)}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           
-          <div className="mt-12 text-center text-gray-400 text-sm">
-            <p>Este documento não possui valor fiscal.</p>
-            <p>Gerado em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+          <div className="mt-12 border-t border-gray-200 pt-4">
+            <div className="flex justify-between items-center text-gray-500 text-xs">
+              <div>
+                <p className="font-semibold">Gestão de Pedidos • Sistema Profissional</p>
+                <p>CNPJ: 00.000.000/0000-00</p>
+              </div>
+              <div className="text-right">
+                <p>Este documento não possui valor fiscal</p>
+                <p>Gerado em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -15,37 +15,58 @@
 /* Estilos para impressão */
 @media print {
   @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 12mm;
   }
   
   html, body {
     width: 210mm;
     height: 297mm;
-    font-size: 12pt;
-    background: #fff;
-    color: #000;
+    font-size: 10pt !important;
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
-  .print:hidden {
+  .print\:hidden {
     display: none !important;
   }
   
+  .print\:block {
+    display: block !important;
+  }
+  
+  /* Esconde elementos não necessários para impressão */
   header, nav, aside, footer, .sidebar, 
   button:not(.print-button), 
   .no-print, 
+  [role="dialog"] + div,
   .dialog-overlay, 
-  .dialog-backdrop {
+  .dialog-backdrop,
+  .modal-overlay {
     display: none !important;
   }
   
-  .dialog-content {
+  /* Ajustes para o diálogo do PDF */
+  [role="dialog"] {
+    position: fixed !important;
+    background: white !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 999999 !important;
+    inset: 0 !important;
+  }
+  
+  [role="dialog"] > div {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    min-height: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     border: none !important;
@@ -55,22 +76,392 @@
     transform: none !important;
   }
   
-  /* Ajustes para o conteúdo do PDF */
-  .pdf-content {
+  /* Ajustes para o documento inteiro */
+  .hidden.print\:block {
+    display: block !important;
+    max-width: 100% !important;
     padding: 0 !important;
-    max-height: none !important;
-    overflow: visible !important;
-    background: white !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Ajustes para o cabeçalho */
+  .print-header {
+    margin-bottom: 10mm !important;
+  }
+  
+  /* Estilos para o cabeçalho de impressão */
+  .bg-blue-600 {
+    background-color: #2563eb !important;
+    color: white !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .bg-blue-100 {
+    background-color: #dbeafe !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .bg-blue-50 {
+    background-color: #eff6ff !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .text-blue-600, .text-blue-700 {
+    color: #2563eb !important;
+  }
+  
+  /* Estilos para status */
+  .bg-green-600 {
+    background-color: #059669 !important;
+    color: white !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .bg-yellow-500 {
+    background-color: #f59e0b !important;
+    color: white !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .bg-yellow-100 {
+    background-color: #fef9c3 !important; 
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .text-yellow-800 {
+    color: #854d0e !important;
+  }
+  
+  /* Cores para linhas zebradas */
+  .bg-gray-50 {
+    background-color: #f9fafb !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  .border-blue-100, .border-blue-200 {
+    border-color: #dbeafe !important;
+  }
+  
+  /* Ajustes para a tabela de itens */
+  .print-items {
+    margin-top: 5mm !important;
+    margin-bottom: 5mm !important;
+  }
+  
+  .print-items table {
+    font-size: 8.5pt !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  
+  .print-items th {
+    padding: 2mm 1mm !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    font-size: 7.5pt !important;
+  }
+  
+  .print-items td {
+    padding: 1.5mm 1mm !important;
+    vertical-align: middle !important;
+  }
+  
+  /* Distribuição de larguras para as colunas */
+  .print-items th:nth-child(1),
+  .print-items td:nth-child(1) {
+    width: 10% !important; /* Ref. Cliente */
+  }
+  
+  .print-items th:nth-child(2),
+  .print-items td:nth-child(2) {
+    width: 9% !important; /* Código */
+  }
+  
+  .print-items th:nth-child(3),
+  .print-items td:nth-child(3) {
+    width: 31% !important; /* Descrição */
+  }
+  
+  .print-items th:nth-child(4),
+  .print-items td:nth-child(4) {
+    width: 5% !important; /* Qtd */
+  }
+  
+  .print-items th:nth-child(5),
+  .print-items td:nth-child(5) {
+    width: 10% !important; /* Preço Tabela */
+  }
+  
+  .print-items th:nth-child(6),
+  .print-items td:nth-child(6) {
+    width: 9% !important; /* Desconto */
+  }
+  
+  .print-items th:nth-child(7),
+  .print-items td:nth-child(7) {
+    width: 11% !important; /* Preço c/ Desc */
+  }
+  
+  .print-items th:nth-child(8),
+  .print-items td:nth-child(8) {
+    width: 10% !important; /* Subtotal */
   }
   
   /* Garante que os elementos do PDF fiquem juntos */
-  .pdf-header, .pdf-items, .pdf-footer {
-    break-inside: avoid;
+  .print-header, .print-items, .print-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
   
-  /* Esconde a scrollbar ao imprimir */
+  /* Layout do rodapé */
+  .print-footer {
+    margin-top: 5mm !important;
+  }
+  
+  /* Estilos para as bordas */
+  .border-b {
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+  
+  .border-t {
+    border-top: 1px solid #e5e7eb !important;
+  }
+  
+  .border {
+    border: 1px solid #dbeafe !important;
+  }
+  
+  /* Estilos para botões e badges */
+  .rounded, .rounded-md {
+    border-radius: 0.25rem !important;
+  }
+  
+  .rounded-full {
+    border-radius: 9999px !important;
+  }
+  
+  /* Espaçamento no grid */
+  .grid {
+    display: grid !important;
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  
+  .gap-8 {
+    gap: 8mm !important;
+  }
+  
+  .gap-4 {
+    gap: 4mm !important;
+  }
+  
+  .gap-2 {
+    gap: 2mm !important;
+  }
+  
+  /* Layout flexbox */
+  .flex {
+    display: flex !important;
+  }
+  
+  .justify-between {
+    justify-content: space-between !important;
+  }
+  
+  .items-center {
+    align-items: center !important;
+  }
+  
+  .flex-grow {
+    flex-grow: 1 !important;
+  }
+  
+  /* Tamanhos e margens */
+  .mt-12 {
+    margin-top: 12mm !important;
+  }
+  
+  .mt-10 {
+    margin-top: 10mm !important;
+  }
+  
+  .mt-8 {
+    margin-top: 8mm !important;
+  }
+  
+  .mt-6 {
+    margin-top: 6mm !important;
+  }
+  
+  .mt-4 {
+    margin-top: 4mm !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: 4mm !important;
+  }
+  
+  .mb-3 {
+    margin-bottom: 3mm !important;
+  }
+  
+  .mb-2 {
+    margin-bottom: 2mm !important;
+  }
+  
+  .ml-4 {
+    margin-left: 4mm !important;
+  }
+  
+  .p-5 {
+    padding: 5mm !important;
+  }
+  
+  .p-4 {
+    padding: 4mm !important;
+  }
+  
+  .p-3 {
+    padding: 3mm !important;
+  }
+  
+  .px-4 {
+    padding-left: 4mm !important;
+    padding-right: 4mm !important;
+  }
+  
+  .px-3 {
+    padding-left: 3mm !important;
+    padding-right: 3mm !important;
+  }
+  
+  .px-2 {
+    padding-left: 2mm !important;
+    padding-right: 2mm !important;
+  }
+  
+  .py-3 {
+    padding-top: 3mm !important;
+    padding-bottom: 3mm !important;
+  }
+  
+  .py-2 {
+    padding-top: 2mm !important;
+    padding-bottom: 2mm !important;
+  }
+  
+  .py-1 {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+  
+  .pb-2 {
+    padding-bottom: 2mm !important;
+  }
+  
+  .pt-4 {
+    padding-top: 4mm !important;
+  }
+  
+  /* Estilos de texto */
+  .text-2xl {
+    font-size: 20pt !important;
+  }
+  
+  .text-xl {
+    font-size: 16pt !important;
+  }
+  
+  .text-lg {
+    font-size: 14pt !important;
+  }
+  
+  .text-sm {
+    font-size: 8.5pt !important;
+  }
+  
+  .text-xs {
+    font-size: 7.5pt !important;
+  }
+  
+  .font-bold {
+    font-weight: 700 !important;
+  }
+  
+  .font-semibold {
+    font-weight: 600 !important;
+  }
+  
+  .font-medium {
+    font-weight: 500 !important;
+  }
+  
+  .text-center {
+    text-align: center !important;
+  }
+  
+  .text-right {
+    text-align: right !important;
+  }
+  
+  .text-left {
+    text-align: left !important;
+  }
+  
+  .uppercase {
+    text-transform: uppercase !important;
+  }
+  
+  /* Cores de texto */
+  .text-white {
+    color: #ffffff !important;
+  }
+  
+  .text-gray-600 {
+    color: #4b5563 !important;
+  }
+  
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+  
+  .text-gray-400 {
+    color: #9ca3af !important;
+  }
+  
+  /* Esconde a scrollbar */
   ::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
+    width: 0px !important;
+    background: transparent !important;
+  }
+  
+  /* Fundo branco para o documento */
+  .bg-white {
+    background-color: white !important;
+  }
+  
+  /* Efeito gradiente */
+  .bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops)) !important;
+  }
+  
+  .from-blue-600 {
+    --tw-gradient-from: #2563eb !important;
+    --tw-gradient-to: transparent !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+  }
+  
+  .to-transparent {
+    --tw-gradient-to: transparent !important;
   }
 }
