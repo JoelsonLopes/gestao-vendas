@@ -929,12 +929,12 @@ export default function OrderFormPage() {
                               <dt className="text-sm text-gray-500 dark:text-gray-400">Taxa de Frete</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
                                 <Input 
-                                  type="number" 
-                                  min="0" 
-                                  step="0.01"
+                                  type="text" 
                                   value={totals.taxes}
                                   onChange={(e) => {
-                                    const value = parseFloat(e.target.value) || 0;
+                                    // Permitir apenas números e ponto decimal
+                                    const inputValue = e.target.value.replace(/[^0-9.]/g, '');
+                                    const value = parseFloat(inputValue) || 0;
                                     const newTotals = {
                                       ...totals,
                                       taxes: value,
