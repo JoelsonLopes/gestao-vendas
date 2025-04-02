@@ -12,7 +12,7 @@
   }
 }
 
-/* Estilos para impressão - otimizados para API nativa do navegador */
+/* Estilos para impressão - layout simples e clean baseado no sistema antigo */
 @media print {
   @page {
     size: A4 portrait;

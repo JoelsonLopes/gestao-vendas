@@ -13,11 +13,13 @@ interface PdfItem {
   unitPrice: number;
   discount: number;
   subtotal: number;
+  brand?: string | null;
 }
 
 interface PdfTemplateProps {
   order: {
     id: number;
+    clientId?: number;
     clientName: string;
     clientCnpj: string;
     date: string;
@@ -558,61 +560,76 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         
         {/* Conteúdo otimizado para impressão - só aparece na impressão */}
         <div className="hidden print:block mt-4">
-          <div className="print-header">
-            {/* Cabeçalho minimalista e profissional */}
-            <div className="flex justify-between items-center border-b border-gray-300 pb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">PEDIDO #{order.id}</h1>
-                <p className="text-sm text-gray-500">Gestão de Pedidos</p>
-              </div>
-              <div className={`inline-flex items-center px-3 py-1 rounded ${
-                order.status === 'confirmado' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-              }`}>
-                <span className="text-sm font-medium">{order.status === 'confirmado' ? 'CONFIRMADO' : 'COTAÇÃO'}</span>
+          {/* Título centralizado no topo */}
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-bold">PEDIDO #{order.id}</h1>
+            <p className="text-sm">Data: {formatDate(order.date)}</p>
+          </div>
+          
+          {/* Linha horizontal após o título */}
+          <div className="border-t border-gray-800 mb-6"></div>
+          
+          {/* Duas colunas de informações em cards */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Card de informações do cliente */}
+            <div className="border border-gray-300 rounded p-4">
+              <h2 className="text-lg font-semibold mb-3">Informações do Cliente</h2>
+              <div className="border-t border-gray-200 mb-2"></div>
+              
+              <div className="grid grid-cols-[120px_1fr] gap-y-2">
+                <div className="font-medium">Cliente:</div>
+                <div>{order.clientName}</div>
+                
+                <div className="font-medium">Código:</div>
+                <div>{order.clientId || "-"}</div>
+                
+                <div className="font-medium">Cidade:</div>
+                <div>-</div>
+                
+                <div className="font-medium">CNPJ:</div>
+                <div>{order.clientCnpj}</div>
+                
+                <div className="font-medium">WhatsApp:</div>
+                <div>-</div>
               </div>
             </div>
             
-            {/* Informações do cliente e pedido em layout com grid mais clean */}
-            <div className="grid grid-cols-2 gap-6 mt-6">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Cliente</h2>
-                <div className="text-gray-800">
-                  <p className="font-medium text-base">{order.clientName}</p>
-                  <p className="text-sm text-gray-600">{order.clientCnpj}</p>
-                </div>
-              </div>
+            {/* Card de informações do pedido */}
+            <div className="border border-gray-300 rounded p-4">
+              <h2 className="text-lg font-semibold mb-3">Informações do Pedido</h2>
+              <div className="border-t border-gray-200 mb-2"></div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Data</h2>
-                  <p className="text-gray-800">{order.date}</p>
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Pagamento</h2>
-                  <p className="text-gray-800">{order.paymentTerms}</p>
-                </div>
-                <div className="col-span-2">
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Representante</h2>
-                  <p className="text-gray-800">{order.representative}</p>
-                </div>
+              <div className="grid grid-cols-[120px_1fr] gap-y-2">
+                <div className="font-medium">Status:</div>
+                <div className="uppercase">{order.status}</div>
+                
+                <div className="font-medium">Prazo Pagamento:</div>
+                <div>{order.paymentTerms}</div>
+                
+                <div className="font-medium">Desconto:</div>
+                <div>{order.discount > 0 ? `${(order.discount / order.subtotal * 100).toFixed(1)}%` : '0%'}</div>
+                
+                <div className="font-medium">Total de Itens:</div>
+                <div>{items.length}</div>
               </div>
             </div>
           </div>
           
-          <div className="mt-8 print-items">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-4">Itens do Pedido</h2>
+          {/* Seção de itens do pedido */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-2">Itens do Pedido</h2>
+            <div className="border-t border-gray-800 mb-3"></div>
             
-            <table className="w-full">
+            {/* Tabela de itens */}
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Ref.</th>
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[8%]">Código</th>
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[30%]">Descrição</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[6%]">Qtd</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[11%]">P. Tabela</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[9%]">Desc.</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">P. c/ Desc.</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Subtotal</th>
+                <tr className="border-b border-gray-400">
+                  <th className="py-2 text-left font-medium uppercase">Ref. Cliente</th>
+                  <th className="py-2 text-left font-medium uppercase">Ref. SP</th>
+                  <th className="py-2 text-left font-medium uppercase">Marca</th>
+                  <th className="py-2 text-center font-medium uppercase">Qtd</th>
+                  <th className="py-2 text-right font-medium uppercase">Preço Unit.</th>
+                  <th className="py-2 text-right font-medium uppercase">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -621,76 +638,39 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   const priceWithDiscount = item.discount > 0 
                     ? item.unitPrice * (1 - item.discount / 100) 
                     : item.unitPrice;
+                  
+                  // Encontrar informações da marca a partir do produto
+                  let brand = item.brand || "-";
                     
                   return (
                     <tr key={index} className="border-b border-gray-200">
-                      <td className="py-3 align-middle">
-                        {item.clientRef ? (
-                          <span className="client-ref-badge">
-                            {item.clientRef}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="py-3 align-middle text-sm font-medium">{item.code}</td>
-                      <td className="py-3 align-middle text-sm">{item.name}</td>
-                      <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
-                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(item.unitPrice)}</td>
-                      <td className="py-3 align-middle text-sm text-right">
-                        {item.discount > 0 ? `${item.discount}%` : '-'}
-                      </td>
-                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(priceWithDiscount)}</td>
-                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                      <td className="py-3 text-left">{item.clientRef || '-'}</td>
+                      <td className="py-3 text-left font-medium">{item.code}</td>
+                      <td className="py-3 text-left">{item.brand || '-'}</td>
+                      <td className="py-3 text-center">{item.quantity}</td>
+                      <td className="py-3 text-right">{formatCurrency(priceWithDiscount)}</td>
+                      <td className="py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
-          
-          <div className="mt-6 flex justify-between print-footer">
-            <div className="w-1/2 pr-8">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Observações</h2>
-              <p className="text-sm text-gray-600">
-                {order.status === 'confirmado' 
-                  ? 'Pedido confirmado. Os produtos serão enviados conforme as condições acordadas.'
-                  : 'Esta é uma cotação. Os preços estão sujeitos a confirmação.'}
-              </p>
-            </div>
             
-            <div className="w-1/3">
-              <div className="border-t border-gray-300 pt-4">
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Subtotal:</span>
-                  <span className="text-sm text-gray-800">{formatCurrency(order.subtotal)}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Desconto:</span>
-                  <span className="text-sm text-gray-800">{formatCurrency(order.discount)}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Impostos:</span>
-                  <span className="text-sm text-gray-800">{formatCurrency(order.taxes)}</span>
-                </div>
-                <div className="border-t border-gray-300 my-2"></div>
-                <div className="flex justify-between py-1">
-                  <span className="text-base font-medium text-gray-800">Total:</span>
-                  <span className="text-base font-medium text-gray-800">{formatCurrency(order.total)}</span>
-                </div>
+            {/* Total geral */}
+            <div className="flex justify-end mt-4 border-t border-gray-300 pt-2">
+              <div className="text-right">
+                <div className="font-semibold text-lg">Total: {formatCurrency(order.total)}</div>
               </div>
             </div>
           </div>
           
-          <div className="mt-12 border-t border-gray-200 pt-4">
-            <div className="flex justify-between items-center text-gray-500 text-xs">
-              <div>
-                <p className="font-medium">Gestão de Pedidos • Sistema Profissional</p>
-                <p>CNPJ: 00.000.000/0000-00</p>
-              </div>
-              <div className="text-right">
-                <p>Este documento não possui valor fiscal</p>
-                <p>Gerado em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
-              </div>
-            </div>
+          {/* Linha horizontal antes do rodapé */}
+          <div className="border-t border-gray-800 my-8"></div>
+          
+          {/* Rodapé com informações da empresa */}
+          <div className="text-center text-sm">
+            <p className="font-semibold">{order.representative || "Representante"}</p>
+            <p>WhatsApp: 51-99432-5454</p>
           </div>
         </div>
       </div>
