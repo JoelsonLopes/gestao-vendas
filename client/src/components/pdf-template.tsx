@@ -174,9 +174,8 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       
       // Destaque para referência do cliente
       if (item.clientRef) {
-        // Usando azul claro para referência do cliente (mesmo padrão da UI)
-        doc.setFillColor(209, 233, 255);  // azul claro
-        doc.setTextColor(27, 81, 166);    // azul escuro
+        doc.setFillColor(primaryColor);
+        doc.setTextColor(255, 255, 255);
         doc.roundedRect(tableX + 2, tableY + 1, 22, 5, 1, 1, "F");
         doc.text(item.clientRef, tableX + 5, tableY + 4.5);
         doc.setTextColor(darkGray);
@@ -416,11 +415,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   return (
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle text-sm">
-                        {item.clientRef ? (
-                          <span className="px-2 py-1 rounded-md bg-blue-100 text-blue-800 font-medium">
-                            {item.clientRef}
-                          </span>
-                        ) : '-'}
+                        {item.clientRef || '-'}
                       </td>
                       <td className="py-3 align-middle text-sm font-medium">{item.code}</td>
                       <td className="py-3 align-middle text-sm">{item.name}</td>

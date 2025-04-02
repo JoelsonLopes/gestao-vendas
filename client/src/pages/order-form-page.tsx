@@ -21,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { ConfirmationDialog, PromptDialog } from "@/components/custom-modals";
 import { 
   Select, 
   SelectContent, 
@@ -86,15 +85,6 @@ export default function OrderFormPage() {
   const [shouldSaveConversion, setShouldSaveConversion] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // State para diálogos personalizados
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmDialogMessage, setConfirmDialogMessage] = useState("");
-  const [confirmDialogAction, setConfirmDialogAction] = useState<(() => void) | null>(null);
-  
-  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
-  const [promptDialogMessage, setPromptDialogMessage] = useState("");
-  const [promptDialogAction, setPromptDialogAction] = useState<((value: string) => void) | null>(null);
   const [totals, setTotals] = useState<{
     subtotal: number;
     taxes: number;
@@ -781,11 +771,7 @@ export default function OrderFormPage() {
                   return (
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle text-sm">
-                        {item.product?.conversion ? (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
-                            {item.product.conversion}
-                          </span>
-                        ) : '-'}
+                        {item.product?.conversion || '-'}
                       </td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
@@ -987,7 +973,7 @@ export default function OrderFormPage() {
                               <TableRow key={index}>
                                 <TableCell>
                                   {item.product?.conversion ? (
-                                    <span className="px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-medium">
+                                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
                                       {item.product.conversion}
                                     </span>
                                   ) : (
@@ -1095,29 +1081,6 @@ export default function OrderFormPage() {
                   <DialogTitle>Adicionar Produto</DialogTitle>
                 </DialogHeader>
                 
-                {/* Modais personalizados utilizando componentes */}
-                <ConfirmationDialog 
-                  open={confirmDialogOpen}
-                  onOpenChange={setConfirmDialogOpen}
-                  title="Confirmação"
-                  message={confirmDialogMessage}
-                  onConfirm={() => {
-                    if (confirmDialogAction) confirmDialogAction();
-                  }}
-                />
-                
-                <PromptDialog 
-                  open={promptDialogOpen}
-                  onOpenChange={setPromptDialogOpen}
-                  title="Informe o produto"
-                  message={promptDialogMessage}
-                  placeholder="Digite o código ou nome do produto"
-                  onConfirm={(value) => {
-                    if (promptDialogAction) promptDialogAction(value);
-                  }}
-                  confirmLabel="Buscar"
-                />
-                
                 <div className="space-y-4 py-4">
                   <Tabs defaultValue="code" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -1151,58 +1114,28 @@ export default function OrderFormPage() {
                                 .then(res => {
                                   if (!res.ok) {
                                     if (res.status === 404) {
-                                      // Produto não encontrado, perguntar ao usuário se deseja adicionar a conversão
-                                      // Usando nossa modal personalizada em vez do window.confirm
-                                      setConfirmDialogMessage(
+                                      // Produto não encontrado, verificar se pode ser a referência AKX1100
+                                      const shouldCheckAkx = window.confirm(
                                         `Não encontramos um produto com a referência "${clientRef}". ` +
-                                        `Deseja adicionar essa conversão em algum produto?`
+                                        `Deseja verificar se este código corresponde ao produto AKX1100?`
                                       );
-                                      setConfirmDialogAction(() => {
-                                        // Após confirmar, mostrar modal de busca personalizada
-                                        setPromptDialogMessage("Digite o código ou nome do produto para buscar:");
-                                        setPromptDialogOpen(true); // Abre o diálogo de prompt após confirmar
-                                        setPromptDialogAction((productToSearch: string) => {
-                                          if (!productToSearch) {
-                                            toast({
-                                              title: "Operação cancelada",
-                                              description: "Nenhum produto informado para busca.",
-                                              variant: "destructive",
-                                            });
-                                            return null;
-                                          }
-                                        
-                                          // Buscar o produto informado
-                                          return fetch(`/api/products/by-code/${encodeURIComponent(productToSearch)}`)
-                                            .then(res => {
-                                              if (!res.ok) {
-                                                throw new Error(`Produto ${productToSearch} não encontrado`);
-                                              }
-                                              return res.json();
-                                            })
-                                            .then(foundProduct => {
-                                              // Adicionar a conversão ao produto
-                                              foundProduct.conversion = clientRef;
-                                              setShouldSaveConversion(true); // Ativa a opção de salvar
-                                              setSelectedProductId(foundProduct.id);
-                                              
-                                              toast({
-                                                title: "Produto encontrado",
-                                                description: `A referência ${clientRef} será associada ao produto ${foundProduct.name}`,
-                                              });
-                                              
-                                              return foundProduct;
-                                            })
-                                            .catch(error => {
-                                              toast({
-                                                title: "Produto não encontrado",
-                                                description: error.message,
-                                                variant: "destructive",
-                                              });
-                                              return null;
-                                            });
-                                        });
-                                      });
-                                      setConfirmDialogOpen(true);
+                                      
+                                      if (shouldCheckAkx) {
+                                        // Buscar o produto AKX1100
+                                        return fetch(`/api/products/by-code/AKX1100`)
+                                          .then(res => {
+                                            if (!res.ok) {
+                                              throw new Error("Produto AKX1100 não encontrado");
+                                            }
+                                            return res.json();
+                                          })
+                                          .then(akxProduct => {
+                                            // Adicionar a conversão ao produto
+                                            akxProduct.conversion = clientRef;
+                                            setShouldSaveConversion(true); // Ativa a opção de salvar
+                                            return akxProduct;
+                                          });
+                                      }
                                       return null;
                                     }
                                     throw new Error("Erro ao buscar produto");
