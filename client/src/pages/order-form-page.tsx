@@ -112,7 +112,7 @@ export default function OrderFormPage() {
   });
   
   // Get order details if in edit mode
-  const { data: orderDetails, isLoading: isLoadingOrderDetails } = useQuery({
+  const { data: orderDetails, isLoading: isLoadingOrderDetails } = useQuery<{ order: Order, items: OrderItem[] }>({
     queryKey: ["/api/orders", id],
     enabled: isEditMode,
   });
@@ -174,10 +174,16 @@ export default function OrderFormPage() {
       setNotes(order.notes || "");
       
       // Map order items with product details
-      const mappedItems = items.map(item => {
+      const mappedItems = items.map((item: OrderItem) => {
         const product = products?.find(p => p.id === item.productId);
         return {
           ...item,
+          // Converter strings para números
+          unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : item.unitPrice,
+          quantity: typeof item.quantity === 'string' ? Number(item.quantity) : item.quantity,
+          discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : item.discountPercentage,
+          commission: typeof item.commission === 'string' ? Number(item.commission) : item.commission,
+          subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : item.subtotal,
           product,
         };
       });
