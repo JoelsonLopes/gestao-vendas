@@ -462,7 +462,10 @@ export class DatabaseStorage implements IStorage {
         stockQuantity: products.stockQuantity,
         active: products.active,
         createdAt: products.createdAt,
-        updatedAt: products.updatedAt
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
       })
       .from(products)
       .where(
@@ -471,19 +474,71 @@ export class DatabaseStorage implements IStorage {
           ilike(products.category, `%${query}%`),
           ilike(products.brand, `%${query}%`),
           ilike(products.barcode, `%${query}%`),
-          ilike(products.code, `%${query}%`)
+          ilike(products.code, `%${query}%`),
+          ilike(products.conversion, `%${query}%`) // Buscar também na referência do cliente
         )
       );
       
-      // Adicionar propriedades vazias para as novas colunas
-      return result.map(product => ({
-        ...product,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      }));
+      return result;
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
+      throw error;
+    }
+  }
+  
+  async getProductByClientReference(clientRef: string): Promise<Product | undefined> {
+    try {
+      console.log(`Buscando produto pela referência do cliente: ${clientRef}`);
+      
+      const [product] = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
+      })
+      .from(products)
+      .where(eq(products.conversion, clientRef));
+      
+      if (product) {
+        console.log(`Produto encontrado pela referência do cliente ${clientRef}:`, product.name);
+      } else {
+        console.log(`Nenhum produto encontrado pela referência do cliente ${clientRef}`);
+      }
+      
+      return product;
+    } catch (error) {
+      console.error(`Erro ao buscar produto pela referência do cliente ${clientRef}:`, error);
+      throw error;
+    }
+  }
+  
+  async saveProductConversion(productId: number, clientRef: string): Promise<Product | undefined> {
+    try {
+      console.log(`Salvando conversão para o produto ${productId}: ${clientRef}`);
+      
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ 
+          conversion: clientRef,
+          updatedAt: new Date()
+        })
+        .where(eq(products.id, productId))
+        .returning();
+      
+      return updatedProduct;
+    } catch (error) {
+      console.error(`Erro ao salvar conversão para o produto ${productId}:`, error);
       throw error;
     }
   }

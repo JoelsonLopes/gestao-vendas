@@ -309,6 +309,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error searching products" });
     }
   });
+  
+  // Buscar produto por referência do cliente
+  app.get("/api/products/by-client-reference/:reference", isAuthenticated, async (req, res) => {
+    try {
+      const { reference } = req.params;
+      if (!reference) {
+        return res.status(400).json({ message: "Referência do cliente é obrigatória" });
+      }
+      
+      const product = await storage.getProductByClientReference(reference);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Produto não encontrado para esta referência do cliente" });
+      }
+      
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar produto por referência do cliente" });
+    }
+  });
+  
+  // Salvar conversão de produto
+  app.post("/api/products/:id/save-conversion", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { clientRef } = req.body;
+      
+      if (!clientRef) {
+        return res.status(400).json({ message: "Referência do cliente é obrigatória" });
+      }
+      
+      // Verificar se o produto existe
+      const product = await storage.getProduct(id);
+      if (!product) {
+        return res.status(404).json({ message: "Produto não encontrado" });
+      }
+      
+      // Verificar se a referência já existe para outro produto
+      const existingProduct = await storage.getProductByClientReference(clientRef);
+      if (existingProduct && existingProduct.id !== id) {
+        return res.status(400).json({ 
+          message: "Esta referência já está associada a outro produto", 
+          existingProduct
+        });
+      }
+      
+      // Salvar a conversão
+      const updatedProduct = await storage.saveProductConversion(id, clientRef);
+      res.json(updatedProduct);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao salvar conversão de produto" });
+    }
+  });
 
   // Get product by ID
   app.get("/api/products/:id", isAuthenticated, async (req, res) => {

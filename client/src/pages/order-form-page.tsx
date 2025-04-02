@@ -12,7 +12,8 @@ import {
   FileDown,
   ArrowLeft,
   PlusCircle,
-  Trash
+  Trash,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,6 +77,8 @@ export default function OrderFormPage() {
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
+  const [clientRef, setClientRef] = useState("");
+  const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -305,6 +308,8 @@ export default function OrderFormPage() {
     setAddProductModalOpen(false);
     setSelectedProductId(null);
     setProductQuantity(1);
+    setClientRef("");
+    setIsSearchingByClientRef(false);
   };
   
   // Remove product from order
@@ -792,14 +797,78 @@ export default function OrderFormPage() {
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product">Produto</Label>
-                    <ProductSearch 
-                      products={products}
-                      selectedProductId={selectedProductId}
-                      onProductSelect={setSelectedProductId}
-                    />
-                  </div>
+                  <Tabs defaultValue="code" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="code">Código do Produto</TabsTrigger>
+                      <TabsTrigger value="clientRef">Referência do Cliente</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="code" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="product">Produto</Label>
+                        <ProductSearch 
+                          products={products}
+                          selectedProductId={selectedProductId}
+                          onProductSelect={setSelectedProductId}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="clientRef" className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="clientReference">Referência do Cliente</Label>
+                        <div className="flex space-x-2">
+                          <Input
+                            type="text"
+                            placeholder="Digite a referência do cliente"
+                            value={clientRef}
+                            onChange={(e) => setClientRef(e.target.value)}
+                          />
+                          <Button 
+                            onClick={() => {
+                              setIsSearchingByClientRef(true);
+                              fetch(`/api/products/by-client-reference/${encodeURIComponent(clientRef)}`)
+                                .then(res => {
+                                  if (!res.ok) {
+                                    if (res.status === 404) {
+                                      // Produto não encontrado, mostrar mensagem
+                                      toast({
+                                        title: "Produto não encontrado",
+                                        description: "Não encontramos um produto com esta referência.",
+                                        variant: "destructive",
+                                      });
+                                      return null;
+                                    }
+                                    throw new Error("Erro ao buscar produto");
+                                  }
+                                  return res.json();
+                                })
+                                .then(product => {
+                                  if (product) {
+                                    setSelectedProductId(product.id);
+                                    toast({
+                                      title: "Produto encontrado",
+                                      description: `${product.name} (${product.code}) foi selecionado.`,
+                                    });
+                                  }
+                                })
+                                .catch(error => {
+                                  toast({
+                                    title: "Erro",
+                                    description: "Falha ao buscar produto.",
+                                    variant: "destructive",
+                                  });
+                                })
+                                .finally(() => {
+                                  setIsSearchingByClientRef(false);
+                                });
+                            }}
+                            disabled={!clientRef || isSearchingByClientRef}
+                          >
+                            {isSearchingByClientRef ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
+                          </Button>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                   
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantidade</Label>
@@ -816,7 +885,41 @@ export default function OrderFormPage() {
                   <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button onClick={addProductToOrder}>
+                  <Button 
+                    onClick={() => {
+                      addProductToOrder();
+                      
+                      // Se um produto foi encontrado pela referência do cliente e temos uma referência,
+                      // salvar esta referência para conversões futuras
+                      if (selectedProductId && clientRef && isSearchingByClientRef) {
+                        fetch(`/api/products/${selectedProductId}/save-conversion`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ clientRef }),
+                        })
+                        .then(res => {
+                          if (!res.ok) throw new Error("Erro ao salvar conversão");
+                          return res.json();
+                        })
+                        .then(() => {
+                          toast({
+                            title: "Conversão salva",
+                            description: "Referência do cliente vinculada ao produto.",
+                          });
+                        })
+                        .catch(error => {
+                          toast({
+                            title: "Aviso",
+                            description: "O produto foi adicionado, mas não foi possível salvar a conversão.",
+                            variant: "destructive",
+                          });
+                        });
+                      }
+                    }}
+                    disabled={!selectedProductId || productQuantity <= 0}
+                  >
                     Adicionar
                   </Button>
                 </DialogFooter>
