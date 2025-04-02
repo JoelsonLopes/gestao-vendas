@@ -115,53 +115,47 @@ export function ClientSearch({
               onValueChange={setSearchQuery}
             />
           </div>
-          <>
-            <CommandEmpty>
-              Nenhum cliente encontrado. Tente outros termos de busca.
-            </CommandEmpty>
-            <CommandGroup className="max-h-[300px] overflow-auto">
-              {filteredClients.map((client) => (
-                <CommandItem
-                  key={client.id}
-                  value={client.id.toString()}
-                  onSelect={() => {
-                    onClientSelect(client.id);
-                    setOpen(false);
-                  }}
-                  className="flex flex-col items-start py-2"
-                >
-                  <div className="flex items-center w-full">
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedClientId === client.id ? "opacity-100" : "opacity-0"
+          <CommandEmpty>
+            Nenhum cliente encontrado. Tente outros termos de busca.
+          </CommandEmpty>
+          <CommandGroup className="max-h-[300px] overflow-auto">
+            {filteredClients.map((client) => (
+              <CommandItem
+                key={client.id}
+                value={client.id.toString()}
+                onSelect={() => {
+                  console.log("Selecionando cliente:", client.id, client.name);
+                  onClientSelect(client.id);
+                  setOpen(false);
+                }}
+                className="cursor-pointer"
+              >
+                <div className="flex items-center w-full">
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedClientId === client.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{client.name}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {client.cnpj && (
+                        <Badge variant="outline" className="text-xs">
+                          CNPJ: {client.cnpj}
+                        </Badge>
                       )}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium">{client.name}</div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {client.cnpj && (
-                          <Badge variant="outline" className="text-xs">
-                            CNPJ: {client.cnpj}
-                          </Badge>
-                        )}
-                        {client.code && (
-                          <Badge variant="outline" className="text-xs">
-                            Cód: {client.code}
-                          </Badge>
-                        )}
-                        {client.phone && (
-                          <Badge variant="outline" className="text-xs">
-                            Telefone: {client.phone}
-                          </Badge>
-                        )}
-                      </div>
+                      {client.code && (
+                        <Badge variant="outline" className="text-xs">
+                          Cód: {client.code}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
         </Command>
       </PopoverContent>
     </Popover>
