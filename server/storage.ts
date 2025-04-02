@@ -285,6 +285,8 @@ export class DatabaseStorage implements IStorage {
   
   async getProductByCode(code: string): Promise<Product | undefined> {
     try {
+      console.log(`Buscando produto com código ou nome: ${code}`);
+      
       // Selecionar todas as colunas, incluindo os campos de conversão
       const [product] = await db.select({
         id: products.id,
@@ -304,7 +306,13 @@ export class DatabaseStorage implements IStorage {
         equivalentBrands: products.equivalentBrands
       })
       .from(products)
-      .where(eq(products.code, code));
+      .where(or(eq(products.code, code), eq(products.name, code)));
+      
+      if (product) {
+        console.log(`Produto encontrado com código/nome ${code}:`, product);
+      } else {
+        console.log(`Nenhum produto encontrado com código/nome ${code}`);
+      }
       
       return product;
     } catch (error) {
