@@ -255,7 +255,7 @@ export class DatabaseStorage implements IStorage {
   // Product methods
   async getProduct(id: number): Promise<Product | undefined> {
     try {
-      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      // Selecionar todas as colunas, incluindo os campos de conversão
       const [product] = await db.select({
         id: products.id,
         name: products.name,
@@ -268,20 +268,15 @@ export class DatabaseStorage implements IStorage {
         stockQuantity: products.stockQuantity,
         active: products.active,
         createdAt: products.createdAt,
-        updatedAt: products.updatedAt
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
       })
       .from(products)
       .where(eq(products.id, id));
       
-      if (!product) return undefined;
-      
-      // Adicionar propriedades vazias para as novas colunas
-      return {
-        ...product,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      };
+      return product;
     } catch (error) {
       console.error(`Erro ao buscar produto com ID ${id}:`, error);
       throw error;
@@ -290,7 +285,7 @@ export class DatabaseStorage implements IStorage {
   
   async getProductByCode(code: string): Promise<Product | undefined> {
     try {
-      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      // Selecionar todas as colunas, incluindo os campos de conversão
       const [product] = await db.select({
         id: products.id,
         name: products.name,
@@ -303,20 +298,15 @@ export class DatabaseStorage implements IStorage {
         stockQuantity: products.stockQuantity,
         active: products.active,
         createdAt: products.createdAt,
-        updatedAt: products.updatedAt
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
       })
       .from(products)
       .where(eq(products.code, code));
       
-      if (!product) return undefined;
-      
-      // Adicionar propriedades vazias para as novas colunas
-      return {
-        ...product,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      };
+      return product;
     } catch (error) {
       console.error(`Erro ao buscar produto com código ${code}:`, error);
       throw error;
@@ -325,7 +315,7 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     try {
-      // Extrair apenas os campos que existem no banco de dados
+      // Extrair todos os campos, incluindo os campos de conversão
       const {
         code,
         name,
@@ -335,10 +325,13 @@ export class DatabaseStorage implements IStorage {
         brand,
         price,
         stockQuantity,
-        active
+        active,
+        conversion,
+        conversionBrand,
+        equivalentBrands
       } = product;
       
-      // Criar o produto sem usar campos de conversão que ainda não existem
+      // Criar o produto com todos os campos
       const [newProduct] = await db
         .insert(products)
         .values({
@@ -350,17 +343,14 @@ export class DatabaseStorage implements IStorage {
           brand,
           price,
           stockQuantity,
-          active
+          active,
+          conversion,
+          conversionBrand,
+          equivalentBrands
         })
         .returning();
       
-      // Adicionar as propriedades de conversão ao resultado
-      return {
-        ...newProduct,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      };
+      return newProduct;
     } catch (error) {
       console.error("Erro ao criar produto:", error);
       throw error;
@@ -369,7 +359,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateProduct(id: number, productData: Partial<InsertProduct>): Promise<Product | undefined> {
     try {
-      // Extrair apenas os campos que existem no banco de dados
+      // Extrair todos os campos, incluindo os campos de conversão
       const {
         code,
         name,
@@ -379,7 +369,10 @@ export class DatabaseStorage implements IStorage {
         brand,
         price,
         stockQuantity,
-        active
+        active,
+        conversion,
+        conversionBrand,
+        equivalentBrands
       } = productData;
       
       // Criar objeto apenas com campos válidos e não nulos
@@ -393,8 +386,11 @@ export class DatabaseStorage implements IStorage {
       if (price !== undefined) updateFields.price = price;
       if (stockQuantity !== undefined) updateFields.stockQuantity = stockQuantity;
       if (active !== undefined) updateFields.active = active;
+      if (conversion !== undefined) updateFields.conversion = conversion;
+      if (conversionBrand !== undefined) updateFields.conversionBrand = conversionBrand;
+      if (equivalentBrands !== undefined) updateFields.equivalentBrands = equivalentBrands;
       
-      // Atualizar o produto sem usar campos de conversão
+      // Atualizar o produto incluindo os campos de conversão
       const [updatedProduct] = await db
         .update(products)
         .set(updateFields)
@@ -403,13 +399,8 @@ export class DatabaseStorage implements IStorage {
       
       if (!updatedProduct) return undefined;
       
-      // Adicionar as propriedades de conversão ao resultado
-      return {
-        ...updatedProduct,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      };
+      // Retornar o produto atualizado
+      return updatedProduct;
     } catch (error) {
       console.error(`Erro ao atualizar produto com ID ${id}:`, error);
       throw error;
@@ -418,7 +409,7 @@ export class DatabaseStorage implements IStorage {
 
   async listProducts(): Promise<Product[]> {
     try {
-      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
+      // Selecionar todas as colunas, incluindo os campos de conversão
       const result = await db.select({
         id: products.id,
         name: products.name,
@@ -431,16 +422,13 @@ export class DatabaseStorage implements IStorage {
         stockQuantity: products.stockQuantity,
         active: products.active,
         createdAt: products.createdAt,
-        updatedAt: products.updatedAt
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
       }).from(products);
       
-      // Adicionar propriedades vazias para as novas colunas
-      return result.map(product => ({
-        ...product,
-        conversion: null,
-        conversionBrand: null,
-        equivalentBrands: []
-      }));
+      return result;
     } catch (error) {
       console.error("Erro ao listar produtos:", error);
       throw error;
@@ -547,7 +535,7 @@ export class DatabaseStorage implements IStorage {
     // Criar um array para inserir no banco de dados
     const productsToInsert = [];
     
-    // Processar cada produto individualmente - removendo campos que ainda não existem na tabela
+    // Processar cada produto, incluindo campos de conversão
     for (const product of productsList) {
       productsToInsert.push({
         code: product.code,
@@ -556,12 +544,12 @@ export class DatabaseStorage implements IStorage {
         barcode: product.barcode,
         category: product.category,
         brand: product.brand,
-        // Não usar campos de conversão por enquanto
-        // conversion: product.conversion,
-        // conversionBrand: product.conversionBrand,
         price: product.price,
         stockQuantity: product.stockQuantity || 0,
-        active: product.active !== false
+        active: product.active !== false,
+        conversion: product.conversion,
+        conversionBrand: product.conversionBrand,
+        equivalentBrands: product.equivalentBrands
       });
     }
     
