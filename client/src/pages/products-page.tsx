@@ -380,9 +380,47 @@ export default function ProductsPage() {
                 sortable: true,
               },
               {
-                header: "Código Conv.",
+                header: "Referência do Cliente",
                 accessorKey: "conversion",
                 sortable: true,
+                cell: (product) => {
+                  if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "conversion") {
+                    return (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          className="w-24 h-8"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
+                        />
+                        <button onClick={saveInlineEdit} className="text-green-600 hover:text-green-800">
+                          <Save size={16} />
+                        </button>
+                        <button onClick={cancelInlineEdit} className="text-red-600 hover:text-red-800">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex items-center">
+                      <span className={product.conversion ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded" : ""}>
+                        {product.conversion || "-"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-6 w-6 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startInlineEdit(product.id, "conversion", product.conversion || "");
+                        }}
+                      >
+                        <Edit size={14} />
+                      </Button>
+                    </div>
+                  );
+                },
               },
               {
                 header: "Marca Conv.",
