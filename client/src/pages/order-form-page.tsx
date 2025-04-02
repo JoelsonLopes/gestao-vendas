@@ -633,6 +633,13 @@ export default function OrderFormPage() {
             </div>
           </div>
           
+          {notes && (
+            <div className="mt-6 mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Observações</h2>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{notes}</p>
+            </div>
+          )}
+          
           <div className="mt-8 print-items">
             <h2 className="text-sm font-semibold text-gray-500 uppercase mb-4">Itens do Pedido</h2>
             
