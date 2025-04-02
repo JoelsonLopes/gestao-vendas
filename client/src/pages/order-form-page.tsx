@@ -200,10 +200,16 @@ export default function OrderFormPage() {
   
   // Load order items if order is loaded
   useEffect(() => {
-    if (isEditMode && orderItemsData && products) {      
+    if (isEditMode && orderItemsData && products && Array.isArray(orderItemsData)) {      
+      console.log("Processando itens do pedido:", orderItemsData);
+      
       // Map order items with product details
       const mappedItems = orderItemsData.map((item: any) => {
         const product = products?.find(p => p.id === item.productId);
+        
+        // Log detalhado para cada item
+        console.log("Processando item:", item, "Produto encontrado:", product);
+        
         return {
           id: item.id,
           productId: item.productId,
@@ -218,7 +224,15 @@ export default function OrderFormPage() {
         };
       });
       
+      console.log("Itens mapeados:", mappedItems);
       setOrderItems(mappedItems);
+    } else {
+      console.log("Não foi possível processar itens do pedido:", {
+        isEditMode,
+        orderItemsData,
+        isArray: Array.isArray(orderItemsData),
+        productsLoaded: !!products
+      });
     }
   }, [isEditMode, orderItemsData, products]);
   

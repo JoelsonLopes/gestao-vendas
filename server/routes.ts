@@ -514,9 +514,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to view this order" });
       }
       
-      res.json(orderData);
+      // Enviando apenas os dados do pedido, não os itens
+      res.json(orderData.order);
     } catch (error) {
       res.status(500).json({ message: "Error fetching order" });
+    }
+  });
+  
+  // Get items for a specific order
+  app.get("/api/orders/:id/items", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const orderData = await storage.getOrderWithItems(id);
+      
+      if (!orderData) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if rep has access to this order
+      if (req.user.role === 'representative' && orderData.order.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to view this order" });
+      }
+      
+      // Enviando apenas os itens do pedido
+      res.json(orderData.items);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching order items" });
     }
   });
 
