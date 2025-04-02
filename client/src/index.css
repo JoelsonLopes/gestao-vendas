@@ -16,17 +16,19 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 15mm;
   }
   
   html, body {
     width: 210mm;
     height: 297mm;
-    font-size: 10pt !important;
+    font-size: 11pt !important;
     background: #fff !important;
     color: #000 !important;
     margin: 0 !important;
     padding: 0 !important;
+    line-height: 1.4 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   }
   
   .print\:hidden {
@@ -86,147 +88,50 @@
   
   /* Ajustes para o cabeçalho */
   .print-header {
-    margin-bottom: 10mm !important;
+    margin-bottom: 15mm !important;
   }
   
-  /* Estilos para o cabeçalho de impressão */
-  .bg-blue-600 {
-    background-color: #2563eb !important;
-    color: white !important;
+  /* Cores para status */
+  .bg-green-100 {
+    background-color: #dcfce7 !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
   
-  .bg-blue-100 {
-    background-color: #dbeafe !important;
+  .text-green-800 {
+    color: #166534 !important;
+  }
+  
+  .bg-amber-100 {
+    background-color: #fef3c7 !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
   
-  .bg-blue-50 {
-    background-color: #eff6ff !important;
+  .text-amber-800 {
+    color: #92400e !important;
+  }
+  
+  .bg-gray-100 {
+    background-color: #f3f4f6 !important;
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
   
-  .text-blue-600, .text-blue-700 {
-    color: #2563eb !important;
+  /* Cores de texto */
+  .text-gray-800 {
+    color: #1f2937 !important;
   }
   
-  /* Estilos para status */
-  .bg-green-600 {
-    background-color: #059669 !important;
-    color: white !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
+  .text-gray-600 {
+    color: #4b5563 !important;
   }
   
-  .bg-yellow-500 {
-    background-color: #f59e0b !important;
-    color: white !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
+  .text-gray-500 {
+    color: #6b7280 !important;
   }
   
-  .bg-yellow-100 {
-    background-color: #fef9c3 !important; 
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-  
-  .text-yellow-800 {
-    color: #854d0e !important;
-  }
-  
-  /* Cores para linhas zebradas */
-  .bg-gray-50 {
-    background-color: #f9fafb !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
-  
-  .border-blue-100, .border-blue-200 {
-    border-color: #dbeafe !important;
-  }
-  
-  /* Ajustes para a tabela de itens */
-  .print-items {
-    margin-top: 5mm !important;
-    margin-bottom: 5mm !important;
-  }
-  
-  .print-items table {
-    font-size: 8.5pt !important;
-    width: 100% !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-  }
-  
-  .print-items th {
-    padding: 2mm 1mm !important;
-    font-weight: bold !important;
-    text-transform: uppercase !important;
-    font-size: 7.5pt !important;
-  }
-  
-  .print-items td {
-    padding: 1.5mm 1mm !important;
-    vertical-align: middle !important;
-  }
-  
-  /* Distribuição de larguras para as colunas */
-  .print-items th:nth-child(1),
-  .print-items td:nth-child(1) {
-    width: 10% !important; /* Ref. Cliente */
-  }
-  
-  .print-items th:nth-child(2),
-  .print-items td:nth-child(2) {
-    width: 9% !important; /* Código */
-  }
-  
-  .print-items th:nth-child(3),
-  .print-items td:nth-child(3) {
-    width: 31% !important; /* Descrição */
-  }
-  
-  .print-items th:nth-child(4),
-  .print-items td:nth-child(4) {
-    width: 5% !important; /* Qtd */
-  }
-  
-  .print-items th:nth-child(5),
-  .print-items td:nth-child(5) {
-    width: 10% !important; /* Preço Tabela */
-  }
-  
-  .print-items th:nth-child(6),
-  .print-items td:nth-child(6) {
-    width: 9% !important; /* Desconto */
-  }
-  
-  .print-items th:nth-child(7),
-  .print-items td:nth-child(7) {
-    width: 11% !important; /* Preço c/ Desc */
-  }
-  
-  .print-items th:nth-child(8),
-  .print-items td:nth-child(8) {
-    width: 10% !important; /* Subtotal */
-  }
-  
-  /* Garante que os elementos do PDF fiquem juntos */
-  .print-header, .print-items, .print-footer {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-  
-  /* Layout do rodapé */
-  .print-footer {
-    margin-top: 5mm !important;
-  }
-  
-  /* Estilos para as bordas */
+  /* Estilos para bordas */
   .border-b {
     border-bottom: 1px solid #e5e7eb !important;
   }
@@ -235,20 +140,20 @@
     border-top: 1px solid #e5e7eb !important;
   }
   
-  .border {
-    border: 1px solid #dbeafe !important;
+  .border-gray-300 {
+    border-color: #d1d5db !important;
+  }
+  
+  .border-gray-200 {
+    border-color: #e5e7eb !important;
   }
   
   /* Estilos para botões e badges */
   .rounded, .rounded-md {
-    border-radius: 0.25rem !important;
+    border-radius: 4px !important;
   }
   
-  .rounded-full {
-    border-radius: 9999px !important;
-  }
-  
-  /* Espaçamento no grid */
+  /* Layout do grid */
   .grid {
     display: grid !important;
   }
@@ -257,16 +162,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
   
-  .gap-8 {
-    gap: 8mm !important;
+  .gap-6 {
+    gap: 6mm !important;
   }
   
   .gap-4 {
     gap: 4mm !important;
   }
   
-  .gap-2 {
-    gap: 2mm !important;
+  .col-span-2 {
+    grid-column: span 2 / span 2 !important;
   }
   
   /* Layout flexbox */
@@ -282,17 +187,26 @@
     align-items: center !important;
   }
   
-  .flex-grow {
-    flex-grow: 1 !important;
+  .inline-flex {
+    display: inline-flex !important;
   }
   
-  /* Tamanhos e margens */
+  /* Width settings */
+  .w-full {
+    width: 100% !important;
+  }
+  
+  .w-1\/2 {
+    width: 50% !important;
+  }
+  
+  .w-1\/3 {
+    width: 33.333333% !important;
+  }
+  
+  /* Margins */
   .mt-12 {
     margin-top: 12mm !important;
-  }
-  
-  .mt-10 {
-    margin-top: 10mm !important;
   }
   
   .mt-8 {
@@ -311,33 +225,18 @@
     margin-bottom: 4mm !important;
   }
   
-  .mb-3 {
-    margin-bottom: 3mm !important;
-  }
-  
   .mb-2 {
     margin-bottom: 2mm !important;
   }
   
-  .ml-4 {
-    margin-left: 4mm !important;
+  .my-2 {
+    margin-top: 2mm !important;
+    margin-bottom: 2mm !important;
   }
   
-  .p-5 {
-    padding: 5mm !important;
-  }
-  
+  /* Paddings */
   .p-4 {
     padding: 4mm !important;
-  }
-  
-  .p-3 {
-    padding: 3mm !important;
-  }
-  
-  .px-4 {
-    padding-left: 4mm !important;
-    padding-right: 4mm !important;
   }
   
   .px-3 {
@@ -365,33 +264,77 @@
     padding-bottom: 1mm !important;
   }
   
-  .pb-2 {
-    padding-bottom: 2mm !important;
+  .py-0\.5 {
+    padding-top: 0.5mm !important;
+    padding-bottom: 0.5mm !important;
+  }
+  
+  .pb-4 {
+    padding-bottom: 4mm !important;
   }
   
   .pt-4 {
     padding-top: 4mm !important;
   }
   
-  /* Estilos de texto */
-  .text-2xl {
-    font-size: 20pt !important;
+  .pr-8 {
+    padding-right: 8mm !important;
   }
   
-  .text-xl {
+  /* Ajustes para a tabela de itens */
+  .print-items {
+    margin-top: 10mm !important;
+    margin-bottom: 10mm !important;
+  }
+  
+  .print-items table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+  
+  .print-items th, 
+  .print-items td {
+    padding-top: 2mm !important;
+    padding-bottom: 2mm !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+  
+  .print-items th {
+    font-weight: 500 !important;
+    font-size: 8pt !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+  }
+  
+  .print-items td {
+    font-size: 9pt !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+  }
+  
+  /* Alinhamento de texto em células */
+  .align-middle {
+    vertical-align: middle !important;
+  }
+  
+  /* Estilos de texto */
+  .text-2xl {
     font-size: 16pt !important;
   }
   
-  .text-lg {
-    font-size: 14pt !important;
+  .text-base {
+    font-size: 11pt !important;
   }
   
   .text-sm {
-    font-size: 8.5pt !important;
+    font-size: 9pt !important;
   }
   
   .text-xs {
-    font-size: 7.5pt !important;
+    font-size: 8pt !important;
   }
   
   .font-bold {
@@ -406,10 +349,6 @@
     font-weight: 500 !important;
   }
   
-  .text-center {
-    text-align: center !important;
-  }
-  
   .text-right {
     text-align: right !important;
   }
@@ -422,46 +361,47 @@
     text-transform: uppercase !important;
   }
   
-  /* Cores de texto */
-  .text-white {
-    color: #ffffff !important;
+  .tracking-wider {
+    letter-spacing: 0.05em !important;
   }
   
-  .text-gray-600 {
-    color: #4b5563 !important;
+  /* Estilos específicos da tabela para encaixar conteúdo */
+  .w-\[12\%\] {
+    width: 12% !important;
   }
   
-  .text-gray-500 {
-    color: #6b7280 !important;
+  .w-\[8\%\] {
+    width: 8% !important;
   }
   
-  .text-gray-400 {
-    color: #9ca3af !important;
+  .w-\[30\%\] {
+    width: 30% !important;
   }
   
-  /* Esconde a scrollbar */
-  ::-webkit-scrollbar {
-    width: 0px !important;
-    background: transparent !important;
+  .w-\[6\%\] {
+    width: 6% !important;
   }
   
-  /* Fundo branco para o documento */
-  .bg-white {
-    background-color: white !important;
+  .w-\[11\%\] {
+    width: 11% !important;
   }
   
-  /* Efeito gradiente */
-  .bg-gradient-to-r {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops)) !important;
+  .w-\[9\%\] {
+    width: 9% !important;
   }
   
-  .from-blue-600 {
-    --tw-gradient-from: #2563eb !important;
-    --tw-gradient-to: transparent !important;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+  .w-\[12\%\] {
+    width: 12% !important;
   }
   
-  .to-transparent {
-    --tw-gradient-to: transparent !important;
+  /* Garante que os elementos do PDF fiquem juntos */
+  .print-header, .print-items, .print-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Layout do rodapé */
+  .print-footer {
+    margin-top: 8mm !important;
   }
 }
