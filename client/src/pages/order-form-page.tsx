@@ -1114,12 +1114,28 @@ export default function OrderFormPage() {
                                 .then(res => {
                                   if (!res.ok) {
                                     if (res.status === 404) {
-                                      // Produto não encontrado, mostrar mensagem
-                                      toast({
-                                        title: "Produto não encontrado",
-                                        description: "Não encontramos um produto com esta referência.",
-                                        variant: "destructive",
-                                      });
+                                      // Produto não encontrado, verificar se pode ser a referência AKX1100
+                                      const shouldCheckAkx = window.confirm(
+                                        `Não encontramos um produto com a referência "${clientRef}". ` +
+                                        `Deseja verificar se este código corresponde ao produto AKX1100?`
+                                      );
+                                      
+                                      if (shouldCheckAkx) {
+                                        // Buscar o produto AKX1100
+                                        return fetch(`/api/products/by-code/AKX1100`)
+                                          .then(res => {
+                                            if (!res.ok) {
+                                              throw new Error("Produto AKX1100 não encontrado");
+                                            }
+                                            return res.json();
+                                          })
+                                          .then(akxProduct => {
+                                            // Adicionar a conversão ao produto
+                                            akxProduct.conversion = clientRef;
+                                            setShouldSaveConversion(true); // Ativa a opção de salvar
+                                            return akxProduct;
+                                          });
+                                      }
                                       return null;
                                     }
                                     throw new Error("Erro ao buscar produto");

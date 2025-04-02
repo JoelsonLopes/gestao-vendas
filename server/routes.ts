@@ -294,6 +294,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching products", details: error instanceof Error ? error.message : String(error) });
     }
   });
+  
+  // Buscar produto pelo código
+  app.get("/api/products/by-code/:code", isAuthenticated, async (req, res) => {
+    try {
+      const { code } = req.params;
+      if (!code) {
+        return res.status(400).json({ message: "Código do produto é obrigatório" });
+      }
+      
+      const product = await storage.getProductByCode(code);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Produto não encontrado com este código" });
+      }
+      
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar produto pelo código" });
+    }
+  });
 
   // Search products
   app.get("/api/products/search", isAuthenticated, async (req, res) => {

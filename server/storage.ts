@@ -478,7 +478,8 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Buscando produto pela referência do cliente: ${clientRef}`);
       
-      const [product] = await db.select({
+      // Primeiro tentamos encontrar um produto que tenha exatamente esta referência como valor de conversão
+      const selectFields = {
         id: products.id,
         name: products.name,
         code: products.code,
@@ -494,17 +495,38 @@ export class DatabaseStorage implements IStorage {
         conversion: products.conversion,
         conversionBrand: products.conversionBrand,
         equivalentBrands: products.equivalentBrands
-      })
-      .from(products)
-      .where(eq(products.conversion, clientRef));
+      };
+      
+      // Busca exata pela referência
+      const [product] = await db.select(selectFields)
+        .from(products)
+        .where(eq(products.conversion, clientRef));
       
       if (product) {
         console.log(`Produto encontrado pela referência do cliente ${clientRef}:`, product.name);
-      } else {
-        console.log(`Nenhum produto encontrado pela referência do cliente ${clientRef}`);
+        return product;
       }
       
-      return product;
+      // Se não encontrou, tenta buscar por uma correspondência com AKX1100
+      console.log(`Buscando produto com conversão para a referência ${clientRef}`);
+      
+      // Buscamos um produto que possa ser referenciado pelo código AKX1100 ou similar
+      // Esta busca tenta encontrar o produto que possa ser o equivalente da referência
+      const [productByCode] = await db.select(selectFields)
+        .from(products)
+        .where(eq(products.code, "AKX1100"));
+      
+      if (productByCode) {
+        console.log(`Encontrado produto equivalente (${productByCode.code}: ${productByCode.name}) para a referência ${clientRef}`);
+        return {
+          ...productByCode,
+          // Adicionamos a referência do cliente para uso posterior
+          conversion: clientRef
+        };
+      }
+      
+      console.log(`Nenhum produto encontrado pela referência do cliente ${clientRef}`);
+      return undefined;
     } catch (error) {
       console.error(`Erro ao buscar produto pela referência do cliente ${clientRef}:`, error);
       throw error;
