@@ -537,13 +537,27 @@ export default function OrderFormPage() {
   const preparePdfData = () => {
     const client = clients?.find(c => c.id === clientId);
     
-    // Obter informações sobre os descontos aplicados
-    const orderDiscounts = orderItems.map(item => {
+    // Preparar os itens do pedido para o PDF com descontos
+    const pdfItems = orderItems.map(item => {
       const discountData = discounts?.find(d => d.id === item.discountId);
+      
+      // Calcular preço com desconto
+      const priceWithDiscount = item.discountPercentage > 0 
+        ? item.unitPrice * (1 - item.discountPercentage / 100) 
+        : item.unitPrice;
+      
       return {
-        productId: item.productId,
-        discountName: discountData?.name || null,
-        commission: discountData?.commission || 0
+        id: item.product?.id || item.productId,
+        name: item.product?.name || `Produto #${item.productId}`,
+        code: item.product?.code || String(item.productId),
+        brand: item.product?.brand || null,
+        clientRef: item.product?.conversion || null,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discountPercentage,
+        discountName: discountData?.name || null,  
+        subtotal: priceWithDiscount * item.quantity,
+        commission: item.commission
       };
     });
     
@@ -580,21 +594,7 @@ export default function OrderFormPage() {
         representative: user?.name || "",
         totalCommission: totalCommission
       },
-      items: orderItems.map(item => {
-        const discountInfo = orderDiscounts.find(d => d.productId === item.productId);
-        return {
-          id: item.productId,
-          name: item.product?.name || `Produto #${item.productId}`,
-          code: item.product?.code || "",
-          clientRef: item.product?.conversion || null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discount: item.discountPercentage,
-          subtotal: item.subtotal,
-          discountName: discountInfo?.discountName,
-          commission: item.commission
-        };
-      }),
+      items: pdfItems,
     };
   };
   
