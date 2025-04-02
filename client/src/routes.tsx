@@ -10,6 +10,7 @@ import ReportsPage from "@/pages/reports-page";
 import UsersPage from "@/pages/users-page";
 import RegionsPage from "@/pages/regions-page";
 import SettingsPage from "@/pages/settings-page";
+import AccessibilityPage from "@/pages/accessibility-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useAuth } from "./hooks/use-auth";
 
@@ -33,6 +34,7 @@ export function AppRoutes() {
         </>
       )}
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/accessibility" component={AccessibilityPage} />
       <Route component={NotFound} />
     </Switch>
   );
