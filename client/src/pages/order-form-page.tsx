@@ -17,7 +17,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectGroup,
+  SelectItem, 
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -426,11 +435,37 @@ export default function OrderFormPage() {
                             <SelectValue placeholder="Selecione uma condição" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="à vista">À Vista</SelectItem>
-                            <SelectItem value="30dias">30 Dias</SelectItem>
-                            <SelectItem value="60dias">60 Dias</SelectItem>
-                            <SelectItem value="90dias">90 Dias</SelectItem>
-                            <SelectItem value="30-60-90">30/60/90 Dias</SelectItem>
+                            <SelectGroup>
+                              <SelectLabel>Pagamento Imediato</SelectLabel>
+                              <SelectItem value="à vista">À Vista</SelectItem>
+                              <SelectItem value="pix">Pix</SelectItem>
+                            </SelectGroup>
+                            
+                            <SelectSeparator />
+                            
+                            <SelectGroup>
+                              <SelectLabel>Boletos</SelectLabel>
+                              <SelectItem value="boleto_7d">Boleto Doc 7D</SelectItem>
+                              <SelectItem value="boleto_14d">Boleto Doc 14D</SelectItem>
+                              <SelectItem value="boleto_14_28d">Boleto Doc 14/28D</SelectItem>
+                              <SelectItem value="boleto_28d">Boleto Doc 28D</SelectItem>
+                              <SelectItem value="boleto_28_35d">Boleto Doc 28/35D</SelectItem>
+                              <SelectItem value="boleto_28_35_42d">Boleto Doc 28/35/42D</SelectItem>
+                              <SelectItem value="boleto_28_42_56d">Boleto Doc 28/42/56D</SelectItem>
+                              <SelectItem value="boleto_28_56_84d">Boleto Doc 28/56/84D</SelectItem>
+                              <SelectItem value="boleto_30d">Boleto Doc 30D</SelectItem>
+                              <SelectItem value="boleto_30_45d">Boleto Doc 30/45D</SelectItem>
+                              <SelectItem value="boleto_30_45_60d">Boleto Doc 30/45/60D</SelectItem>
+                              <SelectItem value="boleto_30_45_60_75d">Boleto Doc 30/45/60/75D</SelectItem>
+                              <SelectItem value="boleto_30_45_60_75_90d">Boleto Doc 30/45/60/75/90D</SelectItem>
+                              <SelectItem value="boleto_30_60d">Boleto Doc 30/60D</SelectItem>
+                              <SelectItem value="boleto_30_60_90d">Boleto Doc 30/60/90D</SelectItem>
+                              <SelectItem value="boleto_35d">Boleto Doc 35D</SelectItem>
+                              <SelectItem value="boleto_28_35_42_49d">Boleto Doc 28/35/42/49D</SelectItem>
+                              <SelectItem value="boleto_28_42_56_70d">Boleto Doc 28/42/56/70D</SelectItem>
+                              <SelectItem value="boleto_28_42d">Boleto Doc 28/42</SelectItem>
+                              <SelectItem value="boleto_30_60_90_120d">Boleto Doc 30/60/90/120D</SelectItem>
+                            </SelectGroup>
                           </SelectContent>
                         </Select>
                       </div>
