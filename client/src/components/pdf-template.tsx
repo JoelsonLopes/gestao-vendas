@@ -43,7 +43,13 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   
   // Calcular o total de comissão para incluir no PDF quando for um pedido confirmado
   const totalCommission = order.status === 'confirmado' 
-    ? items.reduce((total, item) => total + (item.quantity * item.unitPrice * (item.commission || 0) / 100), 0)
+    ? items.reduce((total, item) => {
+        // Converter strings para números para garantir que a operação é feita corretamente
+        const quantity = typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0);
+        const unitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
+        const commission = typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0);
+        return total + (quantity * unitPrice * commission / 100);
+      }, 0)
     : 0;
 
   // Função para criar um documento PDF com design moderno
@@ -172,6 +178,11 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         doc.rect(tableX, tableY, 180, 7, "F");
       }
       
+      // Conversão de valores para números
+      const discount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
+      const unitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
+      const quantity = typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0);
+      
       // Destaque para referência do cliente
       if (item.clientRef) {
         doc.setFillColor(primaryColor);
@@ -183,14 +194,15 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         doc.text("-", tableX + 5, tableY + 4.5);
       }
       
-      // Resto dos dados do item
+      // Dados do item
       doc.text(item.code, tableX + 30, tableY + 4.5);
       const displayName = item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
       doc.text(displayName, tableX + 50, tableY + 4.5);
-      doc.text(item.quantity.toString(), tableX + 95, tableY + 4.5);
-      doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4.5);
+      doc.text(quantity.toString(), tableX + 95, tableY + 4.5);
+      doc.text(formatCurrency(unitPrice), tableX + 115, tableY + 4.5);
+      
       // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
-      if (item.discount > 0) {
+      if (discount > 0) {
         if (order.status === 'confirmado' && item.discountName) {
           // Destacar o nome do desconto para pedidos confirmados
           doc.setFillColor(51, 102, 204, 0.1); // Azul claro com transparência
@@ -199,14 +211,14 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
           doc.text(`${item.discountName}`, tableX + 140, tableY + 4.5);
           doc.setTextColor(darkGray); // Voltar à cor padrão
         } else {
-          doc.text(`${item.discount}%`, tableX + 140, tableY + 4.5);
+          doc.text(`${discount}%`, tableX + 140, tableY + 4.5);
         }
       } else {
         doc.text("-", tableX + 140, tableY + 4.5);
       }
       
       // Preço com desconto
-      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
+      const priceWithDiscount = discount > 0 ? unitPrice * (1 - discount / 100) : unitPrice;
       doc.text(formatCurrency(priceWithDiscount), tableX + 163, tableY + 4.5);
       
       // Subtotal
@@ -408,9 +420,11 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
               <tbody>
                 {items.map((item, index) => {
                   // Cálculo do preço com desconto
-                  const priceWithDiscount = item.discount > 0 
-                    ? item.unitPrice * (1 - item.discount / 100) 
-                    : item.unitPrice;
+                  const itemDiscount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
+                  const itemUnitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
+                  const priceWithDiscount = itemDiscount > 0 
+                    ? itemUnitPrice * (1 - itemDiscount / 100) 
+                    : itemUnitPrice;
                     
                   return (
                     <tr key={index} className="border-b border-gray-200">
@@ -422,10 +436,10 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(item.unitPrice)}</td>
                       <td className="py-3 align-middle text-sm text-right">
-                        {item.discount > 0 ? (
+                        {itemDiscount > 0 ? (
                           order.status === 'confirmado' && item.discountName 
                             ? <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-800">{item.discountName}</span>
-                            : `${item.discount}%`
+                            : `${itemDiscount}%`
                         ) : '-'}
                       </td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
