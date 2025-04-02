@@ -1114,26 +1114,54 @@ export default function OrderFormPage() {
                                 .then(res => {
                                   if (!res.ok) {
                                     if (res.status === 404) {
-                                      // Produto não encontrado, verificar se pode ser a referência AKX1100
-                                      const shouldCheckAkx = window.confirm(
+                                      // Produto não encontrado, perguntar ao usuário se deseja adicionar a conversão
+                                      const shouldAddConversion = window.confirm(
                                         `Não encontramos um produto com a referência "${clientRef}". ` +
-                                        `Deseja verificar se este código corresponde ao produto AKX1100?`
+                                        `Deseja adicionar essa conversão em algum produto?`
                                       );
                                       
-                                      if (shouldCheckAkx) {
-                                        // Buscar o produto AKX1100
-                                        return fetch(`/api/products/by-code/AKX1100`)
+                                      if (shouldAddConversion) {
+                                        // Perguntar qual produto buscar
+                                        const productToSearch = window.prompt(
+                                          `Digite o código ou nome do produto para buscar:`
+                                        );
+                                        
+                                        if (!productToSearch) {
+                                          toast({
+                                            title: "Operação cancelada",
+                                            description: "Nenhum produto informado para busca.",
+                                            variant: "destructive",
+                                          });
+                                          return null;
+                                        }
+                                        
+                                        // Buscar o produto informado
+                                        return fetch(`/api/products/by-code/${encodeURIComponent(productToSearch)}`)
                                           .then(res => {
                                             if (!res.ok) {
-                                              throw new Error("Produto AKX1100 não encontrado");
+                                              throw new Error(`Produto ${productToSearch} não encontrado`);
                                             }
                                             return res.json();
                                           })
-                                          .then(akxProduct => {
+                                          .then(foundProduct => {
                                             // Adicionar a conversão ao produto
-                                            akxProduct.conversion = clientRef;
+                                            foundProduct.conversion = clientRef;
                                             setShouldSaveConversion(true); // Ativa a opção de salvar
-                                            return akxProduct;
+                                            
+                                            toast({
+                                              title: "Produto encontrado",
+                                              description: `A referência ${clientRef} será associada ao produto ${foundProduct.name}`,
+                                            });
+                                            
+                                            return foundProduct;
+                                          })
+                                          .catch(error => {
+                                            toast({
+                                              title: "Produto não encontrado",
+                                              description: error.message,
+                                              variant: "destructive",
+                                            });
+                                            return null;
                                           });
                                       }
                                       return null;
