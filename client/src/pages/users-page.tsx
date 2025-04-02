@@ -322,7 +322,7 @@ export default function UsersPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Nenhuma região</SelectItem>
+                            <SelectItem value="none">Nenhuma região</SelectItem>
                             {regions?.map((region) => (
                               <SelectItem key={region.id} value={region.id.toString()}>
                                 {region.name}

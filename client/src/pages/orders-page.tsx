@@ -17,8 +17,8 @@ export default function OrdersPage() {
   const [_, setLocation] = useLocation();
   
   // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [clientFilter, setClientFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [clientFilter, setClientFilter] = useState<string>("all");
   const [dateFromFilter, setDateFromFilter] = useState<string>("");
   const [dateToFilter, setDateToFilter] = useState<string>("");
   
@@ -33,27 +33,27 @@ export default function OrdersPage() {
   });
   
   const clearFilters = () => {
-    setStatusFilter("");
-    setClientFilter("");
+    setStatusFilter("all");
+    setClientFilter("all");
     setDateFromFilter("");
     setDateToFilter("");
   };
   
   // Apply filters
   const filteredOrders = orders?.filter(order => {
-    const matchesStatus = !statusFilter || order.status === statusFilter;
-    const matchesClient = !clientFilter || order.clientId.toString() === clientFilter;
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesClient = clientFilter === "all" || order.clientId.toString() === clientFilter;
     
     let matchesDateFrom = true;
     if (dateFromFilter) {
-      const orderDate = new Date(order.createdAt);
+      const orderDate = new Date(order.createdAt || "");
       const fromDate = new Date(dateFromFilter);
       matchesDateFrom = orderDate >= fromDate;
     }
     
     let matchesDateTo = true;
     if (dateToFilter) {
-      const orderDate = new Date(order.createdAt);
+      const orderDate = new Date(order.createdAt || "");
       const toDate = new Date(dateToFilter);
       // Set time to end of day
       toDate.setHours(23, 59, 59, 999);
@@ -93,7 +93,7 @@ export default function OrdersPage() {
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="cotacao">Cotação</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
                   </SelectContent>
@@ -107,7 +107,7 @@ export default function OrdersPage() {
                     <SelectValue placeholder="Todos os clientes" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os clientes</SelectItem>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
                     {clients?.map(client => (
                       <SelectItem key={client.id} value={client.id.toString()}>
                         {client.name}
