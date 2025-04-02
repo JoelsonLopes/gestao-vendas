@@ -82,6 +82,7 @@ export default function OrderFormPage() {
   const [productQuantity, setProductQuantity] = useState(1);
   const [clientRef, setClientRef] = useState("");
   const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false);
+  const [shouldSaveConversion, setShouldSaveConversion] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totals, setTotals] = useState<{
@@ -291,12 +292,46 @@ export default function OrderFormPage() {
     const product = products?.find(p => p.id === selectedProductId);
     if (!product) return;
     
-    // Se estamos adicionando pela referência do cliente, vamos atualizá-la no produto
+    // Sempre atualizamos o produto com a referência do cliente se ela foi fornecida
     let updatedProduct = {...product};
-    if (clientRef && isSearchingByClientRef) {
+    
+    if (clientRef && clientRef.trim() !== "") {
       updatedProduct.conversion = clientRef;
       console.log("Atualizando produto com referência do cliente:", clientRef);
-    } else {
+      
+      // Se a opção de salvar conversão estiver marcada, salvamos no servidor
+      if (shouldSaveConversion) {
+        console.log("Salvando conversão no servidor...");
+        
+        fetch(`/api/products/${selectedProductId}/save-conversion`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ clientRef }),
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Erro ao salvar conversão");
+          return res.json();
+        })
+        .then(() => {
+          toast({
+            title: "Referência salva",
+            description: "Referência do cliente vinculada ao produto com sucesso.",
+          });
+          
+          // Atualizar a lista de produtos depois de salvar a conversão
+          queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+        })
+        .catch(error => {
+          toast({
+            title: "Aviso",
+            description: "O produto foi adicionado, mas não foi possível salvar a referência.",
+            variant: "destructive",
+          });
+        });
+      }
+    } else if (updatedProduct.conversion) {
       // Se o produto já tinha uma conversão, mantemos ela
       console.log("Produto já possui conversão:", updatedProduct.conversion);
     }
@@ -317,6 +352,7 @@ export default function OrderFormPage() {
       - Preço original: ${formatCurrency(unitPrice)}
       - Quantidade: ${productQuantity}
       - Subtotal: ${formatCurrency(subtotal)}
+      ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
     `);
     
     const newItem = {
@@ -336,6 +372,7 @@ export default function OrderFormPage() {
     setProductQuantity(1);
     setClientRef("");
     setIsSearchingByClientRef(false);
+    setShouldSaveConversion(false);
   };
   
   // Remove product from order
@@ -1143,6 +1180,35 @@ export default function OrderFormPage() {
                     </TabsContent>
                   </Tabs>
                   
+                  {selectedProductId && (
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
+                        <div className="flex-1">
+                          <Input 
+                            id="clientReferenceInput"
+                            type="text" 
+                            placeholder="Digite a referência deste produto para o cliente"
+                            value={clientRef}
+                            onChange={(e) => setClientRef(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="saveProdConversion"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={shouldSaveConversion}
+                          onChange={e => setShouldSaveConversion(e.target.checked)}
+                        />
+                        <Label htmlFor="saveProdConversion" className="text-sm font-normal cursor-pointer">
+                          Salvar esta referência para uso futuro
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantidade</Label>
                     <Input 
@@ -1159,38 +1225,7 @@ export default function OrderFormPage() {
                     Cancelar
                   </Button>
                   <Button 
-                    onClick={() => {
-                      addProductToOrder();
-                      
-                      // Se um produto foi encontrado pela referência do cliente e temos uma referência,
-                      // salvar esta referência para conversões futuras
-                      if (selectedProductId && clientRef && isSearchingByClientRef) {
-                        fetch(`/api/products/${selectedProductId}/save-conversion`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({ clientRef }),
-                        })
-                        .then(res => {
-                          if (!res.ok) throw new Error("Erro ao salvar conversão");
-                          return res.json();
-                        })
-                        .then(() => {
-                          toast({
-                            title: "Conversão salva",
-                            description: "Referência do cliente vinculada ao produto.",
-                          });
-                        })
-                        .catch(error => {
-                          toast({
-                            title: "Aviso",
-                            description: "O produto foi adicionado, mas não foi possível salvar a conversão.",
-                            variant: "destructive",
-                          });
-                        });
-                      }
-                    }}
+                    onClick={addProductToOrder}
                     disabled={!selectedProductId || productQuantity <= 0}
                   >
                     Adicionar

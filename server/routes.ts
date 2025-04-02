@@ -435,6 +435,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Salvar referência do cliente para um produto
+  app.post("/api/products/:id/save-conversion", isAuthenticated, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { clientRef } = req.body;
+      
+      if (!clientRef || typeof clientRef !== 'string') {
+        return res.status(400).json({ message: "Referência do cliente é obrigatória" });
+      }
+      
+      const product = await storage.getProduct(productId);
+      
+      if (!product) {
+        return res.status(404).json({ message: "Produto não encontrado" });
+      }
+      
+      const updatedProduct = await storage.saveProductConversion(productId, clientRef);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Erro ao salvar conversão:", error);
+      res.status(500).json({ 
+        message: "Erro ao salvar referência do cliente",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Import products (admin only)
   app.post("/api/products/import", isAdmin, async (req, res) => {
     try {

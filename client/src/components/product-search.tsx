@@ -32,7 +32,6 @@ export function ProductSearch({
     if (!searchQuery.trim()) return true;
     
     const query = searchQuery.toLowerCase().trim();
-    console.log("Buscando produtos por:", query);
     
     // Verifica apenas nos campos específicos mais utilizados
     const nameMatch = product.name?.toLowerCase().includes(query) || false;
@@ -40,11 +39,9 @@ export function ProductSearch({
     const descriptionMatch = product.description?.toLowerCase().includes(query) || false;
     const brandMatch = product.brand?.toLowerCase().includes(query) || false;
     const categoryMatch = product.category?.toLowerCase().includes(query) || false;
+    const conversionMatch = product.conversion?.toLowerCase().includes(query) || false;
     
-    const matches = nameMatch || codeMatch || descriptionMatch || brandMatch || categoryMatch;
-    if (matches) {
-      console.log("Produto encontrado na busca:", product.name);
-    }
+    const matches = nameMatch || codeMatch || descriptionMatch || brandMatch || categoryMatch || conversionMatch;
     
     return matches;
   });
@@ -115,7 +112,7 @@ export function ProductSearch({
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
               ref={inputRef}
-              placeholder="Buscar por nome, código, marca ou categoria..."
+              placeholder="Buscar por nome, código, marca ou referência do cliente..."
               className="flex h-9 w-full rounded-md bg-transparent py-2 px-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -150,6 +147,11 @@ export function ProductSearch({
                       {product.code && `Cód: ${product.code}`}
                       {product.price && ` • ${formatCurrency(Number(product.price))}`}
                       {product.brand && ` • ${product.brand}`}
+                      {product.conversion && (
+                        <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          Ref: {product.conversion}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
