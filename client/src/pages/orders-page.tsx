@@ -334,26 +334,6 @@ export default function OrdersPage() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      title="Imprimir Pedido"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        
-                        // Seleciona o pedido atual (necessário para carregar os dados)
-                        setSelectedOrder(order);
-                        
-                        // Pequeno delay para garantir que os dados estejam carregados
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        // Aciona a impressão diretamente
-                        window.print();
-                      }}
-                    >
-                      <Printer className="h-4 w-4" />
-                      <span className="sr-only">Imprimir</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
                       className="text-red-600 hover:text-red-800"
                       title="Excluir"
                       onClick={(e) => {
