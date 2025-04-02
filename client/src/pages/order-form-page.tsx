@@ -178,12 +178,12 @@ export default function OrderFormPage() {
         const product = products?.find(p => p.id === item.productId);
         return {
           ...item,
-          // Converter strings para números
-          unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : item.unitPrice,
-          quantity: typeof item.quantity === 'string' ? Number(item.quantity) : item.quantity,
-          discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : item.discountPercentage,
-          commission: typeof item.commission === 'string' ? Number(item.commission) : item.commission,
-          subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : item.subtotal,
+          // Converter strings para números com valores padrão para evitar nulos
+          unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0),
+          quantity: typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0),
+          discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : (item.discountPercentage || 0),
+          commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
+          subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
           product,
         };
       });
@@ -367,7 +367,19 @@ export default function OrderFormPage() {
       subtotal: item.subtotal.toString(), // Convertido para string
     }));
     
-    createOrderMutation.mutate({ order: orderData, items: itemsData });
+    if (isEditMode && id) {
+      // Atualizar pedido existente
+      // Esta parte precisaria de uma API para atualizar pedidos existentes
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: "A edição de pedidos existentes ainda não está implementada no backend.",
+        variant: "default",
+      });
+      setIsSubmitting(false);
+    } else {
+      // Criar novo pedido
+      createOrderMutation.mutate({ order: orderData, items: itemsData });
+    }
   };
   
   // Update order status
@@ -434,14 +446,24 @@ export default function OrderFormPage() {
             </Button>
             
             {isEditMode ? (
-              <Button 
-                className="bg-green-600 hover:bg-green-700 text-white" 
-                disabled={status === "confirmado"} 
-                onClick={() => updateOrderStatus("confirmado")}
-              >
-                <Check className="mr-2 h-4 w-4" />
-                Confirmar Pedido
-              </Button>
+              <>
+                <Button onClick={saveOrder} disabled={isSubmitting} className="mr-2">
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Salvar Alterações
+                </Button>
+                <Button 
+                  className="bg-green-600 hover:bg-green-700 text-white" 
+                  disabled={status === "confirmado"} 
+                  onClick={() => updateOrderStatus("confirmado")}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Confirmar Pedido
+                </Button>
+              </>
             ) : (
               <Button onClick={saveOrder} disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -480,7 +502,7 @@ export default function OrderFormPage() {
                           clients={clients}
                           selectedClientId={clientId}
                           onClientSelect={setClientId}
-                          disabled={isEditMode}
+                          disabled={false} // Permitir edição do cliente mesmo em pedidos existentes
                         />
                       </div>
                       
@@ -489,7 +511,7 @@ export default function OrderFormPage() {
                         <Select 
                           value={status} 
                           onValueChange={(value) => setStatus(value as "cotacao" | "confirmado")}
-                          disabled={isEditMode}
+                          disabled={false}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione um status" />
@@ -506,7 +528,7 @@ export default function OrderFormPage() {
                         <Select 
                           value={paymentTerms} 
                           onValueChange={setPaymentTerms}
-                          disabled={isEditMode}
+                          disabled={false}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione uma condição" />
@@ -553,7 +575,7 @@ export default function OrderFormPage() {
                           placeholder="Observações do pedido" 
                           value={notes} 
                           onChange={(e) => setNotes(e.target.value)}
-                          disabled={isEditMode}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -565,7 +587,7 @@ export default function OrderFormPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle>Produtos do Pedido</CardTitle>
-                    <Button onClick={() => setAddProductModalOpen(true)} disabled={isEditMode}>
+                    <Button onClick={() => setAddProductModalOpen(true)} disabled={false}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Adicionar Produto
                     </Button>
@@ -607,7 +629,7 @@ export default function OrderFormPage() {
                                     value={item.quantity}
                                     onChange={(e) => updateItemQuantity(index, parseInt(e.target.value))}
                                     className="w-20 h-8"
-                                    disabled={isEditMode}
+                                    disabled={false}
                                   />
                                 </TableCell>
                                 <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
@@ -624,16 +646,14 @@ export default function OrderFormPage() {
                                 <TableCell>{item.commission}%</TableCell>
                                 <TableCell>{formatCurrency(item.subtotal)}</TableCell>
                                 <TableCell className="text-right">
-                                  {!isEditMode && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => removeOrderItem(index)}
-                                      className="text-red-500 hover:text-red-700"
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => removeOrderItem(index)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
                                 </TableCell>
                               </TableRow>
                             ))
