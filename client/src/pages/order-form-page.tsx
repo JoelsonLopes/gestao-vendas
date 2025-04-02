@@ -611,8 +611,8 @@ export default function OrderFormPage() {
               <div>
                 <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Cliente</h2>
                 <div className="text-gray-800">
-                  <p className="font-medium text-base">{cliente?.name || 'Não selecionado'}</p>
-                  <p className="text-sm text-gray-600">{cliente?.cnpj || ''}</p>
+                  <p className="font-medium text-base">{clients?.find(c => c.id === clientId)?.name || 'Não selecionado'}</p>
+                  <p className="text-sm text-gray-600">{clients?.find(c => c.id === clientId)?.cnpj || ''}</p>
                 </div>
               </div>
               
