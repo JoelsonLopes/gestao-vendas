@@ -42,6 +42,11 @@ export default function OrdersPage() {
     queryKey: ["/api/clients"],
   });
   
+  // Fetch discounts for display in pdf
+  const { data: discounts } = useQuery<any[]>({
+    queryKey: ["/api/discounts"],
+  });
+  
   // Fetch order items for selected order
   const { data: selectedOrderItems } = useQuery<OrderItem[]>({
     queryKey: ["/api/orders", selectedOrder?.id, "items"],
@@ -89,18 +94,30 @@ export default function OrdersPage() {
           discount: Number(selectedOrder.discount || 0),
           taxes: Number(selectedOrder.taxes || 0),
           total: Number(selectedOrder.total || 0),
-          representative: "Representante" // Este valor seria melhor obtido do usuário atual
+          representative: "Representante", // Este valor seria melhor obtido do usuário atual
+          totalCommission: selectedOrder.status === 'confirmado' ? 
+            // Calcular o total de comissão baseado nos itens do pedido
+            selectedOrderItems?.reduce((total, item) => 
+              total + (item.quantity * (item.unitPrice || 0) * (item.commission || 0) / 100), 0) 
+            : undefined
         },
-        items: itemsWithProducts.map(item => ({
-          id: item.id,
-          name: item.product ? item.product.name : `Produto #${item.productId}`,
-          code: item.product ? item.product.code : `${item.productId}`,
-          clientRef: item.product ? item.product.conversion : null,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          discount: Number(item.discountPercentage || 0),
-          subtotal: Number(item.subtotal)
-        }))
+        items: itemsWithProducts.map(item => {
+          // Buscar o desconto selecionado
+          const discount = item.discountId && discounts ? discounts.find((d: any) => d.id === item.discountId) : null;
+          
+          return {
+            id: item.id,
+            name: item.product ? item.product.name : `Produto #${item.productId}`,
+            code: item.product ? item.product.code : `${item.productId}`,
+            clientRef: item.product ? item.product.conversion : null,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            discount: Number(item.discountPercentage || 0),
+            subtotal: Number(item.subtotal),
+            discountName: discount ? discount.name : null,
+            commission: Number(item.commission || 0)
+          };
+        })
       };
     },
     enabled: !!selectedOrder && !!selectedOrderItems && !!products

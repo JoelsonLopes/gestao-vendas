@@ -41,7 +41,10 @@ interface PdfTemplateProps {
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  console.log("Items recebidos no PdfTemplate:", items);
+  // Calcular o total de comissão para incluir no PDF quando for um pedido confirmado
+  const totalCommission = order.status === 'confirmado' 
+    ? items.reduce((total, item) => total + (item.quantity * item.unitPrice * (item.commission || 0) / 100), 0)
+    : 0;
 
   // Função para criar um documento PDF com design moderno
   const createPdfDocument = () => {
@@ -186,7 +189,12 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       doc.text(displayName, tableX + 50, tableY + 4.5);
       doc.text(item.quantity.toString(), tableX + 95, tableY + 4.5);
       doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4.5);
-      doc.text(item.discount > 0 ? `${item.discount}%` : "-", tableX + 140, tableY + 4.5);
+      // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
+      if (order.status === 'confirmado' && item.discountName) {
+        doc.text(`${item.discountName} (${item.discount}%)`, tableX + 140, tableY + 4.5);
+      } else {
+        doc.text(item.discount > 0 ? `${item.discount}%` : "-", tableX + 140, tableY + 4.5);
+      }
       
       // Preço com desconto
       const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
