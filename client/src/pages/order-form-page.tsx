@@ -379,6 +379,30 @@ export default function OrderFormPage() {
     setOrderItems(newItems);
   };
   
+  // Mutation para atualizar pedido existente
+  const updateOrderMutation = useMutation({
+    mutationFn: async ({ id, order, items }: { id: number, order: InsertOrder, items: any[] }) => {
+      const res = await apiRequest("PUT", `/api/orders/${id}`, { order, items });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({
+        title: "Pedido atualizado",
+        description: "O pedido foi atualizado com sucesso.",
+      });
+      navigate("/orders");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    },
+  });
+  
   // Save order
   const saveOrder = async () => {
     if (!clientId || orderItems.length === 0) {
@@ -416,13 +440,11 @@ export default function OrderFormPage() {
     
     if (isEditMode && id) {
       // Atualizar pedido existente
-      // Esta parte precisaria de uma API para atualizar pedidos existentes
-      toast({
-        title: "Funcionalidade em desenvolvimento",
-        description: "A edição de pedidos existentes ainda não está implementada no backend.",
-        variant: "default",
+      updateOrderMutation.mutate({ 
+        id: parseInt(id), 
+        order: orderData, 
+        items: itemsData 
       });
-      setIsSubmitting(false);
     } else {
       // Criar novo pedido
       createOrderMutation.mutate({ order: orderData, items: itemsData });

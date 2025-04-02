@@ -62,6 +62,7 @@ export interface IStorage {
   // Order methods
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined>;
   updateOrderStatus(id: number, status: 'cotacao' | 'confirmado'): Promise<Order | undefined>;
   listOrders(): Promise<Order[]>;
   listOrdersByRepresentative(representativeId: number): Promise<Order[]>;
@@ -70,6 +71,8 @@ export interface IStorage {
   
   // Order Item methods
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  updateOrderItems(orderId: number, items: InsertOrderItem[]): Promise<OrderItem[]>;
+  deleteOrderItems(orderId: number): Promise<boolean>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   
   // Stats methods
@@ -550,6 +553,15 @@ export class DatabaseStorage implements IStorage {
     return newOrder;
   }
 
+  async updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
+    const [updatedOrder] = await db
+      .update(orders)
+      .set({ ...orderData, updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning();
+    return updatedOrder || undefined;
+  }
+
   async updateOrderStatus(id: number, status: 'cotacao' | 'confirmado'): Promise<Order | undefined> {
     const [updatedOrder] = await db
       .update(orders)
@@ -589,6 +601,31 @@ export class DatabaseStorage implements IStorage {
       .values(orderItem)
       .returning();
     return newOrderItem;
+  }
+
+  async updateOrderItems(orderId: number, items: InsertOrderItem[]): Promise<OrderItem[]> {
+    // Primeiro apaga todos os itens existentes do pedido
+    await this.deleteOrderItems(orderId);
+    
+    // Depois cria novos itens
+    const newItems: OrderItem[] = [];
+    for (const item of items) {
+      const newItem = await this.createOrderItem({
+        ...item,
+        orderId,
+      });
+      newItems.push(newItem);
+    }
+    
+    return newItems;
+  }
+
+  async deleteOrderItems(orderId: number): Promise<boolean> {
+    const result = await db
+      .delete(orderItems)
+      .where(eq(orderItems.orderId, orderId))
+      .returning();
+    return result.length > 0;
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {

@@ -542,6 +542,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching order items" });
     }
   });
+  
+  // Update order
+  app.put("/api/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      let { order, items } = req.body;
+      
+      if (!order || !items || !Array.isArray(items)) {
+        return res.status(400).json({ message: "Invalid order data" });
+      }
+      
+      // Get existing order
+      const existingOrder = await storage.getOrder(id);
+      if (!existingOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if user has permission
+      if (req.user.role === 'representative' && existingOrder.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this order" });
+      }
+      
+      // Validate order data
+      let validatedOrder = insertOrderSchema.parse(order);
+      
+      // If representative, ensure they can't change the representative ID
+      if (req.user.role === 'representative') {
+        validatedOrder = { 
+          ...validatedOrder, 
+          representativeId: req.user.id 
+        };
+      }
+      
+      // Check if rep has access to this client
+      if (req.user.role === 'representative') {
+        const client = await storage.getClient(validatedOrder.clientId);
+        if (!client || client.representativeId !== req.user.id) {
+          return res.status(403).json({ message: "Not authorized to create order for this client" });
+        }
+      }
+      
+      // Update order
+      const updatedOrder = await storage.updateOrder(id, validatedOrder);
+      
+      // Update order items
+      const processedItems = items.map(item => ({
+        ...item,
+        orderId: id
+      }));
+      
+      const updatedItems = await storage.updateOrderItems(id, processedItems);
+      
+      res.json({
+        order: updatedOrder,
+        items: updatedItems
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error updating order" });
+    }
+  });
 
   // Get orders by client
   app.get("/api/clients/:id/orders", isAuthenticated, async (req, res) => {
