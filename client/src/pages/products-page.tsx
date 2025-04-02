@@ -423,9 +423,47 @@ export default function ProductsPage() {
                 },
               },
               {
-                header: "Marca Conv.",
+                header: "Marca da Referência",
                 accessorKey: "conversionBrand",
                 sortable: true,
+                cell: (product) => {
+                  if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "conversionBrand") {
+                    return (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="text"
+                          className="w-24 h-8"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
+                        />
+                        <button onClick={saveInlineEdit} className="text-green-600 hover:text-green-800">
+                          <Save size={16} />
+                        </button>
+                        <button onClick={cancelInlineEdit} className="text-red-600 hover:text-red-800">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex items-center">
+                      <span className={product.conversionBrand ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 px-2 py-1 rounded" : ""}>
+                        {product.conversionBrand || "-"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-6 w-6 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startInlineEdit(product.id, "conversionBrand", product.conversionBrand || "");
+                        }}
+                      >
+                        <Edit size={14} />
+                      </Button>
+                    </div>
+                  );
+                },
               },
               {
                 header: "Preço",
@@ -669,11 +707,14 @@ export default function ProductsPage() {
                     name="conversion"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Código de Conversão</FormLabel>
+                        <FormLabel>Referência do Cliente</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Código equivalente" />
+                          <Input {...field} placeholder="Código usado pelo cliente" />
                         </FormControl>
                         <FormMessage />
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Este código será salvo no banco de dados e usado para encontrar o produto automaticamente quando o cliente fornecer sua própria referência.
+                        </div>
                       </FormItem>
                     )}
                   />
@@ -683,11 +724,14 @@ export default function ProductsPage() {
                     name="conversionBrand"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Marca de Conversão</FormLabel>
+                        <FormLabel>Marca da Referência</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Marca equivalente" />
+                          <Input {...field} placeholder="Marca do cliente (opcional)" />
                         </FormControl>
                         <FormMessage />
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Usado quando o cliente tem um nome diferente para a marca do produto.
+                        </div>
                       </FormItem>
                     )}
                   />
