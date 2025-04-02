@@ -382,11 +382,15 @@ export default function OrderFormPage() {
   // Mutation para atualizar pedido existente
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, order, items }: { id: number, order: InsertOrder, items: any[] }) => {
+      console.log(`Enviando requisição para atualizar pedido ${id}:`, { order, items });
       const res = await apiRequest("PUT", `/api/orders/${id}`, { order, items });
-      return await res.json();
+      const data = await res.json();
+      console.log(`Resposta da atualização do pedido ${id}:`, data);
+      return data;
     },
     onSuccess: (data, variables) => {
       const orderId = variables.id;
+      console.log(`Sucesso na atualização do pedido ${orderId}`, data);
       
       // Invalidar todos os caches relacionados a este pedido específico
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -396,6 +400,13 @@ export default function OrderFormPage() {
       // Também atualizar diretamente o cache para certeza
       queryClient.setQueryData([`/api/orders/${orderId}`], data.order);
       queryClient.setQueryData([`/api/orders/${orderId}/items`], data.items);
+      
+      // Forçar atualização explícita do React Query
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/orders"] });
+        queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}`] });
+        queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}/items`] });
+      }, 100);
       
       toast({
         title: "Pedido atualizado",

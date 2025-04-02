@@ -583,8 +583,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Adicionar logs detalhados para depuração
+      console.log(`Atualizando pedido ${id} no endpoint com dados:`, validatedOrder);
+      
       // Update order
       const updatedOrder = await storage.updateOrder(id, validatedOrder);
+      console.log(`Pedido ${id} atualizado no endpoint:`, updatedOrder);
       
       // Update order items
       const processedItems = items.map(item => ({
@@ -592,12 +596,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: id
       }));
       
+      console.log(`Atualizando ${processedItems.length} itens para o pedido ${id}`);
       const updatedItems = await storage.updateOrderItems(id, processedItems);
+      console.log(`${updatedItems.length} itens atualizados para o pedido ${id}`);
       
-      res.json({
+      // Invalidar cache explicitamente
+      const orderResult = {
         order: updatedOrder,
         items: updatedItems
-      });
+      };
+      
+      console.log(`Enviando resposta completa para atualização do pedido ${id}:`, orderResult);
+      res.json(orderResult);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 

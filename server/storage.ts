@@ -554,11 +554,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
+    console.log(`Atualizando pedido ${id} com os dados:`, orderData);
+    
     const [updatedOrder] = await db
       .update(orders)
       .set({ ...orderData, updatedAt: new Date() })
       .where(eq(orders.id, id))
       .returning();
+      
+    console.log(`Pedido ${id} atualizado:`, updatedOrder);
     return updatedOrder || undefined;
   }
 
