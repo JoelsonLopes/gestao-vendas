@@ -250,7 +250,7 @@ export default function OrderFormPage() {
     
     // Não precisamos calcular desconto separadamente, pois já está incluído no preço unitário
     // O total é simplesmente o subtotal + taxa de frete
-    const taxes = parseFloat(orderData?.taxes || "0"); // Taxa de frete editável pelo usuário
+    const taxes = isEditMode && order ? parseFloat(order.taxes || "0") : 0; // Taxa de frete editável pelo usuário
     const total = subtotal + taxes;
     
     console.log(`
@@ -928,11 +928,12 @@ export default function OrderFormPage() {
                                   value={totals.taxes}
                                   onChange={(e) => {
                                     const value = parseFloat(e.target.value) || 0;
-                                    setTotals(prev => ({
-                                      ...prev,
+                                    const newTotals = {
+                                      ...totals,
                                       taxes: value,
-                                      total: prev.subtotal + value
-                                    }));
+                                      total: totals.subtotal + value
+                                    };
+                                    setTotals(newTotals);
                                   }}
                                   className="w-24 h-6 text-right"
                                 />
