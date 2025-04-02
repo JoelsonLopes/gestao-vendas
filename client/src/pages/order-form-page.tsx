@@ -72,30 +72,38 @@ export default function OrderFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get clients
-  const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
+  const clientsQuery = useQuery<Client[]>({
     queryKey: ["/api/clients"],
-    onSettled: (data) => {
-      if (data) {
-        console.log(`Clientes carregados: ${data.length}`);
-        // Log de alguns clientes para verificação
-        if (data.length > 0) {
-          console.log("Exemplos de clientes:", data.slice(0, 5).map(client => ({
-            id: client.id,
-            name: client.name,
-            code: client.code
-          })));
-          
-          // Verificar se temos cliente com código 8028
-          const cliente8028 = data.find(client => client.code === "8028");
-          if (cliente8028) {
-            console.log("Cliente 8028 encontrado:", cliente8028);
-          } else {
-            console.log("Cliente 8028 NÃO encontrado nos dados carregados");
-          }
-        }
+  });
+  
+  const clients = clientsQuery.data || [];
+  const isLoadingClients = clientsQuery.isLoading;
+  
+  // Logger para debug - executado apenas uma vez quando os dados carregarem
+  useEffect(() => {
+    if (clients && clients.length > 0) {
+      console.log(`Clientes carregados: ${clients.length}`);
+      
+      // Log de alguns clientes para verificação
+      console.log("Exemplos de clientes:", clients.slice(0, 5).map(client => ({
+        id: client.id,
+        name: client.name,
+        code: client.code
+      })));
+      
+      // Verificar se temos cliente com código específico
+      const cliente8028 = clients.find(client => client.code === "8028");
+      if (cliente8028) {
+        console.log("Cliente 8028 encontrado:", cliente8028);
+      } else {
+        console.log("Cliente 8028 NÃO encontrado nos dados carregados");
+        
+        // Listar alguns códigos de clientes para verificação
+        const sampleCodes = clients.slice(0, 20).map(c => c.code);
+        console.log("Alguns códigos de clientes disponíveis:", sampleCodes);
       }
     }
-  });
+  }, [clients.length]);
   
   // Get products
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({

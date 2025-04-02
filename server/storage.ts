@@ -201,13 +201,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchClients(query: string): Promise<Client[]> {
-    return await db.select().from(clients).where(
+    // Converte a query para minúsculas para comparação case-insensitive
+    const searchTerm = query.toLowerCase().trim();
+    
+    console.log(`Buscando clientes com termo: "${searchTerm}"`);
+    
+    // Verifica exatamente o código do cliente
+    if (/^\d+$/.test(searchTerm)) {
+      console.log(`Detectada busca por código exato: ${searchTerm}`);
+      
+      // Primeiro tenta buscar pelo código exato
+      const exactCodeResults = await db.select().from(clients).where(eq(clients.code, searchTerm));
+      
+      // Se encontrou resultados exatos, retorna imediatamente
+      if (exactCodeResults.length > 0) {
+        console.log(`Encontrado cliente com código exato: ${searchTerm}`);
+        return exactCodeResults;
+      }
+    }
+    
+    // Busca em todos os campos relevantes com ILIKE para busca case-insensitive
+    const results = await db.select().from(clients).where(
       or(
-        ilike(clients.name, `%${query}%`),
-        ilike(clients.cnpj, `%${query}%`),
-        ilike(clients.code, `%${query}%`)
+        ilike(clients.name, `%${searchTerm}%`),     // Nome
+        ilike(clients.cnpj, `%${searchTerm}%`),     // CNPJ
+        ilike(clients.code, `%${searchTerm}%`),     // Código
+        ilike(clients.phone, `%${searchTerm}%`),    // Telefone
+        ilike(clients.city, `%${searchTerm}%`),     // Cidade
+        ilike(clients.email, `%${searchTerm}%`)     // Email
       )
     );
+    
+    console.log(`Encontrados ${results.length} clientes para o termo: "${searchTerm}"`);
+    
+    return results;
   }
 
   async addClientHistory(history: InsertClientHistory): Promise<ClientHistory> {
