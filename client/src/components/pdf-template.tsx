@@ -114,7 +114,17 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
         doc.rect(tableX, tableY, 180, 6, 'F');
       }
       
-      doc.text(item.clientRef || '-', tableX + 5, tableY + 4);
+      // Destaca a referência do cliente, caso exista
+      if (item.clientRef) {
+        // Fundo cinza claro para a célula de referência
+        doc.setFillColor(240, 240, 240);
+        doc.rect(tableX, tableY, 25, 6, 'F');
+        doc.setFont("helvetica", "bold");
+        doc.text(item.clientRef, tableX + 5, tableY + 4);
+        doc.setFont("helvetica", "normal");
+      } else {
+        doc.text('-', tableX + 5, tableY + 4);
+      }
       doc.text(item.code, tableX + 30, tableY + 4);
       doc.text(item.name.length > 30 ? item.name.substring(0, 30) + '...' : item.name, tableX + 50, tableY + 4);
       doc.text(item.quantity.toString(), tableX + 100, tableY + 4);
@@ -196,7 +206,8 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     
     ctx.fillStyle = "#000000";
     ctx.font = "12px Arial";
-    ctx.fillText("Descrição", 30, 167);
+    ctx.fillText("Ref. Cliente", 30, 167);
+    ctx.fillText("Descrição", 100, 167);
     ctx.fillText("Qtd", 280, 167);
     ctx.fillText("Subtotal", 330, 167);
     
@@ -207,7 +218,21 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       ctx.fillRect(20, y - 15, canvas.width - 40, 20);
       
       ctx.fillStyle = "#000000";
-      ctx.fillText(item.name.length > 30 ? item.name.substring(0, 30) + '...' : item.name, 30, y);
+      
+      // Mostra a referência do cliente (ou traço)
+      if (item.clientRef) {
+        ctx.fillStyle = "#f3f4f6";
+        ctx.fillRect(25, y - 13, 65, 17);
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 12px Arial";
+        ctx.fillText(item.clientRef, 30, y);
+        ctx.font = "12px Arial";
+      } else {
+        ctx.fillText("-", 30, y);
+      }
+      
+      // Mostra o nome do produto
+      ctx.fillText(item.name.length > 25 ? item.name.substring(0, 25) + '...' : item.name, 100, y);
       ctx.fillText(item.quantity.toString(), 280, y);
       ctx.fillText(formatCurrency(item.subtotal), 330, y);
       

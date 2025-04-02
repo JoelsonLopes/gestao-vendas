@@ -279,6 +279,10 @@ export default function OrderFormPage() {
     let updatedProduct = {...product};
     if (clientRef && isSearchingByClientRef) {
       updatedProduct.conversion = clientRef;
+      console.log("Atualizando produto com referência do cliente:", clientRef);
+    } else {
+      // Se o produto já tinha uma conversão, mantemos ela
+      console.log("Produto já possui conversão:", updatedProduct.conversion);
     }
     
     // Inicialmente sem desconto
@@ -729,7 +733,13 @@ export default function OrderFormPage() {
                             orderItems.map((item, index) => (
                               <TableRow key={index}>
                                 <TableCell>
-                                  {item.product?.conversion || "-"}
+                                  {item.product?.conversion ? (
+                                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
+                                      {item.product.conversion}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="font-medium">
                                   <div>
@@ -863,7 +873,32 @@ export default function OrderFormPage() {
                                 })
                                 .then(product => {
                                   if (product) {
+                                    // Adicionar a referência do cliente ao produto recebido
+                                    if (!product.conversion) {
+                                      product.conversion = clientRef;
+                                    }
+                                    console.log("Produto encontrado com referência do cliente:", { 
+                                      produto: product.name, 
+                                      id: product.id, 
+                                      referencia: clientRef 
+                                    });
+                                    
                                     setSelectedProductId(product.id);
+                                    
+                                    // Salvar a conversão no servidor imediatamente
+                                    fetch(`/api/products/${product.id}/save-conversion`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ clientRef })
+                                    })
+                                    .then(res => res.json())
+                                    .then(updatedProduct => {
+                                      console.log("Conversão salva com sucesso:", updatedProduct);
+                                    })
+                                    .catch(error => {
+                                      console.error("Erro ao salvar conversão:", error);
+                                    });
+                                    
                                     toast({
                                       title: "Produto encontrado",
                                       description: `${product.name} (${product.code}) foi selecionado.`,
