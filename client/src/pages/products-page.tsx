@@ -225,10 +225,16 @@ export default function ProductsPage() {
   };
 
   const onSubmit = (data: z.infer<typeof productFormSchema>) => {
+    // Converte o preço para string para corresponder ao backend
+    const formattedData = {
+      ...data,
+      price: data.price.toString()
+    };
+    
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data });
+      updateProductMutation.mutate({ id: editingProduct.id, data: formattedData });
     } else {
-      createProductMutation.mutate(data);
+      createProductMutation.mutate(formattedData);
     }
   };
 
@@ -253,7 +259,8 @@ export default function ProductsPage() {
           conversionBrand: item.conversionBrand || item.ConversionBrand || item.marcaConversao || item.MARCACONVERSAO || item.marcaConv || item.MARCACONV || null,
           
           // Campos numéricos precisam ser convertidos corretamente
-          price: parseFloat(String(item.price || item.Price || item.preco || item.PRECO || item.valor || item.VALOR || "0").replace(',', '.')),
+          // Convertido para string para corresponder ao tipo esperado pelo backend
+          price: String(parseFloat(String(item.price || item.Price || item.preco || item.PRECO || item.valor || item.VALOR || "0").replace(',', '.'))),
           stockQuantity: parseInt(String(item.stockQuantity || item.StockQuantity || item.estoque || item.ESTOQUE || "0")),
           
           // Campo booleano
@@ -282,9 +289,9 @@ export default function ProductsPage() {
           processedItem.name = `Produto ${processedItem.code}`;
         }
         
-        // Garantir que o preço seja um número válido
-        if (isNaN(processedItem.price) || processedItem.price < 0) {
-          processedItem.price = 0;
+        // Garantir que o preço seja um valor válido
+        if (isNaN(parseFloat(processedItem.price)) || parseFloat(processedItem.price) < 0) {
+          processedItem.price = "0";
         }
         
         // Garantir que o estoque seja um número válido
@@ -312,7 +319,8 @@ export default function ProductsPage() {
     
     // Convert to proper type based on field
     if (field === 'price') {
-      data[field] = parseFloat(value);
+      // Converte para string para corresponder ao tipo esperado pelo backend
+      data[field] = value;
     } else if (field === 'stockQuantity') {
       data[field] = parseInt(value);
     } else {
