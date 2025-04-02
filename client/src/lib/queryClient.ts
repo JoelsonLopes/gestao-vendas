@@ -29,7 +29,31 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Construir a URL a partir do queryKey
+    let url: string;
+    
+    if (Array.isArray(queryKey)) {
+      if (queryKey.length === 1) {
+        // Simples endpoint
+        url = queryKey[0] as string;
+      } else {
+        // Construir URL com múltiplos segmentos
+        const segments = queryKey.map(segment => String(segment));
+        url = segments.join('/');
+        
+        // Garantir que a URL comece com /api/ e não tenha barras duplicadas
+        if (!url.startsWith('/api/')) {
+          url = `/api/${url}`;
+        }
+        url = url.replace(/\/+/g, '/');
+      }
+    } else {
+      url = String(queryKey);
+    }
+    
+    console.log("Fazendo requisição para:", url);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 

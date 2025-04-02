@@ -120,14 +120,14 @@ export default function OrderFormPage() {
   
   // Get order details if in edit mode
   const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
-    queryKey: ["/api/orders", id],
+    queryKey: ["orders", id],
     enabled: isEditMode,
     refetchOnWindowFocus: false,
   });
 
   // Buscar itens do pedido se estivermos em modo de edição e o pedido foi carregado
   const { data: orderItemsData, isLoading: isLoadingOrderItems } = useQuery<OrderItem[]>({
-    queryKey: ["/api/orders", id, "items"],
+    queryKey: ["orders", id, "items"],
     enabled: isEditMode && !!order,
     refetchOnWindowFocus: false,
   });
@@ -149,7 +149,7 @@ export default function OrderFormPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast({
         title: "Pedido criado",
         description: "Pedido foi criado com sucesso",
@@ -173,7 +173,7 @@ export default function OrderFormPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["orders", id] });
       toast({
         title: "Status atualizado",
         description: "Status do pedido foi atualizado com sucesso",
