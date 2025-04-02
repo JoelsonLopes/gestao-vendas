@@ -26,14 +26,31 @@ export function ClientSearch({
 
   // Filtrar clientes com base na query de pesquisa
   const filteredClients = clients.filter(client => {
-    const query = searchQuery.toLowerCase();
-    return (
-      client.name.toLowerCase().includes(query) ||
-      (client.code?.toLowerCase() || "").includes(query) ||
-      (client.cnpj?.toLowerCase() || "").includes(query) ||
-      (client.phone?.toLowerCase() || "").includes(query) ||
-      client.id.toString().includes(query)
+    if (!searchQuery.trim()) return true; // Se não houver query, retorna todos os clientes
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Para debug: verificar a consulta por código específico
+    if (query === "8028") {
+      console.log("Buscando cliente com código 8028");
+      console.log("Cliente encontrado:", client.code === "8028" ? "SIM" : "NÃO");
+      if (client.code) {
+        console.log(`Código do cliente: ${client.code}, tipo: ${typeof client.code}`);
+      }
+    }
+    
+    // Verifica cada propriedade do cliente, com tratamento para valores nulos ou undefined
+    const matchName = client.name && client.name.toLowerCase().includes(query);
+    const matchCode = client.code && (
+      client.code === query || // Verificação exata de código
+      client.code.toLowerCase() === query ||
+      client.code.toLowerCase().includes(query)
     );
+    const matchCNPJ = client.cnpj && client.cnpj.toLowerCase().includes(query);
+    const matchPhone = client.phone && client.phone.toLowerCase().includes(query);
+    const matchId = client.id.toString().includes(query);
+    
+    return matchName || matchCode || matchCNPJ || matchPhone || matchId;
   });
 
   // Cliente selecionado

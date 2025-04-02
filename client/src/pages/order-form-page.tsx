@@ -74,6 +74,27 @@ export default function OrderFormPage() {
   // Get clients
   const { data: clients, isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
+    onSettled: (data) => {
+      if (data) {
+        console.log(`Clientes carregados: ${data.length}`);
+        // Log de alguns clientes para verificação
+        if (data.length > 0) {
+          console.log("Exemplos de clientes:", data.slice(0, 5).map(client => ({
+            id: client.id,
+            name: client.name,
+            code: client.code
+          })));
+          
+          // Verificar se temos cliente com código 8028
+          const cliente8028 = data.find(client => client.code === "8028");
+          if (cliente8028) {
+            console.log("Cliente 8028 encontrado:", cliente8028);
+          } else {
+            console.log("Cliente 8028 NÃO encontrado nos dados carregados");
+          }
+        }
+      }
+    }
   });
   
   // Get products
