@@ -245,12 +245,12 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.text(formatCurrency(order.total), pageWidth - 20, totalsY + 28, { align: "right" });
     
     // Mostrar comissão se o pedido estiver confirmado
-    if (order.status === 'confirmado' && order.totalCommission) {
+    if (order.status === 'confirmado') {
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(darkGray);
       doc.text("Total Comissão:", pageWidth - 90, totalsY + 36);
-      doc.text(formatCurrency(order.totalCommission), pageWidth - 20, totalsY + 36, { align: "right" });
+      doc.text(formatCurrency(totalCommission), pageWidth - 20, totalsY + 36, { align: "right" });
     }
     
     // Rodapé
@@ -457,10 +457,10 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   <span className="text-base font-medium text-gray-800">Total:</span>
                   <span className="text-base font-medium text-gray-800">{formatCurrency(order.total)}</span>
                 </div>
-                {order.status === 'confirmado' && order.totalCommission && (
+                {order.status === 'confirmado' && (
                   <div className="flex justify-between py-1 mt-2">
                     <span className="text-sm text-gray-600">Total Comissão:</span>
-                    <span className="text-sm text-gray-800">{formatCurrency(order.totalCommission)}</span>
+                    <span className="text-sm text-gray-800">{formatCurrency(totalCommission)}</span>
                   </div>
                 )}
               </div>
