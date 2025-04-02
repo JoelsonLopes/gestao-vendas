@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
-import { useParams, useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { ClientSearch } from "@/components/client-search";
@@ -40,11 +40,18 @@ import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils";
 import { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema";
 
 export default function OrderFormPage() {
-  const { id } = useParams<{ id: string }>();
   const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // Usar useRoute para capturar parâmetros de rota
+  const [match, params] = useRoute("/orders/:id");
+  const id = params?.id;
   const isEditMode = !!id;
+
+  console.log("OrderFormPage - URL atual:", location);
+  console.log("OrderFormPage - ID do pedido:", id);
+  console.log("OrderFormPage - É modo de edição?", isEditMode);
   
   // Order form state
   const [clientId, setClientId] = useState<number | null>(null);
@@ -112,10 +119,28 @@ export default function OrderFormPage() {
   });
   
   // Get order details if in edit mode
-  const { data: orderDetails, isLoading: isLoadingOrderDetails } = useQuery<{ order: Order, items: OrderItem[] }>({
+  const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
     queryKey: ["/api/orders", id],
     enabled: isEditMode,
+    refetchOnWindowFocus: false,
   });
+
+  // Buscar itens do pedido se estivermos em modo de edição e o pedido foi carregado
+  const { data: orderItemsData, isLoading: isLoadingOrderItems } = useQuery<OrderItem[]>({
+    queryKey: ["/api/orders", id, "items"],
+    enabled: isEditMode && !!order,
+    refetchOnWindowFocus: false,
+  });
+
+  // Log para depuração
+  useEffect(() => {
+    if (order) {
+      console.log("Detalhes do pedido carregados:", order);
+    }
+    if (orderItemsData) {
+      console.log("Itens do pedido carregados:", orderItemsData);
+    }
+  }, [order, orderItemsData]);
   
   // Create order mutation
   const createOrderMutation = useMutation({
@@ -165,32 +190,37 @@ export default function OrderFormPage() {
   
   // Load order data if in edit mode
   useEffect(() => {
-    if (isEditMode && orderDetails) {
-      const { order, items } = orderDetails;
-      
+    if (isEditMode && order) {
       setClientId(order.clientId);
-      setStatus(order.status);
+      setStatus(order.status as "cotacao" | "confirmado");
       setPaymentTerms(order.paymentTerms || "");
       setNotes(order.notes || "");
-      
+    }
+  }, [isEditMode, order]);
+  
+  // Load order items if order is loaded
+  useEffect(() => {
+    if (isEditMode && orderItemsData && products) {      
       // Map order items with product details
-      const mappedItems = items.map((item: OrderItem) => {
+      const mappedItems = orderItemsData.map((item: any) => {
         const product = products?.find(p => p.id === item.productId);
         return {
-          ...item,
+          id: item.id,
+          productId: item.productId,
           // Converter strings para números com valores padrão para evitar nulos
           unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0),
           quantity: typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0),
           discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : (item.discountPercentage || 0),
           commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
           subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
+          discountId: item.discountId,
           product,
         };
       });
       
       setOrderItems(mappedItems);
     }
-  }, [isEditMode, orderDetails, products]);
+  }, [isEditMode, orderItemsData, products]);
   
   // Calculate order totals
   const calculateTotals = () => {
@@ -423,7 +453,7 @@ export default function OrderFormPage() {
   };
   
   // Loading state
-  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && isLoadingOrderDetails);
+  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && (isLoadingOrder || isLoadingOrderItems));
 
   return (
     <DashboardLayout>
