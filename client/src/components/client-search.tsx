@@ -23,6 +23,11 @@ export function ClientSearch({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Debug dos clientes recebidos
+  useEffect(() => {
+    console.log("ClientSearch - Clientes recebidos:", clients.length);
+  }, [clients]);
 
   // Filtrar clientes - usando o mesmo método da DataTable
   const filteredClients = clients.filter(client => {
