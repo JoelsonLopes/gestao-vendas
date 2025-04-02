@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { ClientSearch } from "@/components/client-search";
 import {
   Loader2,
   Save,
@@ -389,22 +390,12 @@ export default function OrderFormPage() {
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                       <div>
                         <Label htmlFor="client">Cliente *</Label>
-                        <Select 
-                          value={clientId?.toString() || ""} 
-                          onValueChange={(value) => setClientId(Number(value))}
+                        <ClientSearch
+                          clients={clients}
+                          selectedClientId={clientId}
+                          onClientSelect={setClientId}
                           disabled={isEditMode}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um cliente" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clients?.map(client => (
-                              <SelectItem key={client.id} value={client.id.toString()}>
-                                {client.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
                       
                       <div>
