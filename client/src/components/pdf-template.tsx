@@ -94,10 +94,11 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.text("Ref. Cliente", tableX + 5, tableY - 1);
     doc.text("Código", tableX + 30, tableY - 1);
     doc.text("Descrição", tableX + 50, tableY - 1);
-    doc.text("Qtd", tableX + 100, tableY - 1);
-    doc.text("Preço Unit.", tableX + 115, tableY - 1);
-    doc.text("Desconto", tableX + 140, tableY - 1);
-    doc.text("Subtotal", tableX + 165, tableY - 1);
+    doc.text("Qtd", tableX + 95, tableY - 1);
+    doc.text("Preço Tabela", tableX + 110, tableY - 1);
+    doc.text("Desconto", tableX + 135, tableY - 1);
+    doc.text("Preço c/ Desc.", tableX + 155, tableY - 1);
+    doc.text("Subtotal", tableX + 180, tableY - 1);
     
     // Add items
     doc.setFontSize(8);
@@ -127,10 +128,12 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       }
       doc.text(item.code, tableX + 30, tableY + 4);
       doc.text(item.name.length > 30 ? item.name.substring(0, 30) + '...' : item.name, tableX + 50, tableY + 4);
-      doc.text(item.quantity.toString(), tableX + 100, tableY + 4);
-      doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4);
-      doc.text(item.discount > 0 ? `${item.discount}%` : '-', tableX + 140, tableY + 4);
-      doc.text(formatCurrency(item.subtotal), tableX + 165, tableY + 4);
+      doc.text(item.quantity.toString(), tableX + 95, tableY + 4);
+      doc.text(formatCurrency(item.unitPrice), tableX + 110, tableY + 4);
+      doc.text(item.discount > 0 ? `${item.discount}%` : '-', tableX + 135, tableY + 4);
+      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
+      doc.text(formatCurrency(priceWithDiscount), tableX + 155, tableY + 4);
+      doc.text(formatCurrency(item.subtotal), tableX + 180, tableY + 4);
       
       tableY += 7;
     });
@@ -208,8 +211,9 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     ctx.font = "12px Arial";
     ctx.fillText("Ref. Cliente", 30, 167);
     ctx.fillText("Descrição", 100, 167);
-    ctx.fillText("Qtd", 280, 167);
-    ctx.fillText("Subtotal", 330, 167);
+    ctx.fillText("Preço", 240, 167);
+    ctx.fillText("Preço c/ Desc.", 280, 167);
+    ctx.fillText("Subtotal", 350, 167);
     
     ctx.font = "12px Arial";
     let y = 190;
@@ -233,8 +237,13 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       
       // Mostra o nome do produto
       ctx.fillText(item.name.length > 25 ? item.name.substring(0, 25) + '...' : item.name, 100, y);
-      ctx.fillText(item.quantity.toString(), 280, y);
-      ctx.fillText(formatCurrency(item.subtotal), 330, y);
+      ctx.fillText(formatCurrency(item.unitPrice), 240, y);
+      
+      // Calcula e mostra o preço com desconto
+      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
+      ctx.fillText(formatCurrency(priceWithDiscount), 280, y);
+      
+      ctx.fillText(formatCurrency(item.subtotal), 350, y);
       
       y += 25;
     });

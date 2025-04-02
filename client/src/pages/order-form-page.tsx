@@ -715,8 +715,9 @@ export default function OrderFormPage() {
                             <TableHead>Ref. Cliente</TableHead>
                             <TableHead>Produto</TableHead>
                             <TableHead>Qtde</TableHead>
-                            <TableHead>Valor Unit.</TableHead>
+                            <TableHead>Preço Tabela</TableHead>
                             <TableHead>Desconto</TableHead>
+                            <TableHead>Preço com Desconto</TableHead>
                             <TableHead>Comissão</TableHead>
                             <TableHead>Subtotal</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -725,7 +726,7 @@ export default function OrderFormPage() {
                         <TableBody>
                           {orderItems.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={8} className="text-center py-4">
+                              <TableCell colSpan={9} className="text-center py-4">
                                 Nenhum produto adicionado ao pedido
                               </TableCell>
                             </TableRow>
@@ -768,6 +769,7 @@ export default function OrderFormPage() {
                                     className="w-32"
                                   />
                                 </TableCell>
+                                <TableCell>{formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}</TableCell>
                                 <TableCell>{item.commission}%</TableCell>
                                 <TableCell>{formatCurrency(item.subtotal)}</TableCell>
                                 <TableCell className="text-right">
