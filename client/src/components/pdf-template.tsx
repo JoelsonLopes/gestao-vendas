@@ -35,6 +35,8 @@ interface PdfTemplateProps {
 
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  console.log("Items recebidos no PdfTemplate:", items);
 
   // Generate PDF document
   const generatePdf = () => {

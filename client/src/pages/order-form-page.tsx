@@ -275,6 +275,12 @@ export default function OrderFormPage() {
     const product = products?.find(p => p.id === selectedProductId);
     if (!product) return;
     
+    // Se estamos adicionando pela referência do cliente, vamos atualizá-la no produto
+    let updatedProduct = {...product};
+    if (clientRef && isSearchingByClientRef) {
+      updatedProduct.conversion = clientRef;
+    }
+    
     // Inicialmente sem desconto
     const unitPrice = Number(product.price);
     const discountPercentage = 0;
@@ -301,7 +307,7 @@ export default function OrderFormPage() {
       discountPercentage: discountPercentage,
       commission: 0,
       subtotal: subtotal,
-      product,
+      product: updatedProduct, // Usar o produto atualizado com a referência do cliente
     };
     
     setOrderItems([...orderItems, newItem]);
@@ -490,6 +496,15 @@ export default function OrderFormPage() {
   // Prepare data for PDF preview
   const preparePdfData = () => {
     const client = clients?.find(c => c.id === clientId);
+    
+    // Log dos itens com suas referências
+    console.log("Preparando dados para PDF, itens do pedido:", 
+      orderItems.map(item => ({
+        id: item.productId,
+        name: item.product?.name,
+        clientRef: item.product?.conversion
+      }))
+    );
     
     return {
       order: {
