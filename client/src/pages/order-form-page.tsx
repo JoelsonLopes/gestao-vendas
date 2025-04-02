@@ -191,6 +191,9 @@ export default function OrderFormPage() {
   // Load order data if in edit mode
   useEffect(() => {
     if (isEditMode && order) {
+      console.log("Carregando dados do pedido:", order);
+      console.log("Observações do pedido:", order.notes);
+      
       setClientId(order.clientId);
       setStatus(order.status as "cotacao" | "confirmado");
       setPaymentTerms(order.paymentTerms || "");
