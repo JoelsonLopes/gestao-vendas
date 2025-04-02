@@ -14,6 +14,8 @@ interface PdfItem {
   discount: number;
   subtotal: number;
   brand?: string | null;
+  discountName?: string | null;
+  commission?: number;
 }
 
 interface PdfTemplateProps {
@@ -30,6 +32,7 @@ interface PdfTemplateProps {
     taxes: number;
     total: number;
     representative: string;
+    totalCommission?: number;
   };
   items: PdfItem[];
   onClose?: () => void;
@@ -223,6 +226,15 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.setTextColor(primaryColor);
     doc.text("Total:", pageWidth - 90, totalsY + 28);
     doc.text(formatCurrency(order.total), pageWidth - 20, totalsY + 28, { align: "right" });
+    
+    // Mostrar comissão se o pedido estiver confirmado
+    if (order.status === 'confirmado' && order.totalCommission) {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(darkGray);
+      doc.text("Total Comissão:", pageWidth - 90, totalsY + 36);
+      doc.text(formatCurrency(order.totalCommission), pageWidth - 20, totalsY + 36, { align: "right" });
+    }
     
     // Rodapé
     const footerY = totalsY + 50;
@@ -418,6 +430,12 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                   <span className="text-base font-medium text-gray-800">Total:</span>
                   <span className="text-base font-medium text-gray-800">{formatCurrency(order.total)}</span>
                 </div>
+                {order.status === 'confirmado' && order.totalCommission && (
+                  <div className="flex justify-between py-1 mt-2">
+                    <span className="text-sm text-gray-600">Total Comissão:</span>
+                    <span className="text-sm text-gray-800">{formatCurrency(order.totalCommission)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

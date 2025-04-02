@@ -127,6 +127,12 @@ export default function OrderFormPage() {
   }, [clients.length]);
   
   // Get products
+  // Get discounts
+  const { data: discounts, isLoading: isLoadingDiscounts } = useQuery<any[]>({
+    queryKey: ["/api/discounts"],
+  });
+
+  // Get products
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
@@ -509,6 +515,16 @@ export default function OrderFormPage() {
   const preparePdfData = () => {
     const client = clients?.find(c => c.id === clientId);
     
+    // Obter informações sobre os descontos aplicados
+    const orderDiscounts = orderItems.map(item => {
+      const discountData = discounts?.find(d => d.id === item.discountId);
+      return {
+        productId: item.productId,
+        discountName: discountData?.name || null,
+        commission: discountData?.commission || 0
+      };
+    });
+    
     // Log dos itens com suas referências
     console.log("Preparando dados para PDF, itens do pedido:", 
       orderItems.map(item => ({
@@ -518,9 +534,18 @@ export default function OrderFormPage() {
       }))
     );
     
+    // Calcular o total da comissão se o pedido for confirmado
+    const totalCommission = status === 'confirmado' 
+      ? orderItems.reduce((sum, item) => {
+          const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
+          return sum + (totalItem * (item.commission / 100));
+        }, 0)
+      : 0;
+    
     return {
       order: {
         id: isEditMode ? parseInt(id!) : 0,
+        clientId: clientId || undefined,
         clientName: client?.name || "Cliente não selecionado",
         clientCnpj: client?.cnpj || "",
         date: new Date().toISOString(),
@@ -531,17 +556,23 @@ export default function OrderFormPage() {
         taxes: totals.taxes,
         total: totals.total,
         representative: user?.name || "",
+        totalCommission: totalCommission
       },
-      items: orderItems.map(item => ({
-        id: item.productId,
-        name: item.product?.name || `Produto #${item.productId}`,
-        code: item.product?.code || "",
-        clientRef: item.product?.conversion || null,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: item.discountPercentage,
-        subtotal: item.subtotal,
-      })),
+      items: orderItems.map(item => {
+        const discountInfo = orderDiscounts.find(d => d.productId === item.productId);
+        return {
+          id: item.productId,
+          name: item.product?.name || `Produto #${item.productId}`,
+          code: item.product?.code || "",
+          clientRef: item.product?.conversion || null,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discountPercentage,
+          subtotal: item.subtotal,
+          discountName: discountInfo?.discountName,
+          commission: item.commission
+        };
+      }),
     };
   };
   
@@ -672,6 +703,10 @@ export default function OrderFormPage() {
                     
                   // Cálculo do total do item (preço com desconto * quantidade)
                   const totalItem = priceWithDiscount * item.quantity;
+                  
+                  // Obter informações sobre o desconto aplicado (para pedidos confirmados)
+                  const discountInfo = item.discountId ? 
+                    discounts?.find(d => d.id === item.discountId) : null;
                     
                   return (
                     <tr key={index} className="border-b border-gray-200">
@@ -705,6 +740,19 @@ export default function OrderFormPage() {
                   <span className="text-base font-medium text-gray-800">Total:</span>
                   <span className="text-base font-medium text-gray-800">{formatCurrency(totals.total)}</span>
                 </div>
+                
+                {/* Mostrar total da comissão se o pedido for confirmado */}
+                {status === 'confirmado' && (
+                  <div className="flex justify-between py-1 mt-2">
+                    <span className="text-sm text-gray-600">Total Comissão:</span>
+                    <span className="text-sm text-gray-800">
+                      {formatCurrency(orderItems.reduce((sum, item) => {
+                        const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
+                        return sum + (totalItem * (item.commission / 100));
+                      }, 0))}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
