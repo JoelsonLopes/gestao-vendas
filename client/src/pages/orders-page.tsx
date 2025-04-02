@@ -97,8 +97,13 @@ export default function OrdersPage() {
           representative: "Representante", // Este valor seria melhor obtido do usuário atual
           totalCommission: selectedOrder.status === 'confirmado' ? 
             // Calcular o total de comissão baseado nos itens do pedido
-            selectedOrderItems?.reduce((total, item) => 
-              total + (item.quantity * (item.unitPrice || 0) * (item.commission || 0) / 100), 0) 
+            selectedOrderItems?.reduce((total, item) => {
+              // Converter strings para números para garantir que a operação é feita corretamente
+              const quantity = Number(item.quantity);
+              const unitPrice = Number(item.unitPrice || 0);
+              const commission = Number(item.commission || 0);
+              return total + (quantity * unitPrice * commission / 100);
+            }, 0)
             : undefined
         },
         items: itemsWithProducts.map(item => {

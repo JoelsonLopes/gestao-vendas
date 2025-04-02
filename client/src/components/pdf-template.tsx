@@ -190,10 +190,19 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       doc.text(item.quantity.toString(), tableX + 95, tableY + 4.5);
       doc.text(formatCurrency(item.unitPrice), tableX + 115, tableY + 4.5);
       // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
-      if (order.status === 'confirmado' && item.discountName) {
-        doc.text(`${item.discountName} (${item.discount}%)`, tableX + 140, tableY + 4.5);
+      if (item.discount > 0) {
+        if (order.status === 'confirmado' && item.discountName) {
+          // Destacar o nome do desconto para pedidos confirmados
+          doc.setFillColor(51, 102, 204, 0.1); // Azul claro com transparência
+          doc.roundedRect(tableX + 135, tableY + 1, 24, 5, 1, 1, "F");
+          doc.setTextColor(0, 51, 153); // Azul escuro
+          doc.text(`${item.discountName}`, tableX + 140, tableY + 4.5);
+          doc.setTextColor(darkGray); // Voltar à cor padrão
+        } else {
+          doc.text(`${item.discount}%`, tableX + 140, tableY + 4.5);
+        }
       } else {
-        doc.text(item.discount > 0 ? `${item.discount}%` : "-", tableX + 140, tableY + 4.5);
+        doc.text("-", tableX + 140, tableY + 4.5);
       }
       
       // Preço com desconto
@@ -415,7 +424,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
                       <td className="py-3 align-middle text-sm text-right">
                         {item.discount > 0 ? (
                           order.status === 'confirmado' && item.discountName 
-                            ? `${item.discountName} (${item.discount}%)` 
+                            ? <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-800">{item.discountName}</span>
                             : `${item.discount}%`
                         ) : '-'}
                       </td>
