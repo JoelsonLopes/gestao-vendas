@@ -712,7 +712,6 @@ export default function OrderFormPage() {
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Cliente</th>
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Tabela</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Desconto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço c/ Desconto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
@@ -739,7 +738,6 @@ export default function OrderFormPage() {
                       </td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
-                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(item.unitPrice)}</td>
                       <td className="py-3 align-middle text-sm text-right">
                         {item.discountPercentage > 0 ? (
                           <span className={status === 'confirmado' ? 'bg-blue-100 px-2 py-1 rounded text-blue-800' : ''}>
