@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Badge customizado para status */
+.badge-success {
+  background-color: hsl(142, 71%, 45%);
+  color: white;
+}
+
+.badge-success:hover {
+  background-color: hsl(142, 71%, 40%);
+}
+
 @layer base {
   * {
     @apply border-border;

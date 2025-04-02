@@ -365,11 +365,13 @@ export default function ProductsPage() {
                 header: "Código",
                 accessorKey: "code",
                 sortable: true,
+                filterable: true,
               },
               {
                 header: "Produto",
                 accessorKey: "name",
                 sortable: true,
+                filterable: true,
                 cell: (product) => (
                   <div className="flex items-center">
                     <Package className="h-5 w-5 mr-2 text-gray-400" />
@@ -381,16 +383,19 @@ export default function ProductsPage() {
                 header: "Categoria",
                 accessorKey: "category",
                 sortable: true,
+                filterable: true,
               },
               {
                 header: "Marca",
                 accessorKey: "brand",
                 sortable: true,
+                filterable: true,
               },
               {
                 header: "Referência do Cliente",
                 accessorKey: "conversion",
                 sortable: true,
+                filterable: true,
                 cell: (product) => {
                   if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "conversion") {
                     return (
@@ -434,6 +439,7 @@ export default function ProductsPage() {
                 header: "Marca da Referência",
                 accessorKey: "conversionBrand",
                 sortable: true,
+                filterable: true,
                 cell: (product) => {
                   if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "conversionBrand") {
                     return (
@@ -477,6 +483,7 @@ export default function ProductsPage() {
                 header: "Preço",
                 accessorKey: "price",
                 sortable: true,
+                filterable: true,
                 cell: (product) => {
                   if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "price") {
                     return (
@@ -519,6 +526,7 @@ export default function ProductsPage() {
                 header: "Estoque",
                 accessorKey: "stockQuantity",
                 sortable: true,
+                filterable: true,
                 cell: (product) => {
                   if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "stockQuantity") {
                     return (
@@ -559,8 +567,11 @@ export default function ProductsPage() {
               {
                 header: "Status",
                 accessorKey: "active",
+                sortable: true,
+                filterable: true,
+                filterOptions: ["Ativo", "Inativo"],
                 cell: (product) => (
-                  <Badge variant={product.active ? "success" : "secondary"}>
+                  <Badge className={product.active ? "badge-success" : ""} variant={product.active ? undefined : "secondary"}>
                     {product.active ? "Ativo" : "Inativo"}
                   </Badge>
                 ),
