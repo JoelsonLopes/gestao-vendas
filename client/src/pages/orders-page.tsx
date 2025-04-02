@@ -64,9 +64,15 @@ export default function OrdersPage() {
           const response = await fetch(`/api/orders/${order.id}/items`);
           const orderItems: OrderItem[] = await response.json();
           
+          console.log(`Verificando itens do pedido #${order.id}:`, orderItems);
+          
           if (orderItems && orderItems.length > 0) {
             // Calcular total de peças (soma das quantidades)
-            const totalItems = orderItems.reduce((sum, item) => sum + Number(item.quantity), 0);
+            const totalItems = orderItems.reduce((sum, item) => {
+              const quantity = Number(item.quantity);
+              console.log(`Pedido #${order.id} - Item #${item.id} - Quantidade: ${quantity}`);
+              return sum + quantity;
+            }, 0);
             
             // Calcular comissão total
             let totalCommission = 0;
@@ -75,10 +81,13 @@ export default function OrdersPage() {
                 const unitPrice = Number(item.unitPrice || 0);
                 const quantity = Number(item.quantity || 0);
                 const commission = Number(item.commission || 0);
-                return sum + (unitPrice * quantity * commission / 100);
+                const itemCommission = unitPrice * quantity * commission / 100;
+                console.log(`Pedido #${order.id} - Item #${item.id} - Preço: ${unitPrice}, Qtd: ${quantity}, Comissão: ${commission}%, Valor comissão: ${itemCommission.toFixed(2)}`);
+                return sum + itemCommission;
               }, 0);
             }
             
+            console.log(`Pedido #${order.id} - Total de peças: ${totalItems}, Comissão total: ${totalCommission.toFixed(2)}`);
             newOrderItemsMap[order.id] = { totalItems, totalCommission };
           }
         } catch (error) {
@@ -86,6 +95,7 @@ export default function OrdersPage() {
         }
       }
       
+      console.log("Resumo de todos os pedidos:", newOrderItemsMap);
       setOrderItemsMap(newOrderItemsMap);
       return newOrderItemsMap;
     },
