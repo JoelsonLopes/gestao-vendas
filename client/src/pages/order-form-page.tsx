@@ -249,14 +249,14 @@ export default function OrderFormPage() {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
     
     // Não precisamos calcular desconto separadamente, pois já está incluído no preço unitário
-    // O total é simplesmente o subtotal + impostos
-    const taxes = 0; // Calcularia impostos se necessário
+    // O total é simplesmente o subtotal + taxa de frete
+    const taxes = parseFloat(orderData?.taxes || "0"); // Taxa de frete editável pelo usuário
     const total = subtotal + taxes;
     
     console.log(`
       Resumo do pedido:
       - Subtotal (com desconto): ${formatCurrency(subtotal)}
-      - Impostos: ${formatCurrency(taxes)}
+      - Taxa de Frete: ${formatCurrency(taxes)}
       - Total: ${formatCurrency(total)}
     `);
     
@@ -692,7 +692,7 @@ export default function OrderFormPage() {
                   <span className="text-sm text-gray-800">{formatCurrency(totals.subtotal)}</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Impostos:</span>
+                  <span className="text-sm text-gray-600">Taxa de Frete:</span>
                   <span className="text-sm text-gray-800">{formatCurrency(totals.taxes)}</span>
                 </div>
                 <div className="border-t border-gray-300 my-2"></div>
@@ -919,9 +919,23 @@ export default function OrderFormPage() {
                               </dd>
                             </div>
                             <div className="flex justify-between">
-                              <dt className="text-sm text-gray-500 dark:text-gray-400">Impostos</dt>
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Taxa de Frete</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
-                                {formatCurrency(totals.taxes)}
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  step="0.01"
+                                  value={totals.taxes}
+                                  onChange={(e) => {
+                                    const value = parseFloat(e.target.value) || 0;
+                                    setTotals(prev => ({
+                                      ...prev,
+                                      taxes: value,
+                                      total: prev.subtotal + value
+                                    }));
+                                  }}
+                                  className="w-24 h-6 text-right"
+                                />
                               </dd>
                             </div>
                             <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between">
