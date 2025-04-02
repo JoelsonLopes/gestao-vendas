@@ -385,8 +385,18 @@ export default function OrderFormPage() {
       const res = await apiRequest("PUT", `/api/orders/${id}`, { order, items });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const orderId = variables.id;
+      
+      // Invalidar todos os caches relacionados a este pedido específico
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}/items`] });
+      
+      // Também atualizar diretamente o cache para certeza
+      queryClient.setQueryData([`/api/orders/${orderId}`], data.order);
+      queryClient.setQueryData([`/api/orders/${orderId}/items`], data.items);
+      
       toast({
         title: "Pedido atualizado",
         description: "O pedido foi atualizado com sucesso.",
