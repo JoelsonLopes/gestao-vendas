@@ -188,18 +188,23 @@ export default function OrderFormPage() {
   
   // Calculate order totals
   const calculateTotals = () => {
+    // O subtotal é a soma dos subtotais de cada item (que já incluem o desconto)
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const discount = orderItems.reduce((sum, item) => {
-      const itemTotal = item.quantity * item.unitPrice;
-      const discountAmount = itemTotal - item.subtotal;
-      return sum + discountAmount;
-    }, 0);
-    const taxes = 0; // Calculate taxes if needed
-    const total = subtotal - discount + taxes;
+    
+    // Não precisamos calcular desconto separadamente, pois já está incluído no preço unitário
+    // O total é simplesmente o subtotal + impostos
+    const taxes = 0; // Calcularia impostos se necessário
+    const total = subtotal + taxes;
+    
+    console.log(`
+      Resumo do pedido:
+      - Subtotal (com desconto): ${formatCurrency(subtotal)}
+      - Impostos: ${formatCurrency(taxes)}
+      - Total: ${formatCurrency(total)}
+    `);
     
     return {
       subtotal: Number(subtotal.toFixed(2)),
-      discount: Number(discount.toFixed(2)),
       taxes: Number(taxes.toFixed(2)),
       total: Number(total.toFixed(2)),
     };
@@ -339,21 +344,21 @@ export default function OrderFormPage() {
       representativeId: user!.id,
       status,
       paymentTerms,
-      subtotal: totals.subtotal,
-      discount: totals.discount,
-      taxes: totals.taxes,
-      total: totals.total,
+      subtotal: totals.subtotal.toString(), // Convertido para string conforme esperado pelo InsertOrder
+      discount: "0", // Desconto zero como string
+      taxes: totals.taxes.toString(), // Convertido para string conforme esperado pelo InsertOrder
+      total: totals.total.toString(), // Convertido para string conforme esperado pelo InsertOrder
       notes,
     };
     
     const itemsData = orderItems.map(item => ({
       productId: item.productId,
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
+      unitPrice: item.unitPrice.toString(), // Convertido para string
       discountId: item.discountId,
-      discountPercentage: item.discountPercentage,
-      commission: item.commission,
-      subtotal: item.subtotal,
+      discountPercentage: item.discountPercentage.toString(), // Convertido para string
+      commission: item.commission.toString(), // Convertido para string
+      subtotal: item.subtotal.toString(), // Convertido para string
     }));
     
     createOrderMutation.mutate({ order: orderData, items: itemsData });
@@ -382,7 +387,7 @@ export default function OrderFormPage() {
         status: status,
         paymentTerms: paymentTerms || "À vista",
         subtotal: totals.subtotal,
-        discount: totals.discount,
+        discount: 0, // Não temos mais desconto separado
         taxes: totals.taxes,
         total: totals.total,
         representative: user?.name || "",
@@ -424,7 +429,7 @@ export default function OrderFormPage() {
             
             {isEditMode ? (
               <Button 
-                variant="success" 
+                className="bg-green-600 hover:bg-green-700 text-white" 
                 disabled={status === "confirmado"} 
                 onClick={() => updateOrderStatus("confirmado")}
               >
@@ -637,15 +642,9 @@ export default function OrderFormPage() {
                         <div className="w-full sm:w-1/2 lg:w-1/3 bg-gray-50 dark:bg-gray-700 rounded-md p-4">
                           <dl className="space-y-2">
                             <div className="flex justify-between">
-                              <dt className="text-sm text-gray-500 dark:text-gray-400">Subtotal</dt>
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Subtotal (com desconto)</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
                                 {formatCurrency(totals.subtotal)}
-                              </dd>
-                            </div>
-                            <div className="flex justify-between">
-                              <dt className="text-sm text-gray-500 dark:text-gray-400">Desconto Total</dt>
-                              <dd className="text-sm font-medium text-gray-900 dark:text-white">
-                                {formatCurrency(totals.discount)}
                               </dd>
                             </div>
                             <div className="flex justify-between">
