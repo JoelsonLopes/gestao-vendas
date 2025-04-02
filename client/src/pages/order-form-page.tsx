@@ -50,10 +50,12 @@ export default function OrderFormPage() {
   const [match, params] = useRoute("/orders/:id");
   const id = params?.id;
   const isEditMode = !!id;
+  const isNewOrder = id === "new";
 
   console.log("OrderFormPage - URL atual:", location);
   console.log("OrderFormPage - ID do pedido:", id);
   console.log("OrderFormPage - É modo de edição?", isEditMode);
+  console.log("OrderFormPage - É pedido novo?", isNewOrder);
   
   // Order form state
   const [clientId, setClientId] = useState<number | null>(null);
@@ -137,17 +139,17 @@ export default function OrderFormPage() {
     queryKey: ["/api/products"],
   });
   
-  // Get order details if in edit mode
+  // Get order details if in edit mode (mas não para pedidos novos com id="new")
   const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
     queryKey: ["orders", id],
-    enabled: isEditMode,
+    enabled: isEditMode && id !== "new",
     refetchOnWindowFocus: false,
   });
 
-  // Buscar itens do pedido se estivermos em modo de edição e o pedido foi carregado
+  // Buscar itens do pedido se estivermos em modo de edição, o pedido foi carregado, e não é um pedido novo
   const { data: orderItemsData, isLoading: isLoadingOrderItems } = useQuery<OrderItem[]>({
     queryKey: ["orders", id, "items"],
-    enabled: isEditMode && !!order,
+    enabled: isEditMode && id !== "new" && !!order,
     refetchOnWindowFocus: false,
   });
 
@@ -488,13 +490,23 @@ export default function OrderFormPage() {
       subtotal: item.subtotal.toString(), // Convertido para string
     }));
     
-    if (isEditMode && id) {
+    if (isEditMode && id && id !== "new") {
       // Atualizar pedido existente
-      updateOrderMutation.mutate({ 
-        id: parseInt(id), 
-        order: orderData, 
-        items: itemsData 
-      });
+      const orderId = parseInt(id);
+      if (!isNaN(orderId)) {
+        updateOrderMutation.mutate({ 
+          id: orderId, 
+          order: orderData, 
+          items: itemsData 
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "ID do pedido inválido",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+      }
     } else {
       // Criar novo pedido
       createOrderMutation.mutate({ order: orderData, items: itemsData });
@@ -503,10 +515,20 @@ export default function OrderFormPage() {
   
   // Update order status
   const updateOrderStatus = (newStatus: "cotacao" | "confirmado") => {
-    if (!isEditMode || !id) return;
+    if (!isEditMode || !id || id === "new") return;
+    
+    const orderId = parseInt(id);
+    if (isNaN(orderId)) {
+      toast({
+        title: "Erro",
+        description: "ID do pedido inválido",
+        variant: "destructive",
+      });
+      return;
+    }
     
     updateOrderStatusMutation.mutate({
-      id: parseInt(id),
+      id: orderId,
       status: newStatus,
     });
   };
@@ -577,7 +599,7 @@ export default function OrderFormPage() {
   };
   
   // Loading state
-  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && (isLoadingOrder || isLoadingOrderItems));
+  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems));
 
   return (
     <DashboardLayout>
