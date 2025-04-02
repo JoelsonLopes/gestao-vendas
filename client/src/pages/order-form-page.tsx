@@ -712,7 +712,9 @@ export default function OrderFormPage() {
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Cliente</th>
                   <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Unit.</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço Tabela</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Desconto</th>
+                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço c/ Desconto</th>
                   <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
@@ -726,7 +728,7 @@ export default function OrderFormPage() {
                   // Cálculo do total do item (preço com desconto * quantidade)
                   const totalItem = priceWithDiscount * item.quantity;
                   
-                  // Obter informações sobre o desconto aplicado (para pedidos confirmados)
+                  // Obter informações sobre o desconto aplicado
                   const discountInfo = item.discountId ? 
                     discounts?.find(d => d.id === item.discountId) : null;
                     
@@ -737,6 +739,14 @@ export default function OrderFormPage() {
                       </td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
+                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-3 align-middle text-sm text-right">
+                        {item.discountPercentage > 0 ? (
+                          <span className={status === 'confirmado' ? 'bg-blue-100 px-2 py-1 rounded text-blue-800' : ''}>
+                            {discountInfo?.name || `${item.discountPercentage}%`}
+                          </span>
+                        ) : '-'}
+                      </td>
                       <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
                       <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(totalItem)}</td>
                     </tr>
