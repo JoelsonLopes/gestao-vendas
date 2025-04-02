@@ -41,22 +41,32 @@ interface PdfTemplateProps {
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Calcular o total de comissão para incluir no PDF quando for um pedido confirmado
-  const totalCommission = order.status === 'confirmado' 
-    ? items.reduce((total, item) => {
-        // Converter strings para números para garantir que a operação é feita corretamente
-        const quantity = typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0);
-        const unitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
-        const discount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
-        const commission = typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0);
-        
-        // Calcular preço com desconto
-        const discountedPrice = unitPrice * (1 - discount / 100);
-        
-        // Calcular comissão sobre o preço COM desconto
-        return total + (quantity * discountedPrice * commission / 100);
-      }, 0)
-    : 0;
+  // Adicionar log para depuração
+  useEffect(() => {
+    console.log("PdfTemplate recebeu order:", order);
+    console.log("PdfTemplate recebeu items:", items);
+    console.log("PdfTemplate totalCommission do order:", order.totalCommission);
+  }, [order, items]);
+  
+  // Usar o valor de comissão que já foi calculado pela página que chamou este componente
+  // Mas se não for fornecido, calcular aqui
+  const totalCommission = order.totalCommission ?? (
+    order.status === 'confirmado' 
+      ? items.reduce((total, item) => {
+          // Converter strings para números para garantir que a operação é feita corretamente
+          const quantity = typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0);
+          const unitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
+          const discount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
+          const commission = typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0);
+          
+          // Calcular preço com desconto
+          const discountedPrice = unitPrice * (1 - discount / 100);
+          
+          // Calcular comissão sobre o preço COM desconto
+          return total + (quantity * discountedPrice * commission / 100);
+        }, 0)
+      : 0
+  );
 
   // Função para criar um documento PDF com design moderno
   const createPdfDocument = () => {

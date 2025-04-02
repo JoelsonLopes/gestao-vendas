@@ -78,7 +78,13 @@ export default function OrdersPage() {
                 const unitPrice = Number(item.unitPrice || 0);
                 const quantity = Number(item.quantity || 0);
                 const commission = Number(item.commission || 0);
-                const itemCommission = unitPrice * quantity * commission / 100;
+                const discountPercentage = Number(item.discountPercentage || 0);
+                
+                // Calcular o preço com desconto
+                const discountedPrice = unitPrice * (1 - discountPercentage / 100);
+                
+                // Calcular a comissão sobre o preço COM desconto
+                const itemCommission = discountedPrice * quantity * commission / 100;
                 return sum + itemCommission;
               }, 0);
             }
