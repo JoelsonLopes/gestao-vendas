@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -254,7 +254,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     window.print();
   };
 
-  // Preview content in canvas (simplified preview)
+  // Preview content in canvas (simplified preview com design moderno)
   useEffect(() => {
     if (!canvasRef.current) return;
     
@@ -262,58 +262,298 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
+    // Cores para design moderno
+    const primaryColor = "#3b82f6"; // azul
+    const secondaryColor = "#f0f9ff"; // azul claro
+    const darkGray = "#374151";
+    
     // Limpar canvas
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Preview simplificado
-    ctx.fillStyle = "#3b82f6";
+    // Cabeçalho moderno
+    ctx.fillStyle = primaryColor;
     ctx.fillRect(0, 0, canvas.width, 40);
     
+    // Título do pedido
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 16px Arial";
+    ctx.font = "bold 22px Arial";
+    ctx.textAlign = "left";
     ctx.fillText(`PEDIDO #${order.id}`, 20, 25);
     
-    ctx.fillStyle = "#000000";
-    ctx.font = "14px Arial";
-    ctx.fillText("Cliente: " + order.clientName, 20, 70);
-    ctx.fillText("CNPJ: " + order.clientCnpj, 20, 90);
-    ctx.fillText("Data: " + formatDate(order.date), 20, 110);
-    ctx.fillText("Status: " + order.status.toUpperCase(), 20, 130);
-    
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillRect(20, 150, canvas.width - 40, 2);
-    
-    ctx.fillStyle = "#000000";
-    ctx.font = "bold 14px Arial";
-    ctx.fillText("Itens: " + items.length, 20, 180);
-    
-    // Mini tabela
-    ctx.font = "12px Arial";
-    let y = 210;
-    items.slice(0, 4).forEach((item) => {
-      ctx.fillText(`${item.name} (${item.quantity}x) - ${formatCurrency(item.subtotal)}`, 30, y);
-      y += 25;
-    });
-    
-    if (items.length > 4) {
-      ctx.fillText("...", 30, y);
+    // Badge de status moderno
+    if (order.status === 'confirmado') {
+      ctx.fillStyle = "#22c55e"; // verde
+    } else {
+      ctx.fillStyle = "#f59e0b"; // amarelo
     }
     
+    // Desenhar badge com cantos arredondados
+    ctx.beginPath();
+    // Implementação manual de retângulo com cantos arredondados
+    const badgeX = canvas.width - 100;
+    const badgeY = 10;
+    const badgeWidth = 80;
+    const badgeHeight = 25;
+    const radius = 5;
+    
+    // Desenho do retângulo arredondado manualmente
+    ctx.moveTo(badgeX + radius, badgeY);
+    ctx.lineTo(badgeX + badgeWidth - radius, badgeY);
+    ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + radius);
+    ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - radius);
+    ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - radius, badgeY + badgeHeight);
+    ctx.lineTo(badgeX + radius, badgeY + badgeHeight);
+    ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - radius);
+    ctx.lineTo(badgeX, badgeY + radius);
+    ctx.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText(order.status.toUpperCase(), canvas.width - 60, 27);
+    
+    // Cards de informações
+    // Card da empresa
+    ctx.fillStyle = darkGray;
+    ctx.textAlign = "left";
     ctx.font = "bold 14px Arial";
-    ctx.fillText("Total: " + formatCurrency(order.total), canvas.width - 150, y + 40);
+    ctx.fillText("GestãoPedidos", 20, 55);
+    
+    ctx.font = "12px Arial";
+    ctx.fillText("CNPJ: 00.000.000/0000-00", 20, 70);
+    
+    // Card do cliente
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const clientCardX = 20;
+    const clientCardY = 85;
+    const clientCardWidth = 200;
+    const clientCardHeight = 80;
+    const clientCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(clientCardX + clientCardRadius, clientCardY);
+    ctx.lineTo(clientCardX + clientCardWidth - clientCardRadius, clientCardY);
+    ctx.quadraticCurveTo(clientCardX + clientCardWidth, clientCardY, clientCardX + clientCardWidth, clientCardY + clientCardRadius);
+    ctx.lineTo(clientCardX + clientCardWidth, clientCardY + clientCardHeight - clientCardRadius);
+    ctx.quadraticCurveTo(clientCardX + clientCardWidth, clientCardY + clientCardHeight, clientCardX + clientCardWidth - clientCardRadius, clientCardY + clientCardHeight);
+    ctx.lineTo(clientCardX + clientCardRadius, clientCardY + clientCardHeight);
+    ctx.quadraticCurveTo(clientCardX, clientCardY + clientCardHeight, clientCardX, clientCardY + clientCardHeight - clientCardRadius);
+    ctx.lineTo(clientCardX, clientCardY + clientCardRadius);
+    ctx.quadraticCurveTo(clientCardX, clientCardY, clientCardX + clientCardRadius, clientCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("CLIENTE", 30, 105);
+    
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.fillText(`Nome: ${order.clientName}`, 30, 125);
+    ctx.fillText(`CNPJ: ${order.clientCnpj}`, 30, 145);
+    
+    // Card de informações do pedido
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const infoCardX = 240;
+    const infoCardY = 85;
+    const infoCardWidth = 200;
+    const infoCardHeight = 80;
+    const infoCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(infoCardX + infoCardRadius, infoCardY);
+    ctx.lineTo(infoCardX + infoCardWidth - infoCardRadius, infoCardY);
+    ctx.quadraticCurveTo(infoCardX + infoCardWidth, infoCardY, infoCardX + infoCardWidth, infoCardY + infoCardRadius);
+    ctx.lineTo(infoCardX + infoCardWidth, infoCardY + infoCardHeight - infoCardRadius);
+    ctx.quadraticCurveTo(infoCardX + infoCardWidth, infoCardY + infoCardHeight, infoCardX + infoCardWidth - infoCardRadius, infoCardY + infoCardHeight);
+    ctx.lineTo(infoCardX + infoCardRadius, infoCardY + infoCardHeight);
+    ctx.quadraticCurveTo(infoCardX, infoCardY + infoCardHeight, infoCardX, infoCardY + infoCardHeight - infoCardRadius);
+    ctx.lineTo(infoCardX, infoCardY + infoCardRadius);
+    ctx.quadraticCurveTo(infoCardX, infoCardY, infoCardX + infoCardRadius, infoCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 14px Arial";
+    ctx.fillText("INFORMAÇÕES", 250, 105);
+    
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.fillText(`Data: ${formatDate(order.date)}`, 250, 125);
+    ctx.fillText(`Pagamento: ${order.paymentTerms}`, 250, 145);
+    
+    // Título da tabela de itens
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("ITENS DO PEDIDO", 20, 190);
+    
+    // Linha decorativa
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, 195);
+    ctx.lineTo(180, 195);
+    ctx.stroke();
+    
+    // Cabeçalho da tabela
+    ctx.fillStyle = primaryColor;
+    ctx.fillRect(20, 205, canvas.width - 40, 30);
+    
+    // Textos do cabeçalho
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Ref. Cliente", 30, 225);
+    ctx.fillText("Produto", 110, 225);
+    ctx.fillText("Preço", 250, 225);
+    ctx.fillText("Preço c/ Desc.", 310, 225);
+    ctx.fillText("Subtotal", 400, 225);
+    
+    // Linhas da tabela
+    let y = 250;
+    items.slice(0, 4).forEach((item, index) => {
+      // Fundo zebrado
+      ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#f9fafb";
+      ctx.fillRect(20, y - 15, canvas.width - 40, 30);
+      
+      // Referência do cliente com destaque
+      if (item.clientRef) {
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        // Implementação manual do retângulo arredondado
+        const refX = 25;
+        const refY = y - 10;
+        const refWidth = 65;
+        const refHeight = 20;
+        const refRadius = 3;
+        
+        // Desenho do retângulo arredondado
+        ctx.moveTo(refX + refRadius, refY);
+        ctx.lineTo(refX + refWidth - refRadius, refY);
+        ctx.quadraticCurveTo(refX + refWidth, refY, refX + refWidth, refY + refRadius);
+        ctx.lineTo(refX + refWidth, refY + refHeight - refRadius);
+        ctx.quadraticCurveTo(refX + refWidth, refY + refHeight, refX + refWidth - refRadius, refY + refHeight);
+        ctx.lineTo(refX + refRadius, refY + refHeight);
+        ctx.quadraticCurveTo(refX, refY + refHeight, refX, refY + refHeight - refRadius);
+        ctx.lineTo(refX, refY + refRadius);
+        ctx.quadraticCurveTo(refX, refY, refX + refRadius, refY);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(item.clientRef, 30, y + 3);
+      } else {
+        ctx.fillStyle = darkGray;
+        ctx.fillText("-", 30, y + 3);
+      }
+      
+      // Resto dos dados
+      ctx.fillStyle = darkGray;
+      ctx.font = "12px Arial";
+      
+      // Nome do produto com limitação
+      const displayName = item.name.length > 20 ? item.name.substring(0, 20) + "..." : item.name;
+      ctx.fillText(displayName, 110, y + 3);
+      
+      // Preços
+      ctx.fillText(formatCurrency(item.unitPrice), 250, y + 3);
+      
+      // Preço com desconto
+      const priceWithDiscount = item.discount > 0 ? item.unitPrice * (1 - item.discount / 100) : item.unitPrice;
+      ctx.fillText(formatCurrency(priceWithDiscount), 310, y + 3);
+      
+      // Subtotal
+      ctx.fillText(formatCurrency(item.subtotal), 400, y + 3);
+      
+      y += 30;
+    });
+    
+    // Indicação de mais itens
+    if (items.length > 4) {
+      ctx.fillStyle = darkGray;
+      ctx.font = "italic 12px Arial";
+      ctx.fillText(`... e mais ${items.length - 4} itens`, 30, y + 5);
+    }
+    
+    // Card de totais
+    ctx.fillStyle = secondaryColor;
+    ctx.beginPath();
+    // Implementação manual do retângulo arredondado
+    const totalsCardX = canvas.width - 180;
+    const totalsCardY = y + 20;
+    const totalsCardWidth = 160;
+    const totalsCardHeight = 80;
+    const totalsCardRadius = 5;
+    
+    // Desenho do retângulo arredondado
+    ctx.moveTo(totalsCardX + totalsCardRadius, totalsCardY);
+    ctx.lineTo(totalsCardX + totalsCardWidth - totalsCardRadius, totalsCardY);
+    ctx.quadraticCurveTo(totalsCardX + totalsCardWidth, totalsCardY, totalsCardX + totalsCardWidth, totalsCardY + totalsCardRadius);
+    ctx.lineTo(totalsCardX + totalsCardWidth, totalsCardY + totalsCardHeight - totalsCardRadius);
+    ctx.quadraticCurveTo(totalsCardX + totalsCardWidth, totalsCardY + totalsCardHeight, totalsCardX + totalsCardWidth - totalsCardRadius, totalsCardY + totalsCardHeight);
+    ctx.lineTo(totalsCardX + totalsCardRadius, totalsCardY + totalsCardHeight);
+    ctx.quadraticCurveTo(totalsCardX, totalsCardY + totalsCardHeight, totalsCardX, totalsCardY + totalsCardHeight - totalsCardRadius);
+    ctx.lineTo(totalsCardX, totalsCardY + totalsCardRadius);
+    ctx.quadraticCurveTo(totalsCardX, totalsCardY, totalsCardX + totalsCardRadius, totalsCardY);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Textos dos totais
+    ctx.fillStyle = darkGray;
+    ctx.font = "13px Arial";
+    ctx.textAlign = "left";
+    
+    const totalsX = canvas.width - 170;
+    const valuesX = canvas.width - 30;
+    let totalsY = y + 45;
+    
+    ctx.fillText("Subtotal:", totalsX, totalsY);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.subtotal), valuesX, totalsY);
+    
+    ctx.textAlign = "left";
+    ctx.fillText("Desconto:", totalsX, totalsY + 20);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.discount), valuesX, totalsY + 20);
+    
+    // Linha separadora
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(totalsX, totalsY + 30);
+    ctx.lineTo(valuesX, totalsY + 30);
+    ctx.stroke();
+    
+    // Total com destaque
+    ctx.fillStyle = primaryColor;
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("Total:", totalsX, totalsY + 50);
+    ctx.textAlign = "right";
+    ctx.fillText(formatCurrency(order.total), valuesX, totalsY + 50);
+    
+    // Rodapé
+    ctx.fillStyle = "#cccccc";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Este documento não possui valor fiscal.", canvas.width / 2, canvas.height - 15);
   }, [order, items]);
 
   return (
-    <div className="flex flex-col space-y-6 p-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Visualizar Pedido #{order.id}</h2>
-        <p className="text-gray-500 mb-2">Utilize os botões abaixo para baixar o PDF ou imprimir o pedido.</p>
-        
-        {/* Preview canvas - visível apenas na tela */}
+    <div className="flex flex-col space-y-4 order-pdf-content">
+      <div className="border rounded-md p-4">
+        {/* Preview em canvas */}
         <canvas 
           ref={canvasRef} 
-          width={600} 
+          width={460} 
           height={520} 
           className="mx-auto border"
         ></canvas>
