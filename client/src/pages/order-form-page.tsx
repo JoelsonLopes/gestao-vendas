@@ -14,7 +14,8 @@ import {
   PlusCircle,
   Trash,
   Search,
-  Printer
+  Printer,
+  Calculator
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { DiscountSelect } from "@/components/discount-select";
 import { PdfTemplate } from "@/components/pdf-template";
+import { PriceCalculatorModal } from "@/components/price-calculator-modal";
 import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils";
 import { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema";
 
@@ -85,6 +87,8 @@ export default function OrderFormPage() {
   const [shouldSaveConversion, setShouldSaveConversion] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [calculatorProduct, setCalculatorProduct] = useState<Product | null>(null);
   const [totals, setTotals] = useState<{
     subtotal: number;
     taxes: number;
@@ -284,6 +288,23 @@ export default function OrderFormPage() {
       total: Number(total.toFixed(2)),
     });
   }, [orderItems, isEditMode, order]);
+  
+  // Function to open calculator with a product
+  const openCalculator = (productId: number | null) => {
+    if (!productId) return;
+    
+    const product = products?.find(p => p.id === productId);
+    if (product) {
+      setCalculatorProduct(product);
+      setCalculatorOpen(true);
+    } else {
+      toast({
+        title: "Erro",
+        description: "Produto não encontrado.",
+        variant: "destructive",
+      });
+    }
+  };
   
   // Add product to order
   const addProductToOrder = () => {
@@ -933,10 +954,16 @@ export default function OrderFormPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle>Produtos do Pedido</CardTitle>
-                    <Button onClick={() => setAddProductModalOpen(true)} disabled={false}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Adicionar Produto
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" onClick={() => setCalculatorOpen(true)} disabled={false}>
+                        <Calculator className="mr-2 h-4 w-4" />
+                        Calculadora
+                      </Button>
+                      <Button onClick={() => setAddProductModalOpen(true)} disabled={false}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Produto
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="relative overflow-x-auto">
@@ -1004,14 +1031,24 @@ export default function OrderFormPage() {
                                 <TableCell>{item.commission}%</TableCell>
                                 <TableCell>{formatCurrency(item.subtotal)}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => removeOrderItem(index)}
-                                    className="text-red-500 hover:text-red-700"
-                                  >
-                                    <Trash className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex justify-end space-x-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => openCalculator(item.productId)}
+                                      className="text-blue-500 hover:text-blue-700"
+                                    >
+                                      <Calculator className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => removeOrderItem(index)}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))
@@ -1317,6 +1354,13 @@ export default function OrderFormPage() {
                 />
               </DialogContent>
             </Dialog>
+
+            {/* Price Calculator Modal */}
+            <PriceCalculatorModal
+              open={calculatorOpen}
+              onOpenChange={setCalculatorOpen}
+              product={calculatorProduct}
+            />
           </div>
         )}
       </div>
