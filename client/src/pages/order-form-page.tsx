@@ -1087,6 +1087,13 @@ export default function OrderFormPage() {
                           products={products}
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
+                          onEnterKeyPressed={() => {
+                            // Se um produto foi selecionado e tudo está OK, adicionar o produto
+                            if (selectedProductId && productQuantity > 0) {
+                              addProductToOrder();
+                            }
+                          }}
+                          autoFocus={true}
                         />
                       </div>
                     </TabsContent>
@@ -1099,6 +1106,67 @@ export default function OrderFormPage() {
                             placeholder="Digite a referência do cliente"
                             value={clientRef}
                             onChange={(e) => setClientRef(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && clientRef && !isSearchingByClientRef) {
+                                e.preventDefault();
+                                setIsSearchingByClientRef(true);
+                                fetch(`/api/products/by-client-reference/${encodeURIComponent(clientRef)}`)
+                                  .then(res => {
+                                    if (!res.ok) {
+                                      if (res.status === 404) {
+                                        toast({
+                                          title: "Referência não encontrada",
+                                          description: `Não encontramos um produto com a referência "${clientRef}".`,
+                                          variant: "destructive",
+                                        });
+                                        
+                                        setIsSearchingByClientRef(false);
+                                        return null;
+                                      }
+                                      throw new Error("Erro ao buscar produto");
+                                    }
+                                    return res.json();
+                                  })
+                                  .then(product => {
+                                    if (product) {
+                                      if (!product.conversion) {
+                                        product.conversion = clientRef;
+                                      }
+                                      
+                                      setSelectedProductId(product.id);
+                                      
+                                      fetch(`/api/products/${product.id}/save-conversion`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ clientRef })
+                                      })
+                                      .then(res => res.json())
+                                      .then(updatedProduct => {
+                                        console.log("Conversão salva com sucesso:", updatedProduct);
+                                      })
+                                      .catch(error => {
+                                        console.error("Erro ao salvar conversão:", error);
+                                      });
+                                      
+                                      toast({
+                                        title: "Produto encontrado",
+                                        description: `${product.name} (${product.code}) foi selecionado.`,
+                                      });
+                                    }
+                                  })
+                                  .catch(error => {
+                                    toast({
+                                      title: "Erro",
+                                      description: "Falha ao buscar produto.",
+                                      variant: "destructive",
+                                    });
+                                  })
+                                  .finally(() => {
+                                    setIsSearchingByClientRef(false);
+                                  });
+                              }
+                            }}
+                            autoFocus
                           />
                           <Button 
                             onClick={() => {
@@ -1210,7 +1278,13 @@ export default function OrderFormPage() {
                       type="number" 
                       min="1" 
                       value={productQuantity}
-                      onChange={(e) => setProductQuantity(parseInt(e.target.value))}
+                      onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && selectedProductId && productQuantity > 0) {
+                          e.preventDefault();
+                          addProductToOrder();
+                        }
+                      }}
                     />
                   </div>
                 </div>

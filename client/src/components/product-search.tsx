@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ interface ProductSearchProps {
   products: Product[] | undefined;
   selectedProductId: number | null;
   onProductSelect: (productId: number | null) => void;
+  onEnterKeyPressed?: () => void; // Nova propriedade para capturar a tecla Enter
+  autoFocus?: boolean; // Para focar automaticamente ao abrir
   disabled?: boolean;
 }
 
@@ -16,11 +18,14 @@ export function ProductSearch({
   products = [],
   selectedProductId,
   onProductSelect,
+  onEnterKeyPressed,
+  autoFocus = false,
   disabled = false
 }: ProductSearchProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   
   // Debug dos produtos recebidos
   useEffect(() => {
@@ -49,19 +54,62 @@ export function ProductSearch({
   // Produto selecionado
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
+  // Resetar o índice destacado quando muda a busca ou abre o componente
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [searchQuery, open]);
+
   // Foco no input de pesquisa quando o popover abre
   useEffect(() => {
-    if (open && inputRef.current) {
+    if ((open || autoFocus) && inputRef.current) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
-  }, [open]);
+  }, [open, autoFocus]);
+
+  // Abrir automaticamente se autoFocus estiver ativo
+  useEffect(() => {
+    if (autoFocus && !disabled && !open) {
+      setOpen(true);
+    }
+  }, [autoFocus, disabled]);
 
   // Limpar a seleção
   const clearSelection = () => {
     onProductSelect(null);
     setSearchQuery("");
+  };
+
+  // Lidar com a navegação por teclado
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Limite para os resultados visíveis
+    const numResults = filteredProducts.length;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < numResults - 1 ? prev + 1 : prev));
+    } 
+    else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } 
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (numResults > 0) {
+        const product = filteredProducts[highlightedIndex];
+        onProductSelect(product.id);
+        setOpen(false);
+        
+        // Se a função de callback para o Enter existir, chamar
+        if (onEnterKeyPressed) {
+          onEnterKeyPressed();
+        }
+      }
+    } 
+    else if (e.key === 'Escape') {
+      setOpen(false);
+    }
   };
 
   return (
@@ -116,6 +164,7 @@ export function ProductSearch({
               className="flex h-9 w-full rounded-md bg-transparent py-2 px-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
             />
           </div>
           
@@ -125,15 +174,19 @@ export function ProductSearch({
                 Nenhum produto encontrado. Tente outros termos de busca.
               </div>
             ) : (
-              filteredProducts.map((product) => (
+              filteredProducts.map((product, index) => (
                 <div
                   key={product.id}
-                  className="px-2 py-2 hover:bg-accent cursor-pointer flex items-center"
+                  className={cn(
+                    "px-2 py-2 hover:bg-accent cursor-pointer flex items-center",
+                    index === highlightedIndex && "bg-accent"
+                  )}
                   onClick={() => {
                     console.log("Clique no produto:", product.id, product.name);
                     onProductSelect(product.id);
                     setOpen(false);
                   }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
                 >
                   <Check
                     className={cn(
