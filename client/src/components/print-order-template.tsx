@@ -51,7 +51,7 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
   );
 
   return (
-    <div className="hidden print:block max-w-4xl mx-auto p-8">
+    <div className="max-w-4xl mx-auto p-8">
       {/* Cabeçalho */}
       <div className="flex justify-between items-start">
         <div>

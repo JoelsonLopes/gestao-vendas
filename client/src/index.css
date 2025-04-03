@@ -55,7 +55,9 @@
   .dialog-backdrop,
   .modal-overlay,
   input[type="button"],
-  .print\:hidden {
+  .print\:hidden,
+  canvas,
+  .mx-auto.border {
     display: none !important;
   }
   
