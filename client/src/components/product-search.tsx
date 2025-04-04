@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { Check, ChevronsUpDown, Search, X, Tag, Package, FileText, Bookmark } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Product } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductSearchProps {
   products: Product[] | undefined;
@@ -127,12 +129,17 @@ export function ProductSearch({
         >
           {selectedProduct ? (
             <div className="flex items-center justify-between w-full">
-              <div className="flex flex-col items-start">
-                <span className="font-medium">{selectedProduct.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {selectedProduct.code && `Código: ${selectedProduct.code}`}
-                  {selectedProduct.price && ` • Preço: ${formatCurrency(Number(selectedProduct.price))}`}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className="bg-primary/10 p-1 rounded-md">
+                  <Package className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">{selectedProduct.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedProduct.code && `Código: ${selectedProduct.code}`}
+                    {selectedProduct.price && ` • ${formatCurrency(Number(selectedProduct.price))}`}
+                  </span>
+                </div>
               </div>
               {!disabled && (
                 <Button
@@ -149,69 +156,112 @@ export function ProductSearch({
               )}
             </div>
           ) : (
-            <span>Selecione ou pesquise um produto</span>
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <span>Pesquisar produto</span>
+            </div>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[350px]">
-        <div className="flex flex-col">
-          <div className="flex items-center border-b px-3 py-2">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <input
-              ref={inputRef}
-              placeholder="Buscar por nome, código, marca ou referência do cliente..."
-              className="flex h-9 w-full rounded-md bg-transparent py-2 px-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus-visible:ring-0"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-          </div>
-          
-          <div className="max-h-[300px] overflow-auto py-1">
-            {filteredProducts.length === 0 ? (
-              <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                Nenhum produto encontrado. Tente outros termos de busca.
+      <PopoverContent className="p-0 w-[400px] max-h-[500px]" side="bottom" align="start">
+        <Command className="rounded-lg border shadow-md">
+          <CommandInput 
+            placeholder="Buscar por nome, código, marca ou referência..." 
+            onKeyDown={handleKeyDown}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            className="h-9"
+            autoFocus={autoFocus}
+          />
+          <CommandList className="max-h-[350px] overflow-auto">
+            <CommandEmpty className="py-6 text-center text-sm">
+              <div className="flex flex-col items-center gap-2">
+                <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
+                <p>Nenhum produto encontrado</p>
+                <p className="text-xs text-muted-foreground">Tente outros termos de busca</p>
               </div>
-            ) : (
-              filteredProducts.map((product, index) => (
-                <div
+            </CommandEmpty>
+            <CommandGroup heading="Produtos">
+              {filteredProducts.map((product, index) => (
+                <CommandItem
                   key={product.id}
-                  className={cn(
-                    "px-2 py-2 hover:bg-accent cursor-pointer flex items-center",
-                    index === highlightedIndex && "bg-accent"
-                  )}
-                  onClick={() => {
-                    console.log("Clique no produto:", product.id, product.name);
+                  value={product.id.toString()}
+                  onSelect={() => {
                     onProductSelect(product.id);
                     setOpen(false);
+                    if (onEnterKeyPressed) {
+                      onEnterKeyPressed();
+                    }
                   }}
+                  className={cn(
+                    "flex flex-col items-start py-3",
+                    index === highlightedIndex && "bg-accent"
+                  )}
                   onMouseEnter={() => setHighlightedIndex(index)}
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedProductId === product.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">{product.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {product.code && `Cód: ${product.code}`}
-                      {product.price && ` • ${formatCurrency(Number(product.price))}`}
-                      {product.brand && ` • ${product.brand}`}
+                  <div className="flex w-full gap-2 items-start">
+                    <div className="bg-primary/10 p-1 rounded-md flex-shrink-0">
+                      <Package className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 flex flex-col">
+                      <div className="font-medium flex items-center gap-2">
+                        {product.name}
+                        {selectedProductId === product.id && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-1 mt-1">
+                        <div className="flex items-center">
+                          <Tag className="h-3 w-3 mr-1" />
+                          <span>{product.code}</span>
+                        </div>
+                        {product.price && (
+                          <div className="flex items-center ml-2">
+                            <span>{formatCurrency(Number(product.price))}</span>
+                          </div>
+                        )}
+                        {product.brand && (
+                          <Badge variant="outline" className="text-xs h-5 ml-1">
+                            {product.brand}
+                          </Badge>
+                        )}
+                      </div>
                       {product.conversion && (
-                        <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          Ref: {product.conversion}
-                        </span>
+                        <div className="mt-1">
+                          <Badge variant="secondary" className="text-xs h-5 flex items-center gap-1">
+                            <Bookmark className="h-3 w-3" />
+                            <span>Ref: {product.conversion}</span>
+                          </Badge>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
-              ))
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            {searchQuery && filteredProducts.length > 20 && (
+              <div className="py-2 px-2 text-xs text-center text-muted-foreground border-t">
+                Mostrando os primeiros 20 resultados de {filteredProducts.length}. 
+                Refine sua busca para resultados mais precisos.
+              </div>
             )}
+          </CommandList>
+          <div className="border-t px-2 py-2 flex gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center">
+              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">↑↓</span>
+              <span>Navegar</span>
+            </div>
+            <div className="flex items-center ml-2">
+              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">Enter</span>
+              <span>Selecionar</span>
+            </div>
+            <div className="flex items-center ml-2">
+              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">Esc</span>
+              <span>Fechar</span>
+            </div>
           </div>
-        </div>
+        </Command>
       </PopoverContent>
     </Popover>
   );

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
+import { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,13 +18,15 @@ import {
   Search,
   Printer,
   Calculator,
-  Pencil
+  Pencil,
+  Keyboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Select, 
   SelectContent, 
@@ -55,6 +58,9 @@ export default function OrderFormPage() {
   const [id, setId] = useState<string | undefined>(params?.id);
   const [isEditMode, setIsEditMode] = useState<boolean>(!!params?.id);
   const isNewOrder = id === "new";
+  
+  // Estado para mostrar o painel de atalhos
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
 
   console.log("OrderFormPage - URL atual:", location);
   console.log("OrderFormPage - ID do pedido:", id);
@@ -326,6 +332,107 @@ export default function OrderFormPage() {
   // Referência para o botão "Adicionar Produto"
   const addProductButtonRef = useRef<HTMLButtonElement>(null);
   
+  // Hook de atalhos de teclado
+  const useKeyboardShortcuts = useCallback(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      // Ignorar atalhos quando um input estiver com foco
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.tagName === 'SELECT'
+      );
+      
+      // Ignorar atalhos em inputs de texto, exceto Escape
+      if (isInputFocused && e.key !== 'Escape') return;
+      
+      // Atalhos que funcionam em qualquer situação
+      if (e.key === '?' && e.shiftKey) {
+        e.preventDefault();
+        setShowShortcutsHelp(prev => !prev);
+        return;
+      }
+      
+      // Ignorar se um modal estiver aberto, exceto ESC para fechar
+      if (addProductModalOpen || calculatorOpen || showPdfPreview) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          
+          if (showPdfPreview) {
+            setShowPdfPreview(false);
+          } else if (calculatorOpen) {
+            setCalculatorOpen(false);
+          } else if (addProductModalOpen) {
+            setAddProductModalOpen(false);
+          }
+        }
+        return;
+      }
+      
+      // Atalhos ativos só quando nenhum modal estiver aberto
+      switch (e.key) {
+        case 'a':
+          // Atalho para adicionar novo produto
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            setAddProductModalOpen(true);
+          }
+          break;
+          
+        case 's':
+          // Atalho para salvar pedido
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            handleSaveOrder();
+          } else if (e.ctrlKey || e.metaKey) {
+            // Captura o Ctrl+S ou Cmd+S padrão
+            e.preventDefault();
+            handleSaveOrder();
+          }
+          break;
+          
+        case 'p':
+          // Atalho para imprimir/visualizar PDF
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            setShowPdfPreview(true);
+          }
+          break;
+          
+        case 'Escape':
+          // Atalho para voltar para a lista de pedidos
+          e.preventDefault();
+          navigate('/orders');
+          break;
+          
+        case 'c':
+          // Atalho para abrir calculadora (se não for input)
+          if (!isInputFocused) {
+            e.preventDefault();
+            const firstProductId = orderItems[0]?.productId;
+            if (firstProductId) {
+              openCalculator(firstProductId);
+            }
+          }
+          break;
+      }
+    };
+    
+    // Adicionar event listener global
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Limpar event listener ao desmontar
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [addProductModalOpen, calculatorOpen, showPdfPreview, orderItems, navigate]);
+  
+  // Ativar atalhos de teclado
+  useEffect(() => {
+    const cleanup = useKeyboardShortcuts();
+    return cleanup;
+  }, [useKeyboardShortcuts]);
+  
   // Add product to order
   const addProductToOrder = () => {
     if (!selectedProductId || productQuantity <= 0) return;
@@ -428,7 +535,7 @@ export default function OrderFormPage() {
       setTimeout(() => {
         // Salvar automaticamente o pedido após adicionar o produto
         if (clientId) {
-          saveOrder();
+          handleSaveOrder();
         } else {
           toast({
             title: "Atenção",
@@ -470,7 +577,7 @@ export default function OrderFormPage() {
     setTimeout(() => {
       // Salvar automaticamente o pedido após remover um produto
       if (clientId && newItems.length > 0) {
-        saveOrder();
+        handleSaveOrder();
       }
     }, 0);
   };
@@ -513,7 +620,7 @@ export default function OrderFormPage() {
     setTimeout(() => {
       // Salvar automaticamente o pedido após alterar o desconto
       if (clientId) {
-        saveOrder();
+        handleSaveOrder();
       }
     }, 0);
   };
@@ -555,7 +662,7 @@ export default function OrderFormPage() {
     setTimeout(() => {
       // Salvar automaticamente o pedido após alterar a quantidade
       if (clientId) {
-        saveOrder();
+        handleSaveOrder();
       }
     }, 0);
   };
@@ -606,8 +713,8 @@ export default function OrderFormPage() {
     },
   });
   
-  // Save order
-  const saveOrder = async () => {
+  // Salvar pedido
+  const handleSaveOrder = async () => {
     if (!clientId || orderItems.length === 0) {
       toast({
         title: "Dados incompletos",
@@ -788,7 +895,7 @@ export default function OrderFormPage() {
                   onClick={() => {
                     // Salvar alterações e então redirecionar para a lista de pedidos
                     if (clientId && orderItems.length > 0) {
-                      saveOrder();
+                      handleSaveOrder();
                       setTimeout(() => {
                         navigate("/orders");
                       }, 500);
@@ -817,7 +924,7 @@ export default function OrderFormPage() {
                   onClick={() => {
                     // Salvar pedido e então redirecionar para a lista de pedidos
                     if (clientId && orderItems.length > 0) {
-                      saveOrder();
+                      handleSaveOrder();
                       setTimeout(() => {
                         navigate("/orders");
                       }, 500);
@@ -1032,7 +1139,7 @@ export default function OrderFormPage() {
                             if (clientId && orderItems.length > 0) {
                               // Pequeno atraso para garantir que o estado foi atualizado
                               setTimeout(() => {
-                                saveOrder();
+                                handleSaveOrder();
                               }, 100);
                             }
                           }}
@@ -1088,7 +1195,7 @@ export default function OrderFormPage() {
                             if (clientId && orderItems.length > 0) {
                               // Pequeno atraso para garantir que o estado foi atualizado
                               setTimeout(() => {
-                                saveOrder();
+                                handleSaveOrder();
                               }, 100);
                             }
                           }}
@@ -1269,7 +1376,7 @@ export default function OrderFormPage() {
                                     if (clientId && orderItems.length > 0) {
                                       // Pequeno atraso para garantir que o estado foi atualizado
                                       setTimeout(() => {
-                                        saveOrder();
+                                        handleSaveOrder();
                                       }, 100);
                                     }
                                   }}
@@ -1565,6 +1672,9 @@ export default function OrderFormPage() {
           </div>
         )}
       </div>
+      
+      {/* Componente de ajuda com atalhos de teclado */}
+      {showShortcutsHelp && <KeyboardShortcutsHelp />}
     </DashboardLayout>
   );
 }
