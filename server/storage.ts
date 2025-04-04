@@ -460,6 +460,37 @@ export class DatabaseStorage implements IStorage {
 
   async searchProducts(query: string): Promise<Product[]> {
     try {
+      console.log(`Executando busca de produtos com o termo: "${query}"`);
+      
+      // Primeiro tentamos buscar exatamente pela referência do cliente (conversion)
+      // Este é um caso especial para referências exatas como "AKX1100"
+      const exactMatch = await db.select({
+        id: products.id,
+        name: products.name,
+        code: products.code,
+        description: products.description,
+        barcode: products.barcode,
+        category: products.category,
+        brand: products.brand,
+        price: products.price,
+        stockQuantity: products.stockQuantity,
+        active: products.active,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        conversion: products.conversion,
+        conversionBrand: products.conversionBrand,
+        equivalentBrands: products.equivalentBrands
+      })
+      .from(products)
+      .where(eq(products.conversion, query))
+      .limit(20);
+      
+      if (exactMatch.length > 0) {
+        console.log(`Encontrado produto com referência exata "${query}":`, exactMatch);
+        return exactMatch;
+      }
+      
+      // Caso não encontre correspondência exata, faz uma busca mais ampla
       // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
       const result = await db.select({
         id: products.id,
@@ -488,8 +519,10 @@ export class DatabaseStorage implements IStorage {
           ilike(products.code, `%${query}%`),
           ilike(products.conversion, `%${query}%`) // Buscar também na referência do cliente
         )
-      );
+      )
+      .limit(20);
       
+      console.log(`Encontrados ${result.length} produtos para o termo "${query}" na busca ampla`);
       return result;
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
@@ -530,25 +563,20 @@ export class DatabaseStorage implements IStorage {
         return product;
       }
       
-      // Se não encontrou, tenta buscar por uma correspondência com AKX1100
-      console.log(`Buscando produto com conversão para a referência ${clientRef}`);
+      console.log(`Nenhum produto encontrado pela referência exata '${clientRef}', buscando similaridades`);
       
-      // Buscamos um produto que possa ser referenciado pelo código AKX1100 ou similar
-      // Esta busca tenta encontrar o produto que possa ser o equivalente da referência
-      const [productByCode] = await db.select(selectFields)
+      // Se não encontrou, podemos tentar uma busca mais ampla
+      const productsWithSimilarRef = await db.select(selectFields)
         .from(products)
-        .where(eq(products.code, "AKX1100"));
-      
-      if (productByCode) {
-        console.log(`Encontrado produto equivalente (${productByCode.code}: ${productByCode.name}) para a referência ${clientRef}`);
-        return {
-          ...productByCode,
-          // Adicionamos a referência do cliente para uso posterior
-          conversion: clientRef
-        };
+        .where(ilike(products.conversion, `%${clientRef}%`))
+        .limit(5);
+        
+      if (productsWithSimilarRef.length > 0) {
+        console.log(`Encontrado(s) ${productsWithSimilarRef.length} produto(s) com referência similar a '${clientRef}'`);
+        return productsWithSimilarRef[0]; // Retorna o primeiro encontrado
       }
       
-      console.log(`Nenhum produto encontrado pela referência do cliente ${clientRef}`);
+      console.log(`Nenhum produto encontrado pela referência do cliente '${clientRef}'`);
       return undefined;
     } catch (error) {
       console.error(`Erro ao buscar produto pela referência do cliente ${clientRef}:`, error);

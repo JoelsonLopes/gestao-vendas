@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search products
+  // Search products - suporta dois formatos de URL
   app.get("/api/products/search", isAuthenticated, async (req, res) => {
     try {
       const { q } = req.query;
@@ -352,6 +352,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await storage.searchProducts(q);
       res.json(products);
     } catch (error) {
+      res.status(500).json({ message: "Error searching products" });
+    }
+  });
+  
+  // Search products by term in URL path
+  app.get("/api/products/search/:term", isAuthenticated, async (req, res) => {
+    try {
+      const { term } = req.params;
+      if (!term) {
+        return res.status(400).json({ message: "Search term is required" });
+      }
+      
+      console.log(`Buscando produtos com o termo: ${term}`);
+      const products = await storage.searchProducts(term);
+      console.log(`Encontrados ${products.length} produtos para o termo "${term}"`);
+      res.json(products);
+    } catch (error) {
+      console.error("Erro ao buscar produtos por termo:", error);
       res.status(500).json({ message: "Error searching products" });
     }
   });
