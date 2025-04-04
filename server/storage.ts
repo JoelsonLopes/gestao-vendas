@@ -731,58 +731,70 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderItems(orderId: number, items: InsertOrderItem[]): Promise<OrderItem[]> {
     try {
-      // Primeiro apaga todos os itens existentes do pedido
-      await this.deleteOrderItems(orderId);
+      console.log(`Atualizando itens do pedido ${orderId} usando SQL direto`);
       
-      // Depois cria novos itens
+      // Primeiro apaga todos os itens existentes do pedido com SQL direto
+      const deleteQuery = `DELETE FROM order_items WHERE order_id = $1`;
+      await pool.query(deleteQuery, [orderId]);
+      console.log(`Itens existentes do pedido ${orderId} excluídos com sucesso`);
+      
+      // Depois cria novos itens usando SQL direto, sem a coluna clientRef
       const newItems: OrderItem[] = [];
+      
       for (const item of items) {
         try {
-          // Garantir que todos os campos estejam no formato correto
-          // e remover campos que podem não existir no banco de dados
-          const validatedItem: Partial<InsertOrderItem> = {
-            orderId,
-            productId: Number(item.productId),
-            quantity: Number(item.quantity),
-            unitPrice: item.unitPrice.toString(),
-            discountId: item.discountId ? Number(item.discountId) : null,
-            discountPercentage: item.discountPercentage ? item.discountPercentage.toString() : null,
-            commission: item.commission ? item.commission.toString() : null,
-            subtotal: item.subtotal.toString(),
-          };
+          const insertQuery = `
+            INSERT INTO order_items (
+              order_id, product_id, quantity, unit_price, 
+              discount_id, discount_percentage, commission, subtotal
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, order_id, product_id, quantity, unit_price, 
+                     discount_id, discount_percentage, commission, subtotal
+          `;
           
-          // Verificar se clientRef é suportado, adicionando apenas se o campo existir no schema
-          try {
-            // Tentativa com clientRef
-            const itemWithClientRef = {
-              ...validatedItem,
-              clientRef: item.clientRef || null
+          // Garantir que todos os campos estejam no formato correto
+          const values = [
+            orderId,
+            Number(item.productId),
+            Number(item.quantity),
+            item.unitPrice.toString(),
+            item.discountId ? Number(item.discountId) : null,
+            item.discountPercentage ? item.discountPercentage.toString() : null,
+            item.commission ? item.commission.toString() : null,
+            item.subtotal.toString()
+          ];
+          
+          console.log(`Inserindo item para o pedido ${orderId} com os valores:`, values);
+          const result = await pool.query(insertQuery, values);
+          
+          if (result.rows.length > 0) {
+            // Converter as colunas snake_case para camelCase
+            const row = result.rows[0];
+            const newItem: OrderItem = {
+              id: row.id,
+              orderId: row.order_id,
+              productId: row.product_id,
+              quantity: row.quantity,
+              unitPrice: row.unit_price,
+              discountId: row.discount_id,
+              discountPercentage: row.discount_percentage,
+              commission: row.commission,
+              subtotal: row.subtotal,
+              clientRef: null // Campo opcional que pode não existir na tabela
             };
-            
-            console.log("Tentando criar item com clientRef:", itemWithClientRef);
-            const newItem = await this.createOrderItem(itemWithClientRef as InsertOrderItem);
             newItems.push(newItem);
-          } catch (clientRefError) {
-            // Se falhar, tentar sem clientRef
-            if (String(clientRefError).includes("client_ref")) {
-              console.log("A coluna clientRef não existe no banco de dados. Criando item sem clientRef.");
-              console.log("Tentando criar item sem clientRef:", validatedItem);
-              const newItem = await this.createOrderItem(validatedItem as InsertOrderItem);
-              newItems.push(newItem);
-            } else {
-              // Se o erro não estiver relacionado à coluna clientRef, relançar
-              throw clientRefError;
-            }
+            console.log(`Item ${newItem.id} adicionado com sucesso ao pedido ${orderId}`);
           }
         } catch (itemError) {
-          console.error("Erro ao criar item individual:", itemError);
+          console.error(`Erro ao criar item para o pedido ${orderId}:`, itemError);
           // Continuar com o próximo item
         }
       }
       
+      console.log(`Total de ${newItems.length} itens adicionados ao pedido ${orderId}`);
       return newItems;
     } catch (error) {
-      console.error("Erro ao atualizar itens do pedido:", error);
+      console.error(`Erro ao atualizar itens do pedido ${orderId}:`, error);
       throw error;
     }
   }
@@ -813,16 +825,37 @@ export class DatabaseStorage implements IStorage {
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
     try {
-      return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+      console.log(`Buscando itens do pedido ${orderId} com SQL direto`);
+      
+      // Usar SQL direto para evitar problemas com a coluna client_ref
+      const query = `
+        SELECT 
+          id, order_id, product_id, quantity, 
+          unit_price, discount_id, discount_percentage, 
+          commission, subtotal
+        FROM order_items 
+        WHERE order_id = $1
+      `;
+      
+      const result = await pool.query(query, [orderId]);
+      console.log(`Encontrados ${result.rows.length} itens para o pedido ${orderId}`);
+      
+      // Converter os nomes das colunas snake_case para camelCase
+      return result.rows.map(row => ({
+        id: row.id,
+        orderId: row.order_id,
+        productId: row.product_id,
+        quantity: row.quantity,
+        unitPrice: row.unit_price,
+        discountId: row.discount_id,
+        discountPercentage: row.discount_percentage,
+        commission: row.commission,
+        subtotal: row.subtotal,
+        // Campos opcionais que podem não existir na tabela
+        clientRef: null
+      }));
     } catch (error) {
       console.error(`Erro ao obter itens do pedido ${orderId}:`, error);
-      
-      // Se o erro estiver relacionado à coluna clientRef, retornar array vazio
-      if (String(error).includes("client_ref")) {
-        console.log("Ignorando erro de coluna client_ref inexistente e retornando array vazio");
-        return [];
-      }
-      
       throw error;
     }
   }
