@@ -118,14 +118,14 @@ export function MainNav({
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                "group flex items-center px-2 py-3 text-sm font-medium rounded-md",
                 location === item.href
                   ? "bg-blue-900 bg-opacity-40 text-white border-l-4 border-purple-500"
                   : "text-gray-300 hover:bg-blue-900 hover:bg-opacity-20 hover:text-white hover:border-l-4 hover:border-purple-400"
               )}
             >
               {item.icon}
-              {item.title}
+              <span className="text-base">{item.title}</span>
             </Link>
           );
         })}
