@@ -403,7 +403,28 @@ export default function OrderFormPage() {
       clientRef: clientRef || updatedProduct.conversion || null,
     };
     
-    setOrderItems([...orderItems, newItem]);
+    // Adiciona o item à lista
+    setOrderItems(prevItems => {
+      const updatedItems = [...prevItems, newItem];
+      
+      // Usando um setTimeout para garantir que o estado orderItems seja atualizado
+      setTimeout(() => {
+        // Salvar automaticamente o pedido após adicionar o produto
+        if (clientId) {
+          saveOrder();
+        } else {
+          toast({
+            title: "Atenção",
+            description: "Selecione um cliente antes de adicionar produtos.",
+            variant: "destructive",
+          });
+        }
+      }, 0);
+      
+      return updatedItems;
+    });
+    
+    // Fecha a modal e limpa os campos
     setAddProductModalOpen(false);
     setSelectedProductId(null);
     setSelectedDiscountId(null);
@@ -418,6 +439,14 @@ export default function OrderFormPage() {
     const newItems = [...orderItems];
     newItems.splice(index, 1);
     setOrderItems(newItems);
+    
+    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
+    setTimeout(() => {
+      // Salvar automaticamente o pedido após remover um produto
+      if (clientId && newItems.length > 0) {
+        saveOrder();
+      }
+    }, 0);
   };
   
   // Update item discount
@@ -451,6 +480,14 @@ export default function OrderFormPage() {
     };
     
     setOrderItems(newItems);
+    
+    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
+    setTimeout(() => {
+      // Salvar automaticamente o pedido após alterar o desconto
+      if (clientId) {
+        saveOrder();
+      }
+    }, 0);
   };
   
   // Update item quantity
@@ -483,6 +520,14 @@ export default function OrderFormPage() {
     };
     
     setOrderItems(newItems);
+    
+    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
+    setTimeout(() => {
+      // Salvar automaticamente o pedido após alterar a quantidade
+      if (clientId) {
+        saveOrder();
+      }
+    }, 0);
   };
   
   // Mutation para atualizar pedido existente
@@ -912,7 +957,17 @@ export default function OrderFormPage() {
                         <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
                         <Select 
                           value={paymentTerms} 
-                          onValueChange={setPaymentTerms}
+                          onValueChange={(value) => {
+                            setPaymentTerms(value);
+                            
+                            // Salvar automaticamente quando o usuário alterar a condição de pagamento
+                            if (clientId && orderItems.length > 0) {
+                              // Pequeno atraso para garantir que o estado foi atualizado
+                              setTimeout(() => {
+                                saveOrder();
+                              }, 100);
+                            }
+                          }}
                           disabled={false}
                         >
                           <SelectTrigger>
@@ -960,6 +1015,15 @@ export default function OrderFormPage() {
                           placeholder="Observações do pedido" 
                           value={notes} 
                           onChange={(e) => setNotes(e.target.value)}
+                          onBlur={() => {
+                            // Salvar automaticamente quando o usuário terminar de editar as observações
+                            if (clientId && orderItems.length > 0) {
+                              // Pequeno atraso para garantir que o estado foi atualizado
+                              setTimeout(() => {
+                                saveOrder();
+                              }, 100);
+                            }
+                          }}
                           disabled={false}
                         />
                       </div>
@@ -1128,6 +1192,15 @@ export default function OrderFormPage() {
                                       total: totals.subtotal + value
                                     };
                                     setTotals(newTotals);
+                                  }}
+                                  onBlur={() => {
+                                    // Salvar automaticamente quando o usuário terminar de editar
+                                    if (clientId && orderItems.length > 0) {
+                                      // Pequeno atraso para garantir que o estado foi atualizado
+                                      setTimeout(() => {
+                                        saveOrder();
+                                      }, 100);
+                                    }
                                   }}
                                   className="w-24 h-6 text-right"
                                 />
