@@ -727,19 +727,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Pedido ${id} atualizado no endpoint:`, updatedOrder);
       
       // Update order items
-      const processedItems = items.map(item => ({
-        ...item,
-        orderId: id
-      }));
+      // Remover o campo clientRef de todos os itens antes de processá-los
+      const processedItems = items.map(item => {
+        // Extrair o clientRef e manter o resto do objeto
+        const { clientRef, ...itemWithoutClientRef } = item as any;
+        
+        return {
+          ...itemWithoutClientRef,
+          orderId: id
+        };
+      });
       
       console.log(`Atualizando ${processedItems.length} itens para o pedido ${id}`);
       const updatedItems = await storage.updateOrderItems(id, processedItems);
-      console.log(`${updatedItems.length} itens atualizados para o pedido ${id}`);
+      
+      // Adicionar o clientRef de volta aos itens para o frontend
+      const updatedItemsWithClientRef = updatedItems.map((item, index) => {
+        return {
+          ...item,
+          clientRef: items[index]?.clientRef || null
+        };
+      });
+      
+      console.log(`${updatedItemsWithClientRef.length} itens atualizados para o pedido ${id}`);
       
       // Invalidar cache explicitamente
       const orderResult = {
         order: updatedOrder,
-        items: updatedItems
+        items: updatedItemsWithClientRef // Usar a versão com clientRef na resposta
       };
       
       console.log(`Enviando resposta completa para atualização do pedido ${id}:`, orderResult);
@@ -815,16 +830,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderItems = [];
       for (const item of items) {
         try {
+          // Se o item tiver clientRef, remova antes de passar para o schema
+          // pois essa propriedade não existe na tabela order_items
+          const { clientRef, ...itemWithoutClientRef } = item as any;
+          
+          console.log(`Item sem clientRef para validação:`, itemWithoutClientRef);
+          
           const validatedItem = insertOrderItemSchema.parse({
-            ...item,
+            ...itemWithoutClientRef,
             orderId: newOrder.id
           });
           
           const newItem = await storage.createOrderItem(validatedItem);
-          orderItems.push(newItem);
+          
+          // Se quisermos manter clientRef na resposta para o frontend,
+          // podemos adicioná-lo manualmente ao objeto retornado
+          orderItems.push({
+            ...newItem,
+            clientRef: clientRef || null
+          });
         } catch (error) {
           // Log error and continue
           console.error("Error creating order item:", error);
+          console.error("Item data:", JSON.stringify(item));
         }
       }
       

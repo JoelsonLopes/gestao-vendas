@@ -103,7 +103,8 @@ export const orderItems = pgTable("order_items", {
   discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }),
   commission: decimal("commission", { precision: 5, scale: 2 }),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  clientRef: text("client_ref"),
+  // clientRef removido pois não existe na tabela do banco
+  // clientRef: text("client_ref"),
 });
 
 // Client history table

@@ -710,13 +710,53 @@ export class DatabaseStorage implements IStorage {
   // Order Item methods
   async createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
     try {
-      console.log("Tentando criar item de pedido com:", orderItem);
-      const [newOrderItem] = await db
-        .insert(orderItems)
-        .values(orderItem)
-        .returning();
-      console.log("Item de pedido criado com sucesso:", newOrderItem);
-      return newOrderItem;
+      console.log("Tentando criar item de pedido com SQL direto:", orderItem);
+      
+      const insertQuery = `
+        INSERT INTO order_items (
+          order_id, product_id, quantity, unit_price, 
+          discount_id, discount_percentage, commission, subtotal
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, order_id, product_id, quantity, unit_price, 
+                 discount_id, discount_percentage, commission, subtotal
+      `;
+      
+      // Preparar valores garantindo que estejam no formato correto
+      const values = [
+        orderItem.orderId,
+        Number(orderItem.productId),
+        Number(orderItem.quantity),
+        orderItem.unitPrice.toString(),
+        orderItem.discountId ? Number(orderItem.discountId) : null,
+        orderItem.discountPercentage ? orderItem.discountPercentage.toString() : null,
+        orderItem.commission ? orderItem.commission.toString() : null,
+        orderItem.subtotal.toString()
+      ];
+      
+      console.log("Executando inserção com os valores:", values);
+      const result = await pool.query(insertQuery, values);
+      
+      if (result.rows.length === 0) {
+        throw new Error("Falha ao inserir item de pedido - nenhum dado retornado");
+      }
+      
+      // Converter as colunas snake_case para camelCase
+      const row = result.rows[0];
+      const newItem: OrderItem = {
+        id: row.id,
+        orderId: row.order_id,
+        productId: row.product_id,
+        quantity: row.quantity,
+        unitPrice: row.unit_price,
+        discountId: row.discount_id,
+        discountPercentage: row.discount_percentage,
+        commission: row.commission,
+        subtotal: row.subtotal,
+        clientRef: null // Campo opcional que pode não existir na tabela
+      };
+      
+      console.log("Item de pedido criado com sucesso:", newItem);
+      return newItem;
     } catch (error) {
       console.error("Erro ao criar item de pedido:", error);
       console.error("Dados que causaram o erro:", JSON.stringify(orderItem));
