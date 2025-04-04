@@ -98,6 +98,10 @@ export default function OrderFormPage() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  
+  // Estado para a modal de nova condição de pagamento
+  const [addPaymentTermModalOpen, setAddPaymentTermModalOpen] = useState(false);
+  const [newPaymentTerm, setNewPaymentTerm] = useState("");
   const [calculatorProduct, setCalculatorProduct] = useState<Product | null>(null);
   const [totals, setTotals] = useState<{
     subtotal: number;
@@ -330,6 +334,36 @@ export default function OrderFormPage() {
     });
   }, [orderItems, isEditMode, order]);
   
+  // Function to handle adding a new payment term
+  const handleAddPaymentTerm = () => {
+    if (!newPaymentTerm || newPaymentTerm.trim() === "") {
+      toast({
+        title: "Erro",
+        description: "Por favor, digite uma condição de pagamento válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Fechar o modal
+    setAddPaymentTermModalOpen(false);
+    
+    // Selecionar a nova condição de pagamento
+    setPaymentTerms(newPaymentTerm);
+    
+    // Salvar automaticamente quando o usuário adicionar uma nova condição (se houver cliente e itens)
+    if (clientId && orderItems.length > 0) {
+      setTimeout(() => {
+        handleSaveOrder();
+      }, 100);
+    }
+    
+    toast({
+      title: "Condição adicionada",
+      description: `A condição "${newPaymentTerm}" foi adicionada com sucesso.`,
+    });
+  };
+
   // Function to open calculator with a product
   const openCalculator = async (productId: number | null) => {
     if (!productId) return;
@@ -1180,7 +1214,18 @@ export default function OrderFormPage() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
+                        <div className="flex justify-between items-center mb-2">
+                          <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setAddPaymentTermModalOpen(true)}
+                          >
+                            <PlusCircle className="h-4 w-4 mr-1" />
+                            Nova
+                          </Button>
+                        </div>
                         <Select 
                           value={paymentTerms} 
                           onValueChange={(value) => {
@@ -1230,6 +1275,10 @@ export default function OrderFormPage() {
                               <SelectItem value="boleto_28_42_56_70d">Boleto Doc 28/42/56/70D</SelectItem>
                               <SelectItem value="boleto_28_42d">Boleto Doc 28/42</SelectItem>
                               <SelectItem value="boleto_30_60_90_120d">Boleto Doc 30/60/90/120D</SelectItem>
+                              
+                              {newPaymentTerm && (
+                                <SelectItem value={newPaymentTerm}>{newPaymentTerm}</SelectItem>
+                              )}
                             </SelectGroup>
                           </SelectContent>
                         </Select>
@@ -1751,6 +1800,36 @@ export default function OrderFormPage() {
       
       {/* Componente de ajuda com atalhos de teclado */}
       {showShortcutsHelp && <KeyboardShortcutsHelp />}
+      
+      {/* Modal para adicionar condição de pagamento personalizada */}
+      <Dialog open={addPaymentTermModalOpen} onOpenChange={setAddPaymentTermModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Nova Condição de Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newPaymentTerm">Condição de Pagamento</Label>
+              <Input
+                id="newPaymentTerm"
+                placeholder="Ex: Boleto 30/45/60d"
+                value={newPaymentTerm}
+                onChange={(e) => setNewPaymentTerm(e.target.value)}
+                className="w-full"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAddPaymentTermModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleAddPaymentTerm}>
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
