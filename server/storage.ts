@@ -667,28 +667,24 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Excluindo pedido ${id}`);
       
-      // Primeiro, excluímos os itens do pedido
-      try {
-        await this.deleteOrderItems(id);
-      } catch (itemError) {
-        // Se houver um erro relacionado à coluna clientRef, podemos ignorar
-        // e prosseguir com a exclusão do pedido principal
-        if (!String(itemError).includes("client_ref")) {
-          throw itemError;
-        }
-        console.log(`Ignorando erro relacionado à coluna client_ref ao excluir itens do pedido ${id}`);
-      }
+      // Usar SQL bruto para contornar problemas com restrições de chave estrangeira
+      // e problemas com coluna client_ref inexistente
+      const query = `
+      DO $$
+      BEGIN
+        -- Primeiro exclui os itens do pedido
+        DELETE FROM order_items WHERE order_id = $1;
+        
+        -- Depois exclui o pedido
+        DELETE FROM orders WHERE id = $1;
+      END $$;
+      `;
       
-      // Depois, excluímos o pedido
-      const result = await db
-        .delete(orders)
-        .where(eq(orders.id, id))
-        .returning();
-      
-      console.log(`Pedido ${id} excluído com sucesso`);
-      return result.length > 0;
+      await pool.query(query, [id]);
+      console.log(`Pedido ${id} e seus itens excluídos com sucesso via SQL direto`);
+      return true;
     } catch (error) {
-      console.error(`Erro ao excluir pedido ${id}:`, error);
+      console.error(`Erro ao excluir pedido ${id} via SQL direto:`, error);
       throw error;
     }
   }
