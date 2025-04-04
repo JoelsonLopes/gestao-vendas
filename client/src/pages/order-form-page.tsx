@@ -375,7 +375,23 @@ export default function OrderFormPage() {
           // Atalho para adicionar novo produto
           if (!e.ctrlKey && !e.metaKey) {
             e.preventDefault();
+            // Abre a modal
             setAddProductModalOpen(true);
+            
+            // Limpa os campos
+            setSelectedProductId(null);
+            setClientRef("");
+            setProductQuantity(1);
+            setSelectedDiscountId(null);
+            setShouldSaveConversion(false);
+            
+            // Dá tempo para o componente carregar antes de focar
+            setTimeout(() => {
+              const input = document.querySelector('.CommandInput-inputWrapper input');
+              if (input) {
+                (input as HTMLElement).focus();
+              }
+            }, 500);
           }
           break;
           
@@ -1214,7 +1230,25 @@ export default function OrderFormPage() {
                     <div className="flex space-x-2">
                       <Button 
                         ref={addProductButtonRef}
-                        onClick={() => setAddProductModalOpen(true)} 
+                        onClick={() => {
+                          // Abre a modal
+                          setAddProductModalOpen(true);
+                          
+                          // Limpa os campos
+                          setSelectedProductId(null);
+                          setClientRef("");
+                          setProductQuantity(1);
+                          setSelectedDiscountId(null);
+                          setShouldSaveConversion(false);
+                          
+                          // Dá tempo para o componente carregar antes de focar
+                          setTimeout(() => {
+                            const input = document.querySelector('.CommandInput-inputWrapper input');
+                            if (input) {
+                              (input as HTMLElement).focus();
+                            }
+                          }, 500);
+                        }} 
                         disabled={false}
                       >
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -1319,6 +1353,14 @@ export default function OrderFormPage() {
                                         
                                         // Abrir o modal para edição
                                         setAddProductModalOpen(true);
+                                        
+                                        // Dá tempo para o componente carregar antes de focar
+                                        setTimeout(() => {
+                                          const input = document.querySelector('.CommandInput-inputWrapper input');
+                                          if (input) {
+                                            (input as HTMLElement).focus();
+                                          }
+                                        }, 500);
                                       }}
                                       className="text-amber-500 hover:text-amber-700"
                                       title="Editar item"

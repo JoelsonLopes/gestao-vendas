@@ -63,19 +63,15 @@ export function ProductSearch({
 
   // Foco no input de pesquisa quando o popover abre
   useEffect(() => {
-    if ((open || autoFocus) && inputRef.current) {
+    if (open && inputRef.current) {
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100);
+      }, 300); // Aumentado para 300ms para dar mais tempo ao componente
     }
-  }, [open, autoFocus]);
+  }, [open]);
 
-  // Abrir automaticamente se autoFocus estiver ativo
-  useEffect(() => {
-    if (autoFocus && !disabled && !open) {
-      setOpen(true);
-    }
-  }, [autoFocus, disabled]);
+  // Evitamos a abertura automática que estava causando travamento
+  // devido à grande quantidade de produtos (5.814)
 
   // Limpar a seleção
   const clearSelection = () => {
