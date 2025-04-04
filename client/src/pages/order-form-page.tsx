@@ -1105,10 +1105,6 @@ export default function OrderFormPage() {
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle>Produtos do Pedido</CardTitle>
                     <div className="flex space-x-2">
-                      <Button variant="outline" onClick={() => setCalculatorOpen(true)} disabled={false}>
-                        <Calculator className="mr-2 h-4 w-4" />
-                        Calculadora
-                      </Button>
                       <Button 
                         ref={addProductButtonRef}
                         onClick={() => setAddProductModalOpen(true)} 
