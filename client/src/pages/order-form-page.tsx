@@ -882,7 +882,7 @@ export default function OrderFormPage() {
             
             {isEditMode ? (
               <>
-                <Button onClick={saveOrder} disabled={isSubmitting} className="mr-2">
+                <Button onClick={handleSaveOrder} disabled={isSubmitting} className="mr-2">
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -911,7 +911,7 @@ export default function OrderFormPage() {
               </>
             ) : (
               <>
-                <Button onClick={saveOrder} disabled={isSubmitting} className="mr-2">
+                <Button onClick={handleSaveOrder} disabled={isSubmitting} className="mr-2">
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
