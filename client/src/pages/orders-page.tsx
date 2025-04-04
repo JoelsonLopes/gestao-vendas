@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, PlusCircle, Filter, FileDown, Printer, Edit, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Filter, FileDown, Printer, Edit, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PdfTemplate } from "@/components/pdf-template";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
 export default function OrdersPage() {
   const [_, setLocation] = useLocation();
@@ -30,6 +40,10 @@ export default function OrdersPage() {
   // PDF modal state
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  
+  // Estado para o modal de confirmação de exclusão
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   
   // Fetch orders
   const { data: orders, isLoading: isLoadingOrders, refetch } = useQuery<Order[]>({
@@ -446,11 +460,9 @@ export default function OrdersPage() {
                       disabled={deleteOrderMutation.isPending}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Confirmação de exclusão
-                        if (window.confirm(`Tem certeza que deseja excluir o pedido #${order.id}?`)) {
-                          // Chamar mutation para excluir o pedido
-                          deleteOrderMutation.mutate(order.id);
-                        }
+                        // Abrir o modal de confirmação
+                        setOrderToDelete(order);
+                        setShowDeleteConfirm(true);
                       }}
                     >
                       {deleteOrderMutation.isPending ? (
@@ -524,6 +536,44 @@ export default function OrdersPage() {
           />
         )}
       </div>
+
+      {/* Modal de confirmação de exclusão */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmar exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o pedido #{orderToDelete?.id}?<br />
+              Esta ação não poderá ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (orderToDelete) {
+                  deleteOrderMutation.mutate(orderToDelete.id);
+                }
+                setShowDeleteConfirm(false);
+              }}
+              disabled={deleteOrderMutation.isPending}
+            >
+              {deleteOrderMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                "Sim, excluir pedido"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
