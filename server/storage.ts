@@ -179,11 +179,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createClient(client: InsertClient): Promise<Client> {
-    const [newClient] = await db
-      .insert(clients)
-      .values(client)
-      .returning();
-    return newClient;
+    try {
+      console.log("Inserindo cliente no banco:", JSON.stringify(client));
+      const [newClient] = await db
+        .insert(clients)
+        .values(client)
+        .returning();
+      return newClient;
+    } catch (error) {
+      console.error("Erro detalhado ao criar cliente:", error);
+      // Verificar se é um erro de chave única (código ou CNPJ duplicado)
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        if (error.message.includes('cnpj')) {
+          throw new Error("CNPJ já está em uso por outro cliente");
+        } else if (error.message.includes('code')) {
+          throw new Error("Código já está em uso por outro cliente");
+        }
+      }
+      throw error; // Repassar o erro para ser tratado pelo middleware
+    }
   }
 
   async updateClient(id: number, clientData: Partial<InsertClient>): Promise<Client | undefined> {

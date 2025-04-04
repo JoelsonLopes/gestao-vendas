@@ -187,6 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = { ...validatedData, representativeId: req.user.id };
       }
       
+      console.log("Criando cliente com dados:", JSON.stringify(validatedData));
       const client = await storage.createClient(validatedData);
       
       // Add to history
@@ -205,7 +206,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors 
         });
       }
-      res.status(500).json({ message: "Error creating client" });
+      console.error("Erro ao criar cliente:", error);
+      res.status(500).json({ 
+        message: "Error creating client", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
