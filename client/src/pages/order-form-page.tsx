@@ -148,11 +148,6 @@ export default function OrderFormPage() {
   const { data: discounts, isLoading: isLoadingDiscounts } = useQuery<any[]>({
     queryKey: ["/api/discounts"],
   });
-
-  // Get products
-  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-  });
   
   // Get order details if in edit mode (mas não para pedidos novos com id="new")
   const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
@@ -250,43 +245,66 @@ export default function OrderFormPage() {
     }
   }, [isEditMode, order]);
   
+  // Função para buscar um produto por ID
+  const fetchProductById = async (productId: number): Promise<Product | null> => {
+    try {
+      const response = await fetch(`/api/products/${productId}`);
+      if (!response.ok) {
+        console.error(`Erro ao buscar o produto ${productId}:`, response.statusText);
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Erro ao buscar o produto ${productId}:`, error);
+      return null;
+    }
+  };
+
   // Load order items if order is loaded
   useEffect(() => {
-    if (isEditMode && orderItemsData && products && Array.isArray(orderItemsData)) {      
-      console.log("Processando itens do pedido:", orderItemsData);
-      
-      // Map order items with product details
-      const mappedItems = orderItemsData.map((item: any) => {
-        const product = products?.find(p => p.id === item.productId);
+    const loadOrderItemsWithProducts = async () => {
+      if (isEditMode && orderItemsData && Array.isArray(orderItemsData)) {      
+        console.log("Processando itens do pedido:", orderItemsData);
         
-        // Log detalhado para cada item
-        console.log("Processando item:", item, "Produto encontrado:", product);
+        // Carregar produtos para cada item
+        const itemsWithProductsPromises = orderItemsData.map(async (item: any) => {
+          // Buscar o produto para este item
+          const product = await fetchProductById(item.productId);
+          
+          // Log detalhado para cada item
+          console.log("Processando item:", item, "Produto encontrado:", product);
+          
+          return {
+            id: item.id,
+            productId: item.productId,
+            // Converter strings para números com valores padrão para evitar nulos
+            unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0),
+            quantity: typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0),
+            discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : (item.discountPercentage || 0),
+            commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
+            subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
+            discountId: item.discountId,
+            product,
+            clientRef: item.clientRef || product?.conversion || null,
+          };
+        });
         
-        return {
-          id: item.id,
-          productId: item.productId,
-          // Converter strings para números com valores padrão para evitar nulos
-          unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0),
-          quantity: typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0),
-          discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : (item.discountPercentage || 0),
-          commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
-          subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
-          discountId: item.discountId,
-          product,
-        };
-      });
-      
-      console.log("Itens mapeados:", mappedItems);
-      setOrderItems(mappedItems);
-    } else {
-      console.log("Não foi possível processar itens do pedido:", {
-        isEditMode,
-        orderItemsData,
-        isArray: Array.isArray(orderItemsData),
-        productsLoaded: !!products
-      });
-    }
-  }, [isEditMode, orderItemsData, products]);
+        // Esperar que todos os produtos sejam carregados
+        const mappedItems = await Promise.all(itemsWithProductsPromises);
+        
+        console.log("Itens mapeados:", mappedItems);
+        setOrderItems(mappedItems);
+      } else {
+        console.log("Não foi possível processar itens do pedido:", {
+          isEditMode,
+          orderItemsData,
+          isArray: Array.isArray(orderItemsData)
+        });
+      }
+    };
+    
+    loadOrderItemsWithProducts();
+  }, [isEditMode, orderItemsData]);
   
   // Calculate order totals and update the state
   useEffect(() => {
@@ -313,17 +331,26 @@ export default function OrderFormPage() {
   }, [orderItems, isEditMode, order]);
   
   // Function to open calculator with a product
-  const openCalculator = (productId: number | null) => {
+  const openCalculator = async (productId: number | null) => {
     if (!productId) return;
     
-    const product = products?.find(p => p.id === productId);
-    if (product) {
-      setCalculatorProduct(product);
-      setCalculatorOpen(true);
-    } else {
+    try {
+      const product = await fetchProductById(productId);
+      if (product) {
+        setCalculatorProduct(product);
+        setCalculatorOpen(true);
+      } else {
+        toast({
+          title: "Erro",
+          description: "Produto não encontrado.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar produto para calculadora:", error);
       toast({
         title: "Erro",
-        description: "Produto não encontrado.",
+        description: "Não foi possível carregar as informações do produto.",
         variant: "destructive",
       });
     }
@@ -450,11 +477,19 @@ export default function OrderFormPage() {
   }, [useKeyboardShortcuts]);
   
   // Add product to order
-  const addProductToOrder = () => {
+  const addProductToOrder = async () => {
     if (!selectedProductId || productQuantity <= 0) return;
     
-    const product = products?.find(p => p.id === selectedProductId);
-    if (!product) return;
+    // Buscar o produto pelo ID
+    const product = await fetchProductById(selectedProductId);
+    if (!product) {
+      toast({
+        title: "Erro",
+        description: "Produto não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Sempre atualizamos o produto com a referência do cliente se ela foi fornecida
     let updatedProduct = {...product};
@@ -467,18 +502,19 @@ export default function OrderFormPage() {
       if (shouldSaveConversion) {
         console.log("Salvando conversão no servidor...");
         
-        fetch(`/api/products/${selectedProductId}/save-conversion`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ clientRef }),
-        })
-        .then(res => {
-          if (!res.ok) throw new Error("Erro ao salvar conversão");
-          return res.json();
-        })
-        .then(() => {
+        try {
+          const response = await fetch(`/api/products/${selectedProductId}/save-conversion`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ clientRef }),
+          });
+          
+          if (!response.ok) throw new Error("Erro ao salvar conversão");
+          
+          await response.json();
+          
           toast({
             title: "Referência salva",
             description: "Referência do cliente vinculada ao produto com sucesso.",
@@ -486,14 +522,13 @@ export default function OrderFormPage() {
           
           // Atualizar a lista de produtos depois de salvar a conversão
           queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-        })
-        .catch(error => {
+        } catch (error) {
           toast({
             title: "Aviso",
             description: "O produto foi adicionado, mas não foi possível salvar a referência.",
             variant: "destructive",
           });
-        });
+        }
       }
     } else if (updatedProduct.conversion) {
       // Se o produto já tinha uma conversão, mantemos ela
@@ -874,7 +909,7 @@ export default function OrderFormPage() {
   };
   
   // Loading state
-  const isLoading = isLoadingClients || isLoadingProducts || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems));
+  const isLoading = isLoadingClients || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems));
 
   return (
     <DashboardLayout>
@@ -1458,7 +1493,6 @@ export default function OrderFormPage() {
                       <div className="space-y-2">
                         <Label htmlFor="product">Produto</Label>
                         <ProductSearch 
-                          products={products}
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
                           autoFocus={true}
