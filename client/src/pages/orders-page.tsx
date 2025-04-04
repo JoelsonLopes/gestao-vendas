@@ -417,6 +417,15 @@ export default function OrdersPage() {
                 ),
                 sortable: true,
               },
+              // Coluna oculta para ordenação automática por data de atualização
+              {
+                header: "",
+                accessorKey: "updatedAt",
+                cell: () => null,
+                sortable: true,
+                // @ts-ignore - adiciona propriedade personalizada para ocultar coluna
+                hidden: true,
+              },
               {
                 header: "Qtd. Peças",
                 accessorKey: "id", // Usamos id como acessor, pois não temos uma propriedade de qtd na tabela
@@ -488,6 +497,8 @@ export default function OrdersPage() {
             searchable
             searchPlaceholder="Buscar pedidos..."
             onRowClick={navigateToOrderDetails}
+            initialSortColumn="updatedAt"
+            initialSortDirection="desc"
           />
         )}
       </div>

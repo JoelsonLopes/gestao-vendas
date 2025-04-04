@@ -42,6 +42,7 @@ interface Column<T> {
   sortable?: boolean;
   filterable?: boolean;
   filterOptions?: string[];
+  hidden?: boolean; // Nova propriedade para ocultar uma coluna da visualização
 }
 
 interface DataTableProps<T> {
@@ -347,36 +348,39 @@ export function DataTable<T>({
           <TableHeader className="bg-gray-50 dark:bg-gray-800 sticky top-0">
             <TableRow>
               {columns.map((column, index) => (
-                <TableHead key={index} className="text-muted-foreground">
-                  {column.sortable ? (
-                    <button
-                      className="flex items-center hover:text-foreground w-full"
-                      onClick={() => handleSort(column.accessorKey)}
-                    >
-                      <span>{column.header}</span>
-                      {sortColumn === column.accessorKey ? (
-                        sortDirection === "asc" ? (
-                          <ChevronUpIcon className="ml-1 h-4 w-4" />
+                // Somente renderizar colunas não marcadas como ocultas
+                !column.hidden && (
+                  <TableHead key={index} className="text-muted-foreground">
+                    {column.sortable ? (
+                      <button
+                        className="flex items-center hover:text-foreground w-full"
+                        onClick={() => handleSort(column.accessorKey)}
+                      >
+                        <span>{column.header}</span>
+                        {sortColumn === column.accessorKey ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUpIcon className="ml-1 h-4 w-4" />
+                          ) : (
+                            <ChevronDownIcon className="ml-1 h-4 w-4" />
+                          )
                         ) : (
-                          <ChevronDownIcon className="ml-1 h-4 w-4" />
-                        )
-                      ) : (
-                        <CaretSortIcon className="ml-1 h-4 w-4 opacity-50" />
-                      )}
-                    </button>
-                  ) : (
-                    <div className="flex items-center">
-                      <span>{column.header}</span>
-                    </div>
-                  )}
-                </TableHead>
+                          <CaretSortIcon className="ml-1 h-4 w-4 opacity-50" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="flex items-center">
+                        <span>{column.header}</span>
+                      </div>
+                    )}
+                  </TableHead>
+                )
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.filter(col => !col.hidden).length} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                     <svg 
                       xmlns="http://www.w3.org/2000/svg" 
@@ -414,9 +418,12 @@ export function DataTable<T>({
                   className={onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" : undefined}
                 >
                   {columns.map((column, index) => (
-                    <TableCell key={index}>
-                      {column.cell ? column.cell(item) : String(item[column.accessorKey] || '')}
-                    </TableCell>
+                    // Somente renderizar células de colunas não marcadas como ocultas
+                    !column.hidden && (
+                      <TableCell key={index}>
+                        {column.cell ? column.cell(item) : String(item[column.accessorKey] || '')}
+                      </TableCell>
+                    )
                   ))}
                 </TableRow>
               ))
