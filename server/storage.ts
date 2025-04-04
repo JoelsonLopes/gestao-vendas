@@ -708,28 +708,52 @@ export class DatabaseStorage implements IStorage {
 
   // Order Item methods
   async createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const [newOrderItem] = await db
-      .insert(orderItems)
-      .values(orderItem)
-      .returning();
-    return newOrderItem;
+    try {
+      console.log("Tentando criar item de pedido com:", orderItem);
+      const [newOrderItem] = await db
+        .insert(orderItems)
+        .values(orderItem)
+        .returning();
+      console.log("Item de pedido criado com sucesso:", newOrderItem);
+      return newOrderItem;
+    } catch (error) {
+      console.error("Erro ao criar item de pedido:", error);
+      console.error("Dados que causaram o erro:", JSON.stringify(orderItem));
+      throw error;
+    }
   }
 
   async updateOrderItems(orderId: number, items: InsertOrderItem[]): Promise<OrderItem[]> {
-    // Primeiro apaga todos os itens existentes do pedido
-    await this.deleteOrderItems(orderId);
-    
-    // Depois cria novos itens
-    const newItems: OrderItem[] = [];
-    for (const item of items) {
-      const newItem = await this.createOrderItem({
-        ...item,
-        orderId,
-      });
-      newItems.push(newItem);
+    try {
+      // Primeiro apaga todos os itens existentes do pedido
+      await this.deleteOrderItems(orderId);
+      
+      // Depois cria novos itens
+      const newItems: OrderItem[] = [];
+      for (const item of items) {
+        // Garantir que todos os campos estejam no formato correto
+        const validatedItem: InsertOrderItem = {
+          orderId,
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
+          unitPrice: item.unitPrice.toString(),
+          discountId: item.discountId ? Number(item.discountId) : null,
+          discountPercentage: item.discountPercentage ? item.discountPercentage.toString() : null,
+          commission: item.commission ? item.commission.toString() : null,
+          subtotal: item.subtotal.toString(),
+          clientRef: item.clientRef || null,
+        };
+        
+        console.log("Criando item com dados validados:", validatedItem);
+        const newItem = await this.createOrderItem(validatedItem);
+        newItems.push(newItem);
+      }
+      
+      return newItems;
+    } catch (error) {
+      console.error("Erro ao atualizar itens do pedido:", error);
+      throw error;
     }
-    
-    return newItems;
   }
 
   async deleteOrderItems(orderId: number): Promise<boolean> {

@@ -745,13 +745,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Enviando resposta completa para atualização do pedido ${id}:`, orderResult);
       res.json(orderResult);
     } catch (error) {
+      console.error("Erro ao atualizar pedido:", error);
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Validation failed", 
           errors: error.errors 
         });
       }
-      res.status(500).json({ message: "Error updating order" });
+      
+      res.status(500).json({ 
+        message: "Error updating order", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
