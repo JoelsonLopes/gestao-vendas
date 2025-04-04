@@ -50,6 +50,7 @@ export default function OrdersPage() {
     queryKey: ["/api/orders"],
     staleTime: 0, // Sempre verificar por novos dados
     refetchOnMount: true, // Recarregar quando o componente montar
+    refetchInterval: false, // Não recarregar automaticamente em intervalos
   });
   
   // Estado para armazenar informações de itens por pedido (quantidade total de peças e comissão)
@@ -267,9 +268,15 @@ export default function OrdersPage() {
         variant: "default"
       });
       
-      // Invalidar o cache para forçar um reload
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["orderItemsCalculation"] });
+      // Garantir que a lista seja atualizada após a exclusão
+      setTimeout(() => {
+        // Invalidar o cache e forçar um reload
+        queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+        queryClient.invalidateQueries({ queryKey: ["orderItemsCalculation"] });
+        
+        // Forçar um refetch explícito também
+        refetch();
+      }, 500);
     },
     onError: (error) => {
       console.error("Erro ao excluir pedido:", error);
