@@ -1419,13 +1419,13 @@ export default function OrderFormPage() {
                           products={products}
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
+                          autoFocus={true}
                           onEnterKeyPressed={() => {
                             // Se um produto foi selecionado e tudo está OK, adicionar o produto
                             if (selectedProductId && productQuantity > 0) {
                               addProductToOrder();
                             }
                           }}
-                          autoFocus={true}
                         />
                       </div>
                     </TabsContent>
