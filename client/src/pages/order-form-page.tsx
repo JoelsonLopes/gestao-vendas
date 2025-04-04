@@ -460,8 +460,10 @@ export default function OrderFormPage() {
   
   // Remove product from order
   const removeOrderItem = (index: number) => {
+    // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
+    const actualIndex = orderItems.length - 1 - index;
     const newItems = [...orderItems];
-    newItems.splice(index, 1);
+    newItems.splice(actualIndex, 1);
     setOrderItems(newItems);
     
     // Usando um setTimeout para garantir que o estado orderItems seja atualizado
@@ -475,8 +477,10 @@ export default function OrderFormPage() {
   
   // Update item discount
   const updateItemDiscount = (index: number, discountId: number | null, discountPercentage: number, commission: number) => {
+    // Com a ordenação invertida na exibição, precisamos ajustar o índice
+    const actualIndex = orderItems.length - 1 - index;
     const newItems = [...orderItems];
-    const item = newItems[index];
+    const item = newItems[actualIndex];
     
     // Calcular o preço unitário com desconto primeiro
     const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
@@ -495,7 +499,7 @@ export default function OrderFormPage() {
       - Comissão: ${commission}%
     `);
     
-    newItems[index] = {
+    newItems[actualIndex] = {
       ...item,
       discountId,
       discountPercentage,
@@ -518,8 +522,10 @@ export default function OrderFormPage() {
   const updateItemQuantity = (index: number, quantity: number) => {
     if (quantity <= 0) return;
     
+    // Com a ordenação invertida na exibição, precisamos ajustar o índice
+    const actualIndex = orderItems.length - 1 - index;
     const newItems = [...orderItems];
-    const item = newItems[index];
+    const item = newItems[actualIndex];
     
     // Pegar o preço unitário com desconto
     const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
@@ -537,7 +543,7 @@ export default function OrderFormPage() {
       - Novo subtotal: ${formatCurrency(discountedSubtotal)}
     `);
     
-    newItems[index] = {
+    newItems[actualIndex] = {
       ...item,
       quantity,
       subtotal: discountedSubtotal,
@@ -1137,7 +1143,8 @@ export default function OrderFormPage() {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            orderItems.map((item, index) => (
+                            // Invertemos a ordem para mostrar os mais recentes primeiro
+                            [...orderItems].reverse().map((item, index) => (
                               <TableRow key={index}>
                                 <TableCell>
                                   {item.clientRef || item.product?.conversion ? (
@@ -1201,8 +1208,10 @@ export default function OrderFormPage() {
                                         setShouldSaveConversion(true);
                                         
                                         // Remover o item atual para ser substituído
+                                        // Com a ordenação invertida na exibição, precisamos ajustar o índice
+                                        const actualIndex = orderItems.length - 1 - index;
                                         const updatedItems = [...orderItems];
-                                        updatedItems.splice(index, 1);
+                                        updatedItems.splice(actualIndex, 1);
                                         setOrderItems(updatedItems);
                                         
                                         // Abrir o modal para edição
