@@ -15,7 +15,8 @@ import {
   Trash,
   Search,
   Printer,
-  Calculator
+  Calculator,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,11 +77,13 @@ export default function OrderFormPage() {
     commission: number;
     subtotal: number;
     product?: Product;
+    clientRef?: string | null;
   }>>([]);
   
   // UI state
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
   const [clientRef, setClientRef] = useState("");
   const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false);
@@ -385,6 +388,7 @@ export default function OrderFormPage() {
       commission: 0,
       subtotal: subtotal,
       product: updatedProduct, // Usar o produto atualizado com a referência do cliente
+      clientRef: clientRef || updatedProduct.conversion || null,
     };
     
     setOrderItems([...orderItems, newItem]);
@@ -546,6 +550,7 @@ export default function OrderFormPage() {
       discountPercentage: item.discountPercentage.toString(), // Convertido para string
       commission: item.commission.toString(), // Convertido para string
       subtotal: item.subtotal.toString(), // Convertido para string
+      clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
     }));
     
     if (isEditMode && id && id !== "new") {
@@ -609,7 +614,7 @@ export default function OrderFormPage() {
         name: item.product?.name || `Produto #${item.productId}`,
         code: item.product?.code || String(item.productId),
         brand: item.product?.brand || null,
-        clientRef: item.product?.conversion || null,
+        clientRef: item.clientRef || item.product?.conversion || null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discountPercentage,
@@ -785,7 +790,7 @@ export default function OrderFormPage() {
                   return (
                     <tr key={index} className="border-b border-gray-200">
                       <td className="py-3 align-middle text-sm">
-                        {item.product?.conversion || '-'}
+                        {item.clientRef || item.product?.conversion || '-'}
                       </td>
                       <td className="py-3 align-middle text-sm">{item.product?.name}</td>
                       <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
@@ -992,9 +997,9 @@ export default function OrderFormPage() {
                             orderItems.map((item, index) => (
                               <TableRow key={index}>
                                 <TableCell>
-                                  {item.product?.conversion ? (
+                                  {item.clientRef || item.product?.conversion ? (
                                     <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
-                                      {item.product.conversion}
+                                      {item.clientRef || item.product?.conversion}
                                     </span>
                                   ) : (
                                     <span className="text-muted-foreground">-</span>
@@ -1037,14 +1042,40 @@ export default function OrderFormPage() {
                                       size="sm" 
                                       onClick={() => openCalculator(item.productId)}
                                       className="text-blue-500 hover:text-blue-700"
+                                      title="Calculadora de preço"
                                     >
                                       <Calculator className="h-4 w-4" />
                                     </Button>
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
+                                      onClick={() => {
+                                        // Predefinir os valores para edição
+                                        setSelectedProductId(item.productId);
+                                        setProductQuantity(item.quantity);
+                                        setSelectedDiscountId(item.discountId || null);
+                                        setClientRef(item.product?.conversion || item.clientRef || '');
+                                        setShouldSaveConversion(true);
+                                        
+                                        // Remover o item atual para ser substituído
+                                        const updatedItems = [...orderItems];
+                                        updatedItems.splice(index, 1);
+                                        setOrderItems(updatedItems);
+                                        
+                                        // Abrir o modal para edição
+                                        setAddProductModalOpen(true);
+                                      }}
+                                      className="text-amber-500 hover:text-amber-700"
+                                      title="Editar item"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
                                       onClick={() => removeOrderItem(index)}
                                       className="text-red-500 hover:text-red-700"
+                                      title="Excluir item"
                                     >
                                       <Trash className="h-4 w-4" />
                                     </Button>
