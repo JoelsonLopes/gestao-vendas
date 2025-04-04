@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, PlusCircle, Filter, FileDown, Printer, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PdfTemplate } from "@/components/pdf-template";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function OrdersPage() {
   const [_, setLocation] = useLocation();
@@ -239,6 +240,32 @@ export default function OrdersPage() {
     // Limpamos o pedido selecionado após um pequeno delay para evitar flash durante o fechamento do modal
     setTimeout(() => setSelectedOrder(null), 300);
   };
+  
+  // Mutation para excluir pedido
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      await apiRequest("DELETE", `/api/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Pedido excluído com sucesso",
+        description: "O pedido foi removido do sistema.",
+        variant: "default"
+      });
+      
+      // Invalidar o cache para forçar um reload
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orderItemsCalculation"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir pedido:", error);
+      toast({
+        title: "Erro ao excluir pedido",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o pedido.",
+        variant: "destructive"
+      });
+    }
+  });
 
   return (
     <DashboardLayout>
@@ -416,21 +443,21 @@ export default function OrdersPage() {
                       size="sm"
                       className="text-red-600 hover:text-red-800"
                       title="Excluir"
+                      disabled={deleteOrderMutation.isPending}
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Implementar confirmação de exclusão aqui
+                        // Confirmação de exclusão
                         if (window.confirm(`Tem certeza que deseja excluir o pedido #${order.id}?`)) {
-                          // Implementar a lógica de exclusão aqui quando for necessário
-                          // Por enquanto apenas mostra uma mensagem
-                          toast({
-                            title: "Funcionalidade em desenvolvimento",
-                            description: "A exclusão de pedidos será implementada em breve.",
-                            variant: "default"
-                          });
+                          // Chamar mutation para excluir o pedido
+                          deleteOrderMutation.mutate(order.id);
                         }
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleteOrderMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                       <span className="sr-only">Excluir</span>
                     </Button>
                   </div>

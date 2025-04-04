@@ -648,6 +648,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete order
+  app.delete("/api/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const order = await storage.getOrder(id);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+      
+      // Verificar se o usuário tem permissão para excluir o pedido
+      if (req.user?.role !== 'admin' && order.representativeId !== req.user?.id) {
+        return res.status(403).json({ message: "Não autorizado a excluir este pedido" });
+      }
+      
+      const success = await storage.deleteOrder(id);
+      
+      if (success) {
+        res.json({ message: "Pedido excluído com sucesso" });
+      } else {
+        res.status(500).json({ message: "Erro ao excluir pedido" });
+      }
+    } catch (error) {
+      console.error("Erro ao excluir pedido:", error);
+      res.status(500).json({ 
+        message: "Erro ao excluir pedido", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Update order
   app.put("/api/orders/:id", isAuthenticated, async (req, res) => {
     try {

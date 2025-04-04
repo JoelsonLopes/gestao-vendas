@@ -64,6 +64,7 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined>;
   updateOrderStatus(id: number, status: 'cotacao' | 'confirmado'): Promise<Order | undefined>;
+  deleteOrder(id: number): Promise<boolean>;
   listOrders(): Promise<Order[]>;
   listOrdersByRepresentative(representativeId: number): Promise<Order[]>;
   listOrdersByClient(clientId: number): Promise<Order[]>;
@@ -660,6 +661,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, id))
       .returning();
     return updatedOrder || undefined;
+  }
+  
+  async deleteOrder(id: number): Promise<boolean> {
+    try {
+      console.log(`Excluindo pedido ${id}`);
+      
+      // Primeiro, excluímos os itens do pedido
+      await this.deleteOrderItems(id);
+      
+      // Depois, excluímos o pedido
+      const result = await db
+        .delete(orders)
+        .where(eq(orders.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Erro ao excluir pedido ${id}:`, error);
+      throw error;
+    }
   }
 
   async listOrders(): Promise<Order[]> {
