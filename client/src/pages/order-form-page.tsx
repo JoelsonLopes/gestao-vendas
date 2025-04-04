@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { useLocation, useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -323,6 +323,9 @@ export default function OrderFormPage() {
     }
   };
   
+  // Referência para o botão "Adicionar Produto"
+  const addProductButtonRef = useRef<HTMLButtonElement>(null);
+  
   // Add product to order
   const addProductToOrder = () => {
     if (!selectedProductId || productQuantity <= 0) return;
@@ -446,6 +449,13 @@ export default function OrderFormPage() {
     setClientRef("");
     setIsSearchingByClientRef(false);
     setShouldSaveConversion(false);
+    
+    // Após adicionar um produto, retorna o foco para o botão "Adicionar Produto"
+    setTimeout(() => {
+      if (addProductButtonRef.current) {
+        addProductButtonRef.current.focus();
+      }
+    }, 100);
   };
   
   // Remove product from order
@@ -1093,7 +1103,11 @@ export default function OrderFormPage() {
                         <Calculator className="mr-2 h-4 w-4" />
                         Calculadora
                       </Button>
-                      <Button onClick={() => setAddProductModalOpen(true)} disabled={false}>
+                      <Button 
+                        ref={addProductButtonRef}
+                        onClick={() => setAddProductModalOpen(true)} 
+                        disabled={false}
+                      >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Produto
                       </Button>
