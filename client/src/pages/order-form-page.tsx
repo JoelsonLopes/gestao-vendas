@@ -360,32 +360,44 @@ export default function OrderFormPage() {
       console.log("Produto já possui conversão:", updatedProduct.conversion);
     }
     
-    // Inicialmente sem desconto
+    // Buscar informações do desconto selecionado
     const unitPrice = Number(product.price);
-    const discountPercentage = 0;
+    let discountPercentage = 0;
+    let commission = 0;
     
-    // Cálculo do preço com desconto (neste caso, sem desconto ainda)
+    if (selectedDiscountId !== null) {
+      const discountObj = discounts?.find(d => d.id === selectedDiscountId);
+      if (discountObj) {
+        discountPercentage = parseFloat(discountObj.percentage);
+        commission = parseFloat(discountObj.commission);
+      }
+    }
+    
+    // Cálculo do preço com desconto
     const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
     
-    // Subtotal baseado no preço unitário já com desconto (que neste momento é igual ao preço original)
+    // Subtotal baseado no preço unitário já com desconto
     const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
     
     console.log(`
       Adicionando produto:
       - Produto: ${product.name} (${product.code})
       - Preço original: ${formatCurrency(unitPrice)}
+      - Desconto: ${discountPercentage}%
+      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
       - Quantidade: ${productQuantity}
       - Subtotal: ${formatCurrency(subtotal)}
       ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
+      ${selectedDiscountId ? `- Comissão: ${commission}%` : ''}
     `);
     
     const newItem = {
       productId: selectedProductId,
       quantity: productQuantity,
       unitPrice: unitPrice,
-      discountId: null,
+      discountId: selectedDiscountId,
       discountPercentage: discountPercentage,
-      commission: 0,
+      commission: commission,
       subtotal: subtotal,
       product: updatedProduct, // Usar o produto atualizado com a referência do cliente
       clientRef: clientRef || updatedProduct.conversion || null,
@@ -394,6 +406,7 @@ export default function OrderFormPage() {
     setOrderItems([...orderItems, newItem]);
     setAddProductModalOpen(false);
     setSelectedProductId(null);
+    setSelectedDiscountId(null);
     setProductQuantity(1);
     setClientRef("");
     setIsSearchingByClientRef(false);
@@ -1340,20 +1353,33 @@ export default function OrderFormPage() {
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantidade</Label>
-                    <Input 
-                      type="number" 
-                      min="1" 
-                      value={productQuantity}
-                      onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && selectedProductId && productQuantity > 0) {
-                          e.preventDefault();
-                          addProductToOrder();
-                        }
-                      }}
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantidade</Label>
+                      <Input 
+                        type="number" 
+                        min="1" 
+                        value={productQuantity}
+                        onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && selectedProductId && productQuantity > 0) {
+                            e.preventDefault();
+                            addProductToOrder();
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="discount">Desconto</Label>
+                      <DiscountSelect
+                        value={selectedDiscountId}
+                        onChange={(discountId, discountPercentage, commission) => {
+                          setSelectedDiscountId(discountId);
+                        }}
+                        label=""
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 </div>
                 
