@@ -9,6 +9,7 @@ import {
   Loader2,
   Save,
   Check,
+  CheckCircle,
   FileDown,
   ArrowLeft,
   PlusCircle,
@@ -51,8 +52,8 @@ export default function OrderFormPage() {
   
   // Usar useRoute para capturar parâmetros de rota
   const [match, params] = useRoute("/orders/:id");
-  const id = params?.id;
-  const isEditMode = !!id;
+  const [id, setId] = useState<string | undefined>(params?.id);
+  const [isEditMode, setIsEditMode] = useState<boolean>(!!params?.id);
   const isNewOrder = id === "new";
 
   console.log("OrderFormPage - URL atual:", location);
@@ -177,13 +178,26 @@ export default function OrderFormPage() {
       const response = await apiRequest("POST", "/api/orders", data);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    onSuccess: (data) => {
+      // Invalidar o cache de pedidos
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      
+      // Se recebemos um ID do pedido, atualizamos a URL sem redirecionar
+      if (data && data.order && data.order.id) {
+        // Atualizar a URL para o pedido criado sem recarregar a página
+        window.history.replaceState(null, '', `/orders/${data.order.id}`);
+        
+        // Atualizar state para refletir que estamos agora em modo de edição
+        setIsEditMode(true);
+        
+        // Definir o ID do pedido para o novo pedido criado
+        setId(String(data.order.id));
+      }
+      
       toast({
         title: "Pedido criado",
-        description: "Pedido foi criado com sucesso",
+        description: "Pedido foi criado com sucesso. Você pode continuar adicionando itens.",
       });
-      navigate("/orders");
     },
     onError: (error) => {
       toast({
@@ -563,7 +577,8 @@ export default function OrderFormPage() {
         title: "Pedido atualizado",
         description: "O pedido foi atualizado com sucesso.",
       });
-      navigate("/orders");
+      
+      // Não redirecionamos automaticamente, só quando o usuário clicar no botão "Concluir"
     },
     onError: (error: Error) => {
       toast({
@@ -752,17 +767,54 @@ export default function OrderFormPage() {
                   )}
                   Salvar Alterações
                 </Button>
-
+                
+                <Button 
+                  onClick={() => {
+                    // Salvar alterações e então redirecionar para a lista de pedidos
+                    if (clientId && orderItems.length > 0) {
+                      saveOrder();
+                      setTimeout(() => {
+                        navigate("/orders");
+                      }, 500);
+                    } else {
+                      navigate("/orders");
+                    }
+                  }} 
+                  variant="default"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalizar e Voltar
+                </Button>
               </>
             ) : (
-              <Button onClick={saveOrder} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Salvar Pedido
-              </Button>
+              <>
+                <Button onClick={saveOrder} disabled={isSubmitting} className="mr-2">
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Salvar Pedido
+                </Button>
+                
+                <Button 
+                  onClick={() => {
+                    // Salvar pedido e então redirecionar para a lista de pedidos
+                    if (clientId && orderItems.length > 0) {
+                      saveOrder();
+                      setTimeout(() => {
+                        navigate("/orders");
+                      }, 500);
+                    } else {
+                      navigate("/orders");
+                    }
+                  }} 
+                  variant="default"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalizar e Voltar
+                </Button>
+              </>
             )}
           </div>
         </div>
