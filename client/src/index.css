@@ -143,5 +143,37 @@
     border-bottom: 1px solid #ddd !important;
   }
   
-  /* Definição já aplicada acima */
+  /* Remover linha azul vertical na impressão */
+  body::after,
+  body::before,
+  *::after,
+  *::before,
+  div::after,
+  div::before {
+    content: none !important;
+    display: none !important;
+    border: none !important;
+    background: none !important;
+  }
+
+  /* Esconder bordas indesejadas */
+  .print-document *,
+  * {
+    border-right: none !important;
+  }
+  
+  /* Remover qualquer linha vertical ou decoração não desejada */
+  .print-document::after,
+  .print-document::before,
+  .print-document *::after,
+  .print-document *::before {
+    display: none !important;
+  }
+  
+  /* Forçar remoção de elementos CSS pseudo */
+  .print-content::after,
+  .print-content::before {
+    display: none !important;
+    content: none !important;
+  }
 }
