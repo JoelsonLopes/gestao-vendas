@@ -92,6 +92,28 @@
     display: none !important;
   }
   
+  /* Garantir que o total de peças seja exibido na impressão */
+  .print-footer {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 30px !important;
+  }
+  
+  .print-footer > div {
+    width: 33% !important;
+  }
+  
+  /* Não ocultar informações de totais */
+  .print-footer .border-t div {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  
+  .total-pecas-print {
+    display: block !important;
+  }
+  
   /* Exibir conteúdo de impressão oculto normalmente */
   .hidden.print\:block {
     display: block !important;
@@ -121,9 +143,5 @@
     border-bottom: 1px solid #ddd !important;
   }
   
-  .print-footer {
-    display: flex !important;
-    justify-content: flex-end !important;
-    margin-top: 30px !important;
-  }
+  /* Definição já aplicada acima */
 }

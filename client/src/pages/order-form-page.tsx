@@ -1149,9 +1149,9 @@ export default function OrderFormPage() {
                   <span className="text-sm text-gray-600">Taxa de Frete:</span>
                   <span className="text-sm text-gray-800">{formatCurrency(totals.taxes)}</span>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Total de Peças:</span>
-                  <span className="text-sm text-gray-800">
+                <div className="flex justify-between py-1 total-pecas-print">
+                  <span className="text-sm text-gray-600 font-bold">Total de Peças:</span>
+                  <span className="text-sm text-gray-800 font-bold">
                     {orderItems.reduce((sum, item) => sum + item.quantity, 0)}
                   </span>
                 </div>
