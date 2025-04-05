@@ -948,35 +948,39 @@ export default function OrderFormPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        {/* Cabeçalho responsivo com botões adaptados para mobile */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/orders")} className="mr-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+            <Button variant="ghost" size="sm" onClick={() => navigate("/orders")} className="mr-2 md:mr-4">
+              <ArrowLeft className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden md:inline">Voltar</span>
             </Button>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">
               {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
             </h1>
           </div>
           
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer className="mr-2 h-4 w-4" />
-              Imprimir
+          {/* Botões de ação responsivos */}
+          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="md:px-3">
+              <Printer className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Imprimir</span>
             </Button>
             
             {isEditMode ? (
               <>
-                <Button onClick={handleSaveOrder} disabled={isSubmitting} className="mr-2">
+                <Button size="sm" onClick={handleSaveOrder} disabled={isSubmitting} className="md:px-3">
                   {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
                   ) : (
-                    <Save className="mr-2 h-4 w-4" />
+                    <Save className="h-4 w-4 md:mr-2" />
                   )}
-                  Salvar Alterações
+                  <span className="hidden md:inline">Salvar Alterações</span>
+                  <span className="inline md:hidden">Salvar</span>
                 </Button>
                 
                 <Button 
+                  size="sm"
                   onClick={() => {
                     // Salvar alterações e então redirecionar para a lista de pedidos
                     if (clientId && orderItems.length > 0) {
@@ -989,23 +993,27 @@ export default function OrderFormPage() {
                     }
                   }} 
                   variant="default"
+                  className="md:px-3"
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Finalizar e Voltar
+                  <CheckCircle className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Finalizar e Voltar</span>
+                  <span className="inline md:hidden">Finalizar</span>
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={handleSaveOrder} disabled={isSubmitting} className="mr-2">
+                <Button size="sm" onClick={handleSaveOrder} disabled={isSubmitting} className="md:px-3">
                   {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
                   ) : (
-                    <Save className="mr-2 h-4 w-4" />
+                    <Save className="h-4 w-4 md:mr-2" />
                   )}
-                  Salvar Pedido
+                  <span className="hidden md:inline">Salvar Pedido</span>
+                  <span className="inline md:hidden">Salvar</span>
                 </Button>
                 
                 <Button 
+                  size="sm"
                   onClick={() => {
                     // Salvar pedido e então redirecionar para a lista de pedidos
                     if (clientId && orderItems.length > 0) {
@@ -1018,9 +1026,11 @@ export default function OrderFormPage() {
                     }
                   }} 
                   variant="default"
+                  className="md:px-3"
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Finalizar e Voltar
+                  <CheckCircle className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Finalizar e Voltar</span>
+                  <span className="inline md:hidden">Finalizar</span>
                 </Button>
               </>
             )}
@@ -1186,7 +1196,7 @@ export default function OrderFormPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                      <div>
+                      <div className="col-span-1 sm:col-span-2">
                         <Label htmlFor="client">Cliente *</Label>
                         <ClientSearch
                           clients={clients}
@@ -1223,7 +1233,7 @@ export default function OrderFormPage() {
                             onClick={() => setAddPaymentTermModalOpen(true)}
                           >
                             <PlusCircle className="h-4 w-4 mr-1" />
-                            Nova
+                            <span className="hidden sm:inline">Nova</span>
                           </Button>
                         </div>
                         <Select 
@@ -1334,23 +1344,26 @@ export default function OrderFormPage() {
                           }, 500);
                         }} 
                         disabled={false}
+                        size="sm"
+                        className="md:h-10"
                       >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Produto
+                        <PlusCircle className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Adicionar Produto</span>
+                        <span className="inline md:hidden">Adicionar</span>
                       </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="relative overflow-x-auto">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="hidden md:table-header-group">
                           <TableRow>
                             <TableHead>Ref. Cliente</TableHead>
                             <TableHead>Produto</TableHead>
                             <TableHead>Qtde</TableHead>
                             <TableHead>Preço Tabela</TableHead>
                             <TableHead>Desconto</TableHead>
-                            <TableHead>Preço com Desconto</TableHead>
+                            <TableHead>Preço c/ Desc.</TableHead>
                             <TableHead>Comissão</TableHead>
                             <TableHead>Subtotal</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -1366,8 +1379,10 @@ export default function OrderFormPage() {
                           ) : (
                             // Invertemos a ordem para mostrar os mais recentes primeiro
                             [...orderItems].reverse().map((item, index) => (
-                              <TableRow key={index}>
-                                <TableCell>
+                              <TableRow key={index} className="md:table-row border md:border-none rounded-lg block md:table-row mb-4 md:mb-0 shadow-md md:shadow-none">
+                                {/* Referência do Cliente */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Ref. Cliente:</span>
                                   {item.clientRef || item.product?.conversion ? (
                                     <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
                                       {item.clientRef || item.product?.conversion}
@@ -1376,13 +1391,19 @@ export default function OrderFormPage() {
                                     <span className="text-muted-foreground">-</span>
                                   )}
                                 </TableCell>
-                                <TableCell className="font-medium">
+                                
+                                {/* Nome do Produto */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Produto:</span>
                                   <div>
                                     <p>{item.product?.name || `Produto #${item.productId}`}</p>
                                     <p className="text-xs text-gray-500">{item.product?.code}</p>
                                   </div>
                                 </TableCell>
-                                <TableCell>
+                                
+                                {/* Quantidade */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Quantidade:</span>
                                   <Input 
                                     type="number" 
                                     min="1" 
@@ -1392,22 +1413,46 @@ export default function OrderFormPage() {
                                     disabled={false}
                                   />
                                 </TableCell>
-                                <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
-                                <TableCell>
+                                
+                                {/* Preço Tabela - Escondido em Mobile */}
+                                <TableCell className="hidden md:table-cell">
+                                  {formatCurrency(item.unitPrice)}
+                                </TableCell>
+                                
+                                {/* Desconto */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Desconto:</span>
                                   <DiscountSelect
                                     value={item.discountId}
                                     onChange={(discountId, discountPercentage, commission) => 
                                       updateItemDiscount(index, discountId, discountPercentage, commission)
                                     }
                                     label=""
-                                    className="w-32"
+                                    className="w-full md:w-32"
                                   />
                                 </TableCell>
-                                <TableCell>{formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}</TableCell>
-                                <TableCell>{item.commission}%</TableCell>
-                                <TableCell>{formatCurrency(item.subtotal)}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end space-x-1">
+                                
+                                {/* Preço com Desconto */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Preço c/ Desc.:</span>
+                                  {formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}
+                                </TableCell>
+                                
+                                {/* Comissão - Escondido em Mobile */}
+                                <TableCell className="hidden md:table-cell">
+                                  {item.commission}%
+                                </TableCell>
+                                
+                                {/* Subtotal */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                  <span className="md:hidden font-bold">Subtotal:</span>
+                                  {formatCurrency(item.subtotal)}
+                                </TableCell>
+                                
+                                {/* Ações */}
+                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell text-center md:text-right">
+                                  <span className="md:hidden font-bold">Ações:</span>
+                                  <div className="flex justify-center md:justify-end space-x-1">
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
@@ -1473,14 +1518,15 @@ export default function OrderFormPage() {
                     {orderItems.length > 0 && (
                       <div className="mt-8 flex justify-end">
                         <div className="w-full sm:w-1/2 lg:w-1/3 bg-gray-50 dark:bg-gray-700 rounded-md p-4">
+                          <h3 className="font-medium text-lg mb-2 md:hidden">Resumo do Pedido</h3>
                           <dl className="space-y-2">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <dt className="text-sm text-gray-500 dark:text-gray-400">Subtotal (com desconto)</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
                                 {formatCurrency(totals.subtotal)}
                               </dd>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <dt className="text-sm text-gray-500 dark:text-gray-400">Taxa de Frete</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
                                 <Input 
@@ -1510,7 +1556,13 @@ export default function OrderFormPage() {
                                 />
                               </dd>
                             </div>
-                            <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between">
+                            <div className="flex justify-between items-center">
+                              <dt className="text-sm md:hidden text-gray-500 dark:text-gray-400">Total de Peças</dt>
+                              <dd className="text-sm md:hidden font-medium text-gray-900 dark:text-white">
+                                {orderItems.reduce((sum, item) => sum + item.quantity, 0)}
+                              </dd>
+                            </div>
+                            <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between items-center">
                               <dt className="text-base font-medium text-gray-900 dark:text-white">Total</dt>
                               <dd className="text-base font-medium text-gray-900 dark:text-white">
                                 {formatCurrency(totals.total)}

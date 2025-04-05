@@ -153,7 +153,23 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
       </div>
       
       {/* Resumo Financeiro */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-start">
+        {/* Resumo de Quantidades */}
+        <div className="w-56 bg-gray-50 p-3 rounded-md border border-gray-200">
+          <div className="flex justify-between items-center py-1 border-b border-gray-200 mb-1">
+            <span className="text-sm font-bold text-gray-700">RESUMO DE PEÇAS</span>
+          </div>
+          <div className="flex justify-between items-center py-1">
+            <span className="text-sm font-medium text-gray-600">Total de Peças:</span>
+            <span className="text-sm font-bold">{items.reduce((total, item) => total + Number(item.quantity), 0)}</span>
+          </div>
+          <div className="flex justify-between items-center py-1">
+            <span className="text-sm font-medium text-gray-600">Quantidade de Itens:</span>
+            <span className="text-sm font-medium">{items.length}</span>
+          </div>
+        </div>
+
+        {/* Resumo Financeiro */}
         <div className="w-56">
           <div className="flex justify-between items-center py-1">
             <span className="text-sm text-gray-600">Subtotal:</span>

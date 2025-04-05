@@ -271,6 +271,35 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     // Resumo financeiro com layout moderno
     const totalsY = tableY + 15;
 
+    // Card para resumo de peças
+    doc.setFillColor(secondaryColor);
+    doc.roundedRect(15, totalsY - 10, 80, 35, 3, 3, "F");
+
+    // Título do resumo de peças
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryColor);
+    doc.text("RESUMO DE PEÇAS", 20, totalsY);
+    
+    // Conteúdo do resumo de peças
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(darkGray);
+    
+    // Cálculo do total de peças
+    const totalPieces = items.reduce((total, item) => {
+      const quantity = typeof item.quantity === "string" ? Number(item.quantity) : (item.quantity || 0);
+      return total + quantity;
+    }, 0);
+    
+    doc.text("Total de Peças:", 20, totalsY + 10);
+    doc.setFont("helvetica", "bold");
+    doc.text(totalPieces.toString(), 75, totalsY + 10, { align: "right" });
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Quantidade de Itens:", 20, totalsY + 20);
+    doc.text(items.length.toString(), 75, totalsY + 20, { align: "right" });
+
     // Card para os totais
     doc.setFillColor(secondaryColor);
     doc.roundedRect(pageWidth - 95, totalsY - 10, 80, 45, 3, 3, "F");
@@ -287,7 +316,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
       align: "right",
     });
 
-    doc.text("Impostos:", pageWidth - 90, totalsY + 16);
+    doc.text("Taxa de Frete:", pageWidth - 90, totalsY + 16);
     doc.text(formatCurrency(order.taxes), pageWidth - 20, totalsY + 16, {
       align: "right",
     });
