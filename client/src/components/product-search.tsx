@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Check, ChevronsUpDown, Search, X, Tag, Package, FileText, Bookmark, Loader2 } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, X, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Product } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProductSearchProps {
   selectedProductId: number | null;
@@ -24,300 +24,198 @@ export function ProductSearch({
   disabled = false
 }: ProductSearchProps) {
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Buscar produto selecionado pelo ID
   const { data: selectedProduct } = useQuery<Product>({
     queryKey: ["/api/products", selectedProductId],
     enabled: !!selectedProductId,
-    placeholderData: undefined
   });
-
-  // Efeito para buscar produtos quando o termo de busca muda
-  useEffect(() => {
-    if (!open) return;
-    
-    // Limpar o timeout anterior
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    // Se a busca estiver vazia, limpar os resultados
-    if (!searchQuery.trim() || searchQuery.trim().length < 1) {
+  
+  // Buscar produtos
+  const searchProducts = async (term: string) => {
+    if (!term || term.length < 1) {
       setProducts([]);
       return;
     }
     
     setLoading(true);
-    
-    // Configurar um novo timeout para debounce
-    timeoutRef.current = setTimeout(async () => {
-      try {
-        console.log("Buscando produtos para:", searchQuery);
-        const response = await fetch(`/api/products/search/${encodeURIComponent(searchQuery)}`);
-        
-        if (!response.ok) {
-          throw new Error('Erro ao buscar produtos');
-        }
-        
-        const data = await response.json();
-        console.log("Produtos encontrados:", data.length);
-        setProducts(data);
-      } catch (error) {
-        console.error("Erro ao buscar produtos:", error);
+    try {
+      const response = await fetch(`/api/products/search/${encodeURIComponent(term)}`);
+      if (!response.ok) {
+        throw new Error("Erro ao buscar produtos");
+      }
+      const data = await response.json();
+      console.log(`Encontrados ${data.length} produtos para "${term}"`);
+      setProducts(data);
+    } catch (error) {
+      console.error("Erro na busca:", error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Debounce para a busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        searchProducts(searchTerm);
+      } else {
         setProducts([]);
-      } finally {
-        setLoading(false);
       }
     }, 300);
     
-    // Limpar o timeout quando o componente é desmontado
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [searchQuery, open]);
-
-  // Resetar o índice destacado quando muda a busca ou abre o componente
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Limpar a busca quando fechar o diálogo
   useEffect(() => {
-    setHighlightedIndex(0);
-  }, [searchQuery, open]);
-
-  // Foco no input de pesquisa quando o popover abre
-  useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 300); // Aumentado para 300ms para dar mais tempo ao componente
+    if (!open) {
+      setSearchTerm("");
     }
   }, [open]);
-
-  // Abrir automaticamente o popover quando autoFocus é true
+  
+  // Focar no input quando abrir
   useEffect(() => {
-    if (autoFocus && !open && !disabled) {
-      setTimeout(() => {
-        setOpen(true);
-      }, 100);
-    }
-  }, [autoFocus, disabled]);
-
-  // Evitamos a abertura automática que estava causando travamento
-  // devido à grande quantidade de produtos (5.814)
-
-  // Limpar a seleção
-  const clearSelection = () => {
-    onProductSelect(null);
-    setSearchQuery("");
-  };
-
-  // Lidar com a navegação por teclado
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    // Limite para os resultados visíveis
-    const numResults = products.length;
-    
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev < numResults - 1 ? prev + 1 : prev));
-    } 
-    else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
-    } 
-    else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (numResults > 0) {
-        const product = products[highlightedIndex];
-        onProductSelect(product.id);
-        setOpen(false);
-        
-        // Se a função de callback para o Enter existir, chamar
-        if (onEnterKeyPressed) {
-          onEnterKeyPressed();
-        }
+    if (open && autoFocus) {
+      const inputElement = document.getElementById("product-search-input");
+      if (inputElement) {
+        setTimeout(() => {
+          inputElement.focus();
+        }, 100);
       }
-    } 
-    else if (e.key === 'Escape') {
-      setOpen(false);
+    }
+  }, [open, autoFocus]);
+  
+  const handleProductSelect = (productId: number) => {
+    onProductSelect(productId);
+    setOpen(false);
+    if (onEnterKeyPressed) {
+      onEnterKeyPressed();
     }
   };
-
+  
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && products.length > 0) {
+      e.preventDefault();
+      handleProductSelect(products[0].id);
+    }
+  };
+  
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn(
-            "w-full justify-between",
-            !selectedProduct && "text-muted-foreground"
-          )}
-        >
-          {selectedProduct ? (
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2">
-                <div className="bg-primary/10 p-1 rounded-md">
-                  <Package className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">{selectedProduct.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {selectedProduct.code && `Código: ${selectedProduct.code}`}
-                    {selectedProduct.price && ` • ${formatCurrency(Number(selectedProduct.price))}`}
-                  </span>
-                </div>
+    <>
+      <Button
+        variant="outline"
+        className={cn(
+          "w-full justify-between text-left font-normal",
+          !selectedProduct && "text-muted-foreground"
+        )}
+        onClick={() => !disabled && setOpen(true)}
+        disabled={disabled}
+      >
+        {selectedProduct ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary/10 p-1 rounded-md">
+                <Package className="h-4 w-4 text-primary" />
               </div>
-              {!disabled && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearSelection();
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">{selectedProduct.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {selectedProduct.code && `Código: ${selectedProduct.code}`}
+                  {selectedProduct.price && ` • ${formatCurrency(Number(selectedProduct.price))}`}
+                </span>
+              </div>
+            </div>
+            {!disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onProductSelect(null);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <span>Pesquisar produto</span>
+          </div>
+        )}
+      </Button>
+      
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Buscar Produto</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="relative">
+              <Input
+                id="product-search-input"
+                placeholder="Digite código, nome ou referência..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoFocus={autoFocus}
+                autoComplete="off"
+              />
+              {loading && (
+                <div className="absolute right-2 top-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
               )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <span>Pesquisar produto</span>
-            </div>
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-[400px] max-h-[500px]" side="bottom" align="start">
-        <Command className="rounded-lg border shadow-md">
-          <CommandInput 
-            placeholder="Buscar por nome, código, marca ou referência..." 
-            onKeyDown={handleKeyDown}
-            value={searchQuery}
-            onValueChange={setSearchQuery}
-            ref={inputRef}
-            className="h-9"
-            autoFocus={autoFocus}
-          />
-          <CommandList className="max-h-[350px] overflow-auto">
-            {!loading && searchQuery.trim().length >= 1 && products.length === 0 && (
-              <CommandEmpty className="py-6 text-center text-sm">
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
-                  <p>Nenhum produto encontrado</p>
-                  <p className="text-xs text-muted-foreground">Tente outros termos de busca</p>
-                </div>
-              </CommandEmpty>
-            )}
             
-            {(!searchQuery.trim()) && !loading && (
-              <div className="py-6 text-center text-sm">
-                <div className="flex flex-col items-center gap-2">
-                  <Search className="h-10 w-10 text-muted-foreground opacity-50" />
-                  <p>Digite o código ou referência do produto</p>
-                  <p className="text-xs text-muted-foreground">Os resultados aparecerão enquanto você digita</p>
-                </div>
+            {searchTerm && !loading && products.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                Nenhum produto encontrado
               </div>
-            )}
-            <CommandGroup heading="Produtos">
-              {loading ? (
-                <div className="py-6 text-center text-sm">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                    <p>Buscando produtos...</p>
-                  </div>
-                </div>
-              ) : (
-                products.map((product: Product, index: number) => (
-                  <CommandItem
-                    key={product.id}
-                    value={product.id.toString()}
-                    onSelect={() => {
-                      onProductSelect(product.id);
-                      setOpen(false);
-                      if (onEnterKeyPressed) {
-                        onEnterKeyPressed();
-                      }
-                    }}
-                    className={cn(
-                      "flex flex-col items-start py-3",
-                      index === highlightedIndex && "bg-accent"
-                    )}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                  >
-                    <div className="flex w-full gap-2 items-start">
-                      <div className="bg-primary/10 p-1 rounded-md flex-shrink-0">
+            ) : (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {products.map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-start p-2 hover:bg-muted rounded-md cursor-pointer"
+                      onClick={() => handleProductSelect(product.id)}
+                    >
+                      <div className="bg-primary/10 p-1 rounded-md mr-2">
                         <Package className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="flex-1 flex flex-col">
-                        <div className="font-medium flex items-center gap-2">
-                          <span className="bg-primary/10 px-2 py-0.5 rounded-md text-primary font-bold">{product.name}</span>
-                          {selectedProductId === product.id && (
-                            <Check className="h-4 w-4 text-primary" />
-                          )}
+                      <div className="flex-1">
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Código: {product.code} • {formatCurrency(Number(product.price || 0))}
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-1 mt-1">
-                          <div className="flex items-center">
-                            <Tag className="h-3 w-3 mr-1" />
-                            <span className="font-semibold text-sm">{product.code}</span>
+                        {product.brand && (
+                          <div className="text-xs text-muted-foreground">
+                            Marca: {product.brand}
                           </div>
-                          {product.price && (
-                            <div className="flex items-center ml-2">
-                              <span>{formatCurrency(Number(product.price))}</span>
-                            </div>
-                          )}
-                          {product.brand && (
-                            <Badge variant="outline" className="text-xs h-5 ml-1">
-                              {product.brand}
-                            </Badge>
-                          )}
-                        </div>
+                        )}
                         {product.conversion && (
-                          <div className="mt-1">
-                            <Badge variant="secondary" className="text-xs h-5 flex items-center gap-1">
-                              <Bookmark className="h-3 w-3" />
-                              <span>Ref: <span className="font-semibold">{product.conversion}</span> (já usado antes)</span>
-                            </Badge>
+                          <div className="text-xs bg-primary/10 px-2 py-0.5 rounded mt-1 text-primary inline-block">
+                            Referência: {product.conversion}
                           </div>
                         )}
                       </div>
                     </div>
-                  </CommandItem>
-                ))
-              )}
-            </CommandGroup>
-            {searchQuery && products.length > 20 && (
-              <div className="py-2 px-2 text-xs text-center text-muted-foreground border-t">
-                Mostrando os primeiros 20 resultados de {products.length}. 
-                Refine sua busca para resultados mais precisos.
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
-          </CommandList>
-          <div className="border-t px-2 py-2 flex gap-1 text-xs text-muted-foreground">
-            <div className="flex items-center">
-              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">↑↓</span>
-              <span>Navegar</span>
-            </div>
-            <div className="flex items-center ml-2">
-              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">Enter</span>
-              <span>Selecionar</span>
-            </div>
-            <div className="flex items-center ml-2">
-              <span className="px-1 py-0.5 rounded bg-muted mr-1 text-[10px]">Esc</span>
-              <span>Fechar</span>
-            </div>
           </div>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
