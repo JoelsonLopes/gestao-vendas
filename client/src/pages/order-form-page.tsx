@@ -1507,14 +1507,6 @@ export default function OrderFormPage() {
                                         
                                         // Abrir o modal para edição
                                         setAddProductModalOpen(true);
-                                        
-                                        // Dá tempo para o componente carregar antes de focar no campo de referência do cliente
-                                        setTimeout(() => {
-                                          const clientRefInput = document.getElementById('clientRefSearchInput');
-                                          if (clientRefInput) {
-                                            (clientRefInput as HTMLElement).focus();
-                                          }
-                                        }, 100);
                                       }}
                                       className="text-amber-500 hover:text-amber-700"
                                       title="Editar item"
@@ -1610,7 +1602,7 @@ export default function OrderFormPage() {
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
-                  <Tabs defaultValue="clientRef" className="w-full">
+                  <Tabs defaultValue="code" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="code">Código do Produto</TabsTrigger>
                       <TabsTrigger value="clientRef">Referência do Cliente</TabsTrigger>
@@ -1621,7 +1613,7 @@ export default function OrderFormPage() {
                         <ProductSearch 
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
-                          autoFocus={false}
+                          autoFocus={true}
                           onEnterKeyPressed={() => {
                             // Se um produto foi selecionado e tudo está OK, adicionar o produto
                             if (selectedProductId && productQuantity > 0) {
