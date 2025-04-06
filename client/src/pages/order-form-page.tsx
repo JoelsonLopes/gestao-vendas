@@ -203,6 +203,9 @@ export default function OrderFormPage() {
         title: "Pedido criado",
         description: "Pedido foi criado com sucesso. Você pode continuar adicionando itens.",
       });
+      
+      // Redefinir o estado isSubmitting
+      setIsSubmitting(false);
     },
     onError: (error) => {
       toast({
@@ -651,20 +654,23 @@ export default function OrderFormPage() {
   };
   
   // Remove product from order
-  const removeOrderItem = (index: number) => {
+  const removeOrderItem = (index: number, autoSave = false) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
     const actualIndex = orderItems.length - 1 - index;
     const newItems = [...orderItems];
     newItems.splice(actualIndex, 1);
     setOrderItems(newItems);
     
-    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
-    setTimeout(() => {
-      // Salvar automaticamente o pedido após remover um produto
-      if (clientId && newItems.length > 0) {
-        handleSaveOrder();
-      }
-    }, 0);
+    // Salvar automaticamente apenas se solicitado explicitamente
+    if (autoSave) {
+      // Usando um setTimeout para garantir que o estado orderItems seja atualizado
+      setTimeout(() => {
+        // Salvar automaticamente o pedido após remover um produto
+        if (clientId && newItems.length > 0) {
+          handleSaveOrder();
+        }
+      }, 0);
+    }
   };
   
   // Update item discount
@@ -785,6 +791,9 @@ export default function OrderFormPage() {
         title: "Pedido atualizado",
         description: "O pedido foi atualizado com sucesso.",
       });
+      
+      // Redefinir o estado isSubmitting
+      setIsSubmitting(false);
       
       // Não redirecionamos automaticamente, só quando o usuário clicar no botão "Concluir"
     },
@@ -1505,7 +1514,7 @@ export default function OrderFormPage() {
                                     <Button 
                                       variant="ghost" 
                                       size="sm" 
-                                      onClick={() => removeOrderItem(index)}
+                                      onClick={() => removeOrderItem(index, false)}
                                       className="text-red-500 hover:text-red-700"
                                       title="Excluir item"
                                     >
