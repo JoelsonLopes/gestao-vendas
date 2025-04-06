@@ -32,17 +32,17 @@ export function ProductSearch({
   // Buscar produtos via API com debounce para evitar requisições excessivas
   const debouncedSearch = useRef(
     debounce((query: string) => {
-      if (query.trim().length >= 2) {
-        // Só busca se tiver pelo menos 2 caracteres
+      if (query.trim().length >= 1) {
+        // Busca a partir do primeiro caractere
         refetch();
       }
-    }, 300)
+    }, 200) // Reduzido para 200ms para respostas mais rápidas
   ).current;
 
   // Buscar produtos com base no termo de busca
   const { data: filteredProducts = [], isLoading, refetch } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchQuery],
-    enabled: open && searchQuery.trim().length >= 2,
+    enabled: open && searchQuery.trim().length >= 1, // Mostra resultados a partir de 1 caractere
     placeholderData: [],
   });
 
@@ -55,7 +55,7 @@ export function ProductSearch({
 
   // Efeito para chamar a pesquisa debounced quando o termo de busca muda
   useEffect(() => {
-    if (open) {
+    if (open && searchQuery.trim().length > 0) {
       debouncedSearch(searchQuery);
     }
   }, [searchQuery, open, debouncedSearch]);
@@ -185,7 +185,7 @@ export function ProductSearch({
             autoFocus={autoFocus}
           />
           <CommandList className="max-h-[350px] overflow-auto">
-            {!isLoading && searchQuery.trim().length >= 2 && (
+            {!isLoading && searchQuery.trim().length >= 1 && (
               <CommandEmpty className="py-6 text-center text-sm">
                 <div className="flex flex-col items-center gap-2">
                   <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
@@ -195,12 +195,12 @@ export function ProductSearch({
               </CommandEmpty>
             )}
             
-            {(!searchQuery.trim() || searchQuery.trim().length < 2) && !isLoading && (
+            {(!searchQuery.trim()) && !isLoading && (
               <div className="py-6 text-center text-sm">
                 <div className="flex flex-col items-center gap-2">
                   <Search className="h-10 w-10 text-muted-foreground opacity-50" />
-                  <p>Digite pelo menos 2 caracteres para iniciar a busca</p>
-                  <p className="text-xs text-muted-foreground">Pesquise por nome, código, marca ou referência</p>
+                  <p>Digite o código ou referência do produto</p>
+                  <p className="text-xs text-muted-foreground">Os resultados aparecerão enquanto você digita</p>
                 </div>
               </div>
             )}
@@ -236,7 +236,7 @@ export function ProductSearch({
                       </div>
                       <div className="flex-1 flex flex-col">
                         <div className="font-medium flex items-center gap-2">
-                          {product.name}
+                          <span className="bg-primary/10 px-2 py-0.5 rounded-md text-primary font-bold">{product.name}</span>
                           {selectedProductId === product.id && (
                             <Check className="h-4 w-4 text-primary" />
                           )}
@@ -244,7 +244,7 @@ export function ProductSearch({
                         <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-1 mt-1">
                           <div className="flex items-center">
                             <Tag className="h-3 w-3 mr-1" />
-                            <span>{product.code}</span>
+                            <span className="font-semibold text-sm">{product.code}</span>
                           </div>
                           {product.price && (
                             <div className="flex items-center ml-2">
@@ -261,7 +261,7 @@ export function ProductSearch({
                           <div className="mt-1">
                             <Badge variant="secondary" className="text-xs h-5 flex items-center gap-1">
                               <Bookmark className="h-3 w-3" />
-                              <span>Ref: {product.conversion}</span>
+                              <span>Ref: <span className="font-semibold">{product.conversion}</span> (já usado antes)</span>
                             </Badge>
                           </div>
                         )}
