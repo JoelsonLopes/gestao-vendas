@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent, useCallback } from "react";
 import { Check, ChevronsUpDown, Search, X, Tag, Package, FileText, Bookmark, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Product } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { debounce } from "lodash";
 
 interface ProductSearchProps {
   selectedProductId: number | null;
@@ -28,29 +27,47 @@ export function ProductSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
-  // Buscar produtos via API com debounce para evitar requisições excessivas
-  const debouncedSearch = useRef(
-    debounce((query: string) => {
-      if (query.trim().length >= 1) {
-        // Busca a partir do primeiro caractere
-        refetch();
+  // Função para buscar produtos diretamente
+  const fetchProducts = useCallback(async (query: string) => {
+    if (!query.trim() || query.trim().length < 1) {
+      setLocalProducts([]);
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      console.log("Buscando produtos para: ", query);
+      const response = await fetch(`/api/products/search/${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar produtos');
       }
-    }, 200) // Reduzido para 200ms para respostas mais rápidas
-  ).current;
-
-  // Buscar produtos com base no termo de busca
-  const { data: filteredProducts = [], isLoading, refetch } = useQuery<Product[]>({
-    queryKey: ["/api/products/search", searchQuery],
-    queryFn: async () => {
-      if (searchQuery.trim().length < 1) return [];
-      const response = await fetch(`/api/products/search/${encodeURIComponent(searchQuery)}`);
-      if (!response.ok) throw new Error('Erro ao buscar produtos');
-      return response.json();
-    },
-    enabled: open && searchQuery.trim().length >= 1, // Mostra resultados a partir de 1 caractere
-    placeholderData: [],
-  });
+      const data = await response.json();
+      console.log("Produtos encontrados:", data.length);
+      setLocalProducts(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error);
+      setLocalProducts([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+  
+  // Controlar o timeout do debounce
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Função de debounce
+  const debouncedFetch = useCallback((query: string) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      fetchProducts(query);
+    }, 500); // Aumentamos o tempo de debounce para 500ms para evitar requisições excessivas
+  }, [fetchProducts]);
 
   // Buscar produto selecionado pelo ID
   const { data: selectedProduct } = useQuery<Product>({
@@ -59,12 +76,12 @@ export function ProductSearch({
     placeholderData: undefined
   });
 
-  // Efeito para chamar a pesquisa debounced quando o termo de busca muda
+  // Efeito para chamar a busca quando o termo muda
   useEffect(() => {
     if (open && searchQuery.trim().length > 0) {
-      debouncedSearch(searchQuery);
+      debouncedFetch(searchQuery);
     }
-  }, [searchQuery, open, debouncedSearch]);
+  }, [searchQuery, open, debouncedFetch]);
 
   // Resetar o índice destacado quando muda a busca ou abre o componente
   useEffect(() => {
@@ -101,7 +118,7 @@ export function ProductSearch({
   // Lidar com a navegação por teclado
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // Limite para os resultados visíveis
-    const numResults = filteredProducts.length;
+    const numResults = localProducts.length;
     
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -114,7 +131,7 @@ export function ProductSearch({
     else if (e.key === 'Enter') {
       e.preventDefault();
       if (numResults > 0) {
-        const product = filteredProducts[highlightedIndex];
+        const product = localProducts[highlightedIndex];
         onProductSelect(product.id);
         setOpen(false);
         
@@ -191,7 +208,7 @@ export function ProductSearch({
             autoFocus={autoFocus}
           />
           <CommandList className="max-h-[350px] overflow-auto">
-            {!isLoading && searchQuery.trim().length >= 1 && (
+            {!isSearching && searchQuery.trim().length >= 1 && localProducts.length === 0 && (
               <CommandEmpty className="py-6 text-center text-sm">
                 <div className="flex flex-col items-center gap-2">
                   <FileText className="h-10 w-10 text-muted-foreground opacity-50" />
@@ -201,7 +218,7 @@ export function ProductSearch({
               </CommandEmpty>
             )}
             
-            {(!searchQuery.trim()) && !isLoading && (
+            {(!searchQuery.trim()) && !isSearching && (
               <div className="py-6 text-center text-sm">
                 <div className="flex flex-col items-center gap-2">
                   <Search className="h-10 w-10 text-muted-foreground opacity-50" />
@@ -211,7 +228,7 @@ export function ProductSearch({
               </div>
             )}
             <CommandGroup heading="Produtos">
-              {isLoading ? (
+              {isSearching ? (
                 <div className="py-6 text-center text-sm">
                   <div className="flex flex-col items-center gap-2">
                     <Loader2 className="h-8 w-8 text-primary animate-spin" />
@@ -219,7 +236,7 @@ export function ProductSearch({
                   </div>
                 </div>
               ) : (
-                filteredProducts.map((product, index) => (
+                localProducts.map((product: Product, index: number) => (
                   <CommandItem
                     key={product.id}
                     value={product.id.toString()}
@@ -277,9 +294,9 @@ export function ProductSearch({
                 ))
               )}
             </CommandGroup>
-            {searchQuery && filteredProducts.length > 20 && (
+            {searchQuery && localProducts.length > 20 && (
               <div className="py-2 px-2 text-xs text-center text-muted-foreground border-t">
-                Mostrando os primeiros 20 resultados de {filteredProducts.length}. 
+                Mostrando os primeiros 20 resultados de {localProducts.length}. 
                 Refine sua busca para resultados mais precisos.
               </div>
             )}
