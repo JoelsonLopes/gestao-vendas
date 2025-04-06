@@ -42,6 +42,12 @@ export function ProductSearch({
   // Buscar produtos com base no termo de busca
   const { data: filteredProducts = [], isLoading, refetch } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchQuery],
+    queryFn: async () => {
+      if (searchQuery.trim().length < 1) return [];
+      const response = await fetch(`/api/products/search/${encodeURIComponent(searchQuery)}`);
+      if (!response.ok) throw new Error('Erro ao buscar produtos');
+      return response.json();
+    },
     enabled: open && searchQuery.trim().length >= 1, // Mostra resultados a partir de 1 caractere
     placeholderData: [],
   });
