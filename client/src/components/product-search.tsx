@@ -74,6 +74,15 @@ export function ProductSearch({
     }
   }, [open]);
 
+  // Abrir automaticamente o popover quando autoFocus é true
+  useEffect(() => {
+    if (autoFocus && !open && !disabled) {
+      setTimeout(() => {
+        setOpen(true);
+      }, 100);
+    }
+  }, [autoFocus, disabled]);
+
   // Evitamos a abertura automática que estava causando travamento
   // devido à grande quantidade de produtos (5.814)
 
@@ -171,6 +180,7 @@ export function ProductSearch({
             onKeyDown={handleKeyDown}
             value={searchQuery}
             onValueChange={setSearchQuery}
+            ref={inputRef}
             className="h-9"
             autoFocus={autoFocus}
           />
