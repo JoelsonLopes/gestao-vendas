@@ -809,13 +809,23 @@ export default function OrderFormPage() {
   
   // Salvar pedido
   const handleSaveOrder = async () => {
-    if (!clientId || orderItems.length === 0) {
+    // Verificar se temos pelo menos um cliente selecionado
+    if (!clientId) {
       toast({
-        title: "Dados incompletos",
-        description: "Por favor, selecione um cliente e adicione pelo menos um produto ao pedido.",
+        title: "Cliente não selecionado",
+        description: "Por favor, selecione um cliente para o pedido.",
         variant: "destructive",
       });
       return;
+    }
+    
+    // Alerta informativo se não há produtos, mas permitir salvar mesmo assim
+    if (orderItems.length === 0) {
+      toast({
+        title: "Pedido sem produtos",
+        description: "O pedido será salvo sem produtos. Você poderá adicionar produtos depois.",
+      });
+      // Continuamos com o salvamento
     }
     
     setIsSubmitting(true);
@@ -992,7 +1002,7 @@ export default function OrderFormPage() {
                   size="sm"
                   onClick={() => {
                     // Salvar alterações e então redirecionar para a lista de pedidos
-                    if (clientId && orderItems.length > 0) {
+                    if (clientId) {
                       handleSaveOrder();
                       setTimeout(() => {
                         navigate("/orders");
@@ -1025,7 +1035,7 @@ export default function OrderFormPage() {
                   size="sm"
                   onClick={() => {
                     // Salvar pedido e então redirecionar para a lista de pedidos
-                    if (clientId && orderItems.length > 0) {
+                    if (clientId) {
                       handleSaveOrder();
                       setTimeout(() => {
                         navigate("/orders");
