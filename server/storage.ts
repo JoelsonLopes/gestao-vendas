@@ -1102,14 +1102,142 @@ export class DatabaseStorage implements IStorage {
       const repOrders = allOrders.filter(order => order.representativeId === rep.id);
       const confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
       
+      // Calcular o total de peças e comissão
+      let totalPieces = 0;
+      let totalCommission = 0;
+      
+      for (const order of confirmedOrders) {
+        // Obter itens do pedido para calcular peças e comissão
+        const items = await this.getOrderItems(order.id);
+        totalPieces += items.reduce((sum, item) => sum + item.quantity, 0);
+        totalCommission += items.reduce((sum, item) => {
+          const commission = item.commission ? Number(item.commission) : 0;
+          return sum + commission;
+        }, 0);
+      }
+      
       return {
         id: rep.id,
         name: rep.name,
         totalOrders: repOrders.length,
         confirmedOrders: confirmedOrders.length,
-        totalValue: confirmedOrders.reduce((sum, order) => sum + Number(order.total), 0)
+        totalValue: confirmedOrders.reduce((sum, order) => sum + Number(order.total), 0),
+        totalPieces: totalPieces,
+        totalCommission: totalCommission
       };
     }));
+  }
+  
+  // Método para obter estatísticas de vendas por marca
+  async getSalesByBrand(): Promise<any> {
+    // Obter todos os pedidos confirmados
+    const allOrders = await this.listOrders();
+    const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+    
+    // Mapa para agregar dados por marca
+    const brandMap: Record<string, {
+      totalPieces: number;
+      totalValue: number;
+      totalCommission: number;
+      orders: number;
+    }> = {};
+    
+    // Processar cada pedido
+    for (const order of confirmedOrders) {
+      // Obter itens do pedido
+      const items = await this.getOrderItems(order.id);
+      
+      // Processar cada item
+      for (const item of items) {
+        // Obter o produto para identificar a marca
+        const product = await this.getProduct(item.productId);
+        if (product) {
+          const brand = product.brand || 'Sem Marca';
+          
+          // Inicializar a marca se ainda não existir no mapa
+          if (!brandMap[brand]) {
+            brandMap[brand] = {
+              totalPieces: 0,
+              totalValue: 0,
+              totalCommission: 0,
+              orders: 0
+            };
+          }
+          
+          // Acumular estatísticas
+          const subtotal = Number(item.subtotal) || 0;
+          const commission = Number(item.commission) || 0;
+          
+          brandMap[brand].totalPieces += item.quantity;
+          brandMap[brand].totalValue += subtotal;
+          brandMap[brand].totalCommission += commission;
+          brandMap[brand].orders += 1;
+        }
+      }
+    }
+    
+    // Converter o mapa em um array de resultados
+    return Object.entries(brandMap).map(([brand, stats]) => ({
+      brand,
+      ...stats
+    })).sort((a, b) => b.totalPieces - a.totalPieces);
+  }
+  
+  // Método para obter estatísticas de produtos mais vendidos
+  async getTopSellingProducts(limit: number = 20): Promise<any> {
+    // Obter todos os pedidos confirmados
+    const allOrders = await this.listOrders();
+    const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+    
+    // Mapa para agregar dados por produto
+    const productMap: Record<number, {
+      id: number;
+      code: string;
+      name: string;
+      brand: string | null;
+      totalPieces: number;
+      totalValue: number;
+      totalCommission: number;
+    }> = {};
+    
+    // Processar cada pedido
+    for (const order of confirmedOrders) {
+      // Obter itens do pedido
+      const items = await this.getOrderItems(order.id);
+      
+      // Processar cada item
+      for (const item of items) {
+        // Obter o produto
+        const product = await this.getProduct(item.productId);
+        if (product) {
+          // Inicializar o produto se ainda não existir no mapa
+          if (!productMap[product.id]) {
+            productMap[product.id] = {
+              id: product.id,
+              code: product.code,
+              name: product.name,
+              brand: product.brand,
+              totalPieces: 0,
+              totalValue: 0,
+              totalCommission: 0
+            };
+          }
+          
+          // Acumular estatísticas
+          const subtotal = Number(item.subtotal) || 0;
+          const commission = Number(item.commission) || 0;
+          
+          productMap[product.id].totalPieces += item.quantity;
+          productMap[product.id].totalValue += subtotal;
+          productMap[product.id].totalCommission += commission;
+        }
+      }
+    }
+    
+    // Converter o mapa em um array de resultados e ordenar por quantidade
+    return Object.values(productMap)
+      .sort((a, b) => b.totalPieces - a.totalPieces)
+      .slice(0, limit);
   }
 }
 

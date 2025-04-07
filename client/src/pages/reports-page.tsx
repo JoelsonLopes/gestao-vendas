@@ -14,17 +14,12 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 // Charts colors
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'];
 
 export default function ReportsPage() {
   const [reportPeriod, setReportPeriod] = useState<string>("month");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
-  
-  // Fetch sales by representative
-  const { data: salesByRep, isLoading: isLoadingSalesByRep } = useQuery({
-    queryKey: ["/api/stats/sales-by-representative"],
-  });
   
   // Fetch dashboard stats for summary data
   const { data: stats, isLoading: isLoadingStats } = useQuery({
@@ -34,6 +29,21 @@ export default function ReportsPage() {
   // Fetch orders for sales report
   const { data: orders, isLoading: isLoadingOrders } = useQuery({
     queryKey: ["/api/orders"],
+  });
+  
+  // Fetch sales by representative
+  const { data: salesByRep, isLoading: isLoadingSalesByRep } = useQuery({
+    queryKey: ["/api/stats/sales-by-representative"],
+  });
+  
+  // Fetch sales by brand
+  const { data: salesByBrand, isLoading: isLoadingSalesByBrand } = useQuery({
+    queryKey: ["/api/stats/sales-by-brand"],
+  });
+  
+  // Fetch top selling products
+  const { data: topProducts, isLoading: isLoadingTopProducts } = useQuery({
+    queryKey: ["/api/stats/top-selling-products"],
   });
   
   // Prepare data for orders status chart
@@ -47,6 +57,9 @@ export default function ReportsPage() {
     { name: 'Ativos', value: stats.clients.active },
     { name: 'Inativos', value: stats.clients.total - stats.clients.active }
   ] : [];
+  
+  // Prepare data for brand chart (Top 10 brands)
+  const brandData = salesByBrand ? salesByBrand.slice(0, 10) : [];
   
   const handleExportReport = () => {
     // This would be implemented with a real export library like jsPDF or ExcelJS
@@ -65,7 +78,7 @@ export default function ReportsPage() {
             <TabsTrigger value="sales">Vendas</TabsTrigger>
             <TabsTrigger value="representatives">Representantes</TabsTrigger>
             <TabsTrigger value="products">Produtos Mais Vendidos</TabsTrigger>
-            <TabsTrigger value="clients">Clientes</TabsTrigger>
+            <TabsTrigger value="brands">Vendas por Marca</TabsTrigger>
           </TabsList>
           
           {/* Sales Report */}
@@ -124,53 +137,112 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Status dos Pedidos</h3>
+                    {isLoadingStats ? (
+                      <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              dataKey="value"
+                              data={orderStatusData}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              fill="#8884d8"
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            >
+                              {orderStatusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value) => [`${value} pedidos`, 'Quantidade']} />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Resumo Financeiro</h3>
+                    {isLoadingStats ? (
+                      <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Total em Vendas</p>
+                          <p className="text-2xl font-bold">{formatCurrency(stats?.orders?.totalValue || 0)}</p>
+                        </div>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Total de Pedidos</p>
+                          <p className="text-2xl font-bold">{stats?.orders?.total || 0}</p>
+                        </div>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</p>
+                          <p className="text-2xl font-bold">
+                            {stats?.orders?.total > 0
+                              ? formatCurrency((stats?.orders?.totalValue || 0) / stats?.orders?.total)
+                              : formatCurrency(0)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <h3 className="text-lg font-medium mb-4">Últimos Pedidos</h3>
                 {isLoadingOrders ? (
                   <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <DataTable
-                    columns={[
-                      {
-                        header: "Pedido",
-                        accessorKey: "id",
-                        cell: (order) => `#${order.id}`,
-                      },
-                      {
-                        header: "Cliente",
-                        accessorKey: "clientId",
-                        cell: (order) => `Cliente #${order.clientId}`,
-                      },
-                      {
-                        header: "Data",
-                        accessorKey: "createdAt",
-                        cell: (order) => new Date(order.createdAt).toLocaleDateString(),
-                        sortable: true,
-                      },
-                      {
-                        header: "Status",
-                        accessorKey: "status",
-                        cell: (order) => (
-                          <Badge variant={order.status === "confirmado" ? "success" : "warning"}>
-                            {order.status === "confirmado" ? "Confirmado" : "Cotação"}
-                          </Badge>
-                        ),
-                      },
-                      {
-                        header: "Representante",
-                        accessorKey: "representativeId",
-                        cell: (order) => `Rep #${order.representativeId}`,
-                      },
-                      {
-                        header: "Total",
-                        accessorKey: "total",
-                        cell: (order) => formatCurrency(Number(order.total)),
-                        sortable: true,
-                      },
-                    ]}
-                    data={orders || []}
-                    keyField="id"
-                  />
+                  <div className="overflow-hidden">
+                    <DataTable
+                      columns={[
+                        {
+                          header: "ID",
+                          accessorKey: "id",
+                          sortable: true,
+                        },
+                        {
+                          header: "Cliente",
+                          accessorKey: "clientName",
+                          sortable: true,
+                        },
+                        {
+                          header: "Data",
+                          accessorKey: "date",
+                          sortable: true,
+                        },
+                        {
+                          header: "Status",
+                          accessorKey: "status",
+                          cell: (order) => (
+                            <Badge variant={order.status === 'confirmado' ? "success" : "default"}>
+                              {order.status === 'confirmado' ? 'Confirmado' : 'Cotação'}
+                            </Badge>
+                          ),
+                          sortable: true,
+                        },
+                        {
+                          header: "Valor",
+                          accessorKey: "total",
+                          cell: (order) => formatCurrency(order.total),
+                          sortable: true,
+                        },
+                      ]}
+                      data={orders?.slice(0, 10) || []}
+                      keyField="id"
+                    />
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -180,7 +252,7 @@ export default function ReportsPage() {
           <TabsContent value="representatives" className="space-y-4 pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Vendas por Representante</CardTitle>
+                <CardTitle>Desempenho dos Representantes</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoadingSalesByRep ? (
@@ -189,28 +261,64 @@ export default function ReportsPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={salesByRep || []}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip formatter={(value) => [formatCurrency(value as number), 'Total']} />
-                          <Legend />
-                          <Bar dataKey="totalValue" name="Valor Total" fill="#3b82f6" />
-                          <Bar dataKey="confirmedOrders" name="Pedidos Confirmados" fill="#22c55e" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Vendas por Representante</h3>
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={salesByRep}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="name" />
+                              <YAxis />
+                              <Tooltip formatter={(value, name) => [
+                                name === "totalValue" ? formatCurrency(value) : value,
+                                name === "totalValue" ? "Valor Total" : 
+                                name === "totalPieces" ? "Total de Peças" : 
+                                name === "confirmedOrders" ? "Pedidos Confirmados" : 
+                                "Total de Pedidos"
+                              ]} />
+                              <Legend 
+                                formatter={(value) => (
+                                  value === "totalValue" ? "Valor Total" : 
+                                  value === "totalPieces" ? "Total de Peças" : 
+                                  value === "confirmedOrders" ? "Pedidos Confirmados" : 
+                                  "Total de Pedidos"
+                                )}
+                              />
+                              <Bar dataKey="totalValue" fill="#3b82f6" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Peças Vendidas por Representante</h3>
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={salesByRep}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="name" />
+                              <YAxis />
+                              <Tooltip formatter={(value) => [value, "Total de Peças"]} />
+                              <Legend />
+                              <Bar dataKey="totalPieces" fill="#22c55e" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="mt-8">
+                    <div className="overflow-hidden">
                       <DataTable
                         columns={[
                           {
-                            header: "Representante",
+                            header: "Nome",
                             accessorKey: "name",
                             sortable: true,
                           },
@@ -225,9 +333,20 @@ export default function ReportsPage() {
                             sortable: true,
                           },
                           {
-                            header: "Total em Vendas",
+                            header: "Total de Peças",
+                            accessorKey: "totalPieces",
+                            sortable: true,
+                          },
+                          {
+                            header: "Valor Total",
                             accessorKey: "totalValue",
                             cell: (rep) => formatCurrency(rep.totalValue),
+                            sortable: true,
+                          },
+                          {
+                            header: "Comissão Total",
+                            accessorKey: "totalCommission",
+                            cell: (rep) => formatCurrency(rep.totalCommission),
                             sortable: true,
                           },
                         ]}
@@ -248,77 +367,230 @@ export default function ReportsPage() {
                 <CardTitle>Produtos Mais Vendidos</CardTitle>
               </CardHeader>
               <CardContent>
-                {isLoadingStats ? (
+                {isLoadingTopProducts ? (
                   <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div className="text-center py-16">
-                    <h3 className="text-lg font-medium text-gray-500 dark:text-gray-400">
-                      Dados sobre produtos mais vendidos seriam exibidos aqui
-                    </h3>
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Top 10 Produtos por Quantidade</h3>
+                        <div className="h-96">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={topProducts?.slice(0, 10)}
+                              layout="vertical"
+                              margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" />
+                              <YAxis 
+                                type="category" 
+                                dataKey="name" 
+                                tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                                width={140}
+                              />
+                              <Tooltip formatter={(value, name) => [value, "Quantidade Vendida"]} />
+                              <Legend />
+                              <Bar dataKey="totalPieces" fill="#3b82f6" name="Quantidade Vendida" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Top 10 Produtos por Valor</h3>
+                        <div className="h-96">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={[...topProducts || []]
+                                .sort((a, b) => b.totalValue - a.totalValue)
+                                .slice(0, 10)}
+                              layout="vertical"
+                              margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis type="number" />
+                              <YAxis 
+                                type="category" 
+                                dataKey="name" 
+                                tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                                width={140}
+                              />
+                              <Tooltip formatter={(value) => [formatCurrency(value), "Valor Total"]} />
+                              <Legend />
+                              <Bar dataKey="totalValue" fill="#ef4444" name="Valor Total" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-hidden">
+                      <DataTable
+                        columns={[
+                          {
+                            header: "Código",
+                            accessorKey: "code",
+                            sortable: true,
+                          },
+                          {
+                            header: "Nome",
+                            accessorKey: "name",
+                            sortable: true,
+                          },
+                          {
+                            header: "Marca",
+                            accessorKey: "brand",
+                            sortable: true,
+                            cell: (product) => product.brand || 'Sem Marca',
+                          },
+                          {
+                            header: "Quantidade Vendida",
+                            accessorKey: "totalPieces",
+                            sortable: true,
+                          },
+                          {
+                            header: "Valor Total",
+                            accessorKey: "totalValue",
+                            cell: (product) => formatCurrency(product.totalValue),
+                            sortable: true,
+                          },
+                          {
+                            header: "Comissão",
+                            accessorKey: "totalCommission",
+                            cell: (product) => formatCurrency(product.totalCommission),
+                            sortable: true,
+                          },
+                        ]}
+                        data={topProducts || []}
+                        keyField="id"
+                        searchable
+                        searchPlaceholder="Buscar produtos..."
+                      />
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
           
-          {/* Clients Report */}
-          <TabsContent value="clients" className="space-y-4 pt-4">
+          {/* Brands Report */}
+          <TabsContent value="brands" className="space-y-4 pt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Status dos Clientes</CardTitle>
+                <CardTitle>Vendas por Marca</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col md:flex-row items-center justify-center gap-8">
-                {isLoadingStats ? (
-                  <div className="flex justify-center items-center h-64 w-full">
+              <CardContent>
+                {isLoadingSalesByBrand ? (
+                  <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
                   <>
-                    <div className="h-80 w-full md:w-1/2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            dataKey="value"
-                            data={clientsData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={120}
-                            fill="#8884d8"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          >
-                            {clientsData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value) => [`${value} clientes`, 'Quantidade']} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Top 10 Marcas por Quantidade</h3>
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={brandData}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="brand" 
+                                tickFormatter={(value) => value.length > 10 ? `${value.substring(0, 10)}...` : value}
+                              />
+                              <YAxis />
+                              <Tooltip 
+                                formatter={(value, name) => [
+                                  value, 
+                                  name === "totalPieces" ? "Total de Peças" : 
+                                  name === "totalValue" ? "Valor Total" : 
+                                  name === "totalCommission" ? "Comissão Total" : 
+                                  "Pedidos"
+                                ]}
+                                labelFormatter={(label) => `Marca: ${label}`}
+                              />
+                              <Legend />
+                              <Bar dataKey="totalPieces" fill="#3b82f6" name="Total de Peças" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Top 10 Marcas por Valor</h3>
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                dataKey="totalValue"
+                                nameKey="brand"
+                                data={brandData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={80}
+                                fill="#8884d8"
+                                label={({ name, percent }) => 
+                                  `${name.length > 10 ? `${name.substring(0, 10)}...` : name} ${(percent * 100).toFixed(0)}%`
+                                }
+                              >
+                                {brandData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => [formatCurrency(value), "Valor Total"]} />
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="w-full md:w-1/2 space-y-4">
-                      <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                        <h3 className="text-lg font-medium mb-2">Total de Clientes</h3>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                          {stats?.clients?.total || 0}
-                        </p>
-                      </div>
-                      
-                      <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                        <h3 className="text-lg font-medium mb-2">Clientes Ativos</h3>
-                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                          {stats?.clients?.active || 0}
-                        </p>
-                      </div>
-                      
-                      <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-                        <h3 className="text-lg font-medium mb-2">Clientes Inativos</h3>
-                        <p className="text-3xl font-bold text-gray-500 dark:text-gray-400">
-                          {stats?.clients?.total ? stats.clients.total - stats.clients.active : 0}
-                        </p>
-                      </div>
+                    <div className="overflow-hidden">
+                      <DataTable
+                        columns={[
+                          {
+                            header: "Marca",
+                            accessorKey: "brand",
+                            sortable: true,
+                          },
+                          {
+                            header: "Total de Peças",
+                            accessorKey: "totalPieces",
+                            sortable: true,
+                          },
+                          {
+                            header: "Pedidos",
+                            accessorKey: "orders",
+                            sortable: true,
+                          },
+                          {
+                            header: "Valor Total",
+                            accessorKey: "totalValue",
+                            cell: (brand) => formatCurrency(brand.totalValue),
+                            sortable: true,
+                          },
+                          {
+                            header: "Comissão Total",
+                            accessorKey: "totalCommission",
+                            cell: (brand) => formatCurrency(brand.totalCommission),
+                            sortable: true,
+                          },
+                          {
+                            header: "Valor Médio por Peça",
+                            cell: (brand) => formatCurrency(brand.totalPieces > 0 ? brand.totalValue / brand.totalPieces : 0),
+                            sortable: false,
+                          },
+                        ]}
+                        data={salesByBrand || []}
+                        keyField="brand"
+                        searchable
+                        searchPlaceholder="Buscar marcas..."
+                      />
                     </div>
                   </>
                 )}

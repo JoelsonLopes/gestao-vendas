@@ -1317,6 +1317,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching sales by representative" });
     }
   });
+  
+  // Get sales by brand
+  app.get("/api/stats/sales-by-brand", isAuthenticated, async (req, res) => {
+    try {
+      const salesByBrand = await storage.getSalesByBrand();
+      res.json(salesByBrand);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching sales by brand" });
+    }
+  });
+  
+  // Get top selling products
+  app.get("/api/stats/top-selling-products", isAuthenticated, async (req, res) => {
+    try {
+      // O limite padrão é 20, mas pode ser alterado via query parameter
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const topProducts = await storage.getTopSellingProducts(limit);
+      res.json(topProducts);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching top selling products" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
