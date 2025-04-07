@@ -475,9 +475,8 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Executando busca de produtos com o termo: "${query}"`);
       
-      // Primeiro tentamos buscar exatamente pela referência do cliente (conversion)
-      // Este é um caso especial para referências exatas como "AKX1100"
-      const exactMatch = await db.select({
+      // Função para selecionar todas as colunas de produtos
+      const selectAllProductColumns = () => ({
         id: products.id,
         name: products.name,
         code: products.code,
@@ -493,47 +492,40 @@ export class DatabaseStorage implements IStorage {
         conversion: products.conversion,
         conversionBrand: products.conversionBrand,
         equivalentBrands: products.equivalentBrands
-      })
-      .from(products)
-      .where(eq(products.conversion, query))
-      .limit(20);
+      });
       
-      if (exactMatch.length > 0) {
-        console.log(`Encontrado produto com referência exata "${query}":`, exactMatch);
-        return exactMatch;
+      // MODIFICAÇÃO: Buscar tanto produtos que correspondem exatamente ao nome ou código,
+      // quanto produtos que tenham essa referência como conversão
+      const exactMatches = await db.select(selectAllProductColumns())
+        .from(products)
+        .where(
+          or(
+            eq(products.name, query),      // Correspondência exata com nome
+            eq(products.code, query),      // Correspondência exata com código
+            eq(products.conversion, query) // Correspondência exata com conversão
+          )
+        )
+        .limit(20);
+      
+      if (exactMatches.length > 0) {
+        console.log(`Encontrados ${exactMatches.length} produtos com correspondência exata para "${query}"`);
+        return exactMatches;
       }
       
       // Caso não encontre correspondência exata, faz uma busca mais ampla
-      // Selecionar apenas as colunas que sabemos que existem, evitando as novas colunas
-      const result = await db.select({
-        id: products.id,
-        name: products.name,
-        code: products.code,
-        description: products.description,
-        barcode: products.barcode,
-        category: products.category,
-        brand: products.brand,
-        price: products.price,
-        stockQuantity: products.stockQuantity,
-        active: products.active,
-        createdAt: products.createdAt,
-        updatedAt: products.updatedAt,
-        conversion: products.conversion,
-        conversionBrand: products.conversionBrand,
-        equivalentBrands: products.equivalentBrands
-      })
-      .from(products)
-      .where(
-        or(
-          ilike(products.name, `%${query}%`),
-          ilike(products.category, `%${query}%`),
-          ilike(products.brand, `%${query}%`),
-          ilike(products.barcode, `%${query}%`),
-          ilike(products.code, `%${query}%`),
-          ilike(products.conversion, `%${query}%`) // Buscar também na referência do cliente
+      const result = await db.select(selectAllProductColumns())
+        .from(products)
+        .where(
+          or(
+            ilike(products.name, `%${query}%`),
+            ilike(products.category, `%${query}%`),
+            ilike(products.brand, `%${query}%`),
+            ilike(products.barcode, `%${query}%`),
+            ilike(products.code, `%${query}%`),
+            ilike(products.conversion, `%${query}%`) // Buscar também na referência do cliente
+          )
         )
-      )
-      .limit(20);
+        .limit(20);
       
       console.log(`Encontrados ${result.length} produtos para o termo "${query}" na busca ampla`);
       return result;
@@ -547,8 +539,8 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Buscando produto pela referência do cliente: ${clientRef}`);
       
-      // Primeiro tentamos encontrar um produto que tenha exatamente esta referência como valor de conversão
-      const selectFields = {
+      // Função para selecionar todas as colunas de produtos
+      const selectAllProductColumns = () => ({
         id: products.id,
         name: products.name,
         code: products.code,
@@ -564,24 +556,37 @@ export class DatabaseStorage implements IStorage {
         conversion: products.conversion,
         conversionBrand: products.conversionBrand,
         equivalentBrands: products.equivalentBrands
-      };
+      });
       
-      // Busca exata pela referência
-      const [product] = await db.select(selectFields)
+      // MODIFICAÇÃO: Verificar também se o código ou nome do produto é igual à referência buscada
+      // Isso resolve o problema de não encontrar produtos como "PSL597" quando buscamos exatamente por "PSL597"
+      const exactMatches = await db.select(selectAllProductColumns())
         .from(products)
-        .where(eq(products.conversion, clientRef));
+        .where(
+          or(
+            eq(products.code, clientRef),      // Verifica se o código do produto é igual à referência
+            eq(products.name, clientRef),      // Verifica se o nome do produto é igual à referência
+            eq(products.conversion, clientRef)  // Verifica na referência de conversão
+          )
+        );
       
-      if (product) {
-        console.log(`Produto encontrado pela referência do cliente ${clientRef}:`, product.name);
-        return product;
+      if (exactMatches.length > 0) {
+        console.log(`Encontrado(s) ${exactMatches.length} produto(s) com correspondência exata para "${clientRef}"`);
+        return exactMatches[0]; // Retorna o primeiro encontrado
       }
       
-      console.log(`Nenhum produto encontrado pela referência exata '${clientRef}', buscando similaridades`);
+      console.log(`Nenhum produto encontrado pela correspondência exata '${clientRef}', buscando similaridades`);
       
-      // Se não encontrou, podemos tentar uma busca mais ampla
-      const productsWithSimilarRef = await db.select(selectFields)
+      // Se não encontrou correspondência exata, tentamos uma busca mais ampla com ILIKE
+      const productsWithSimilarRef = await db.select(selectAllProductColumns())
         .from(products)
-        .where(ilike(products.conversion, `%${clientRef}%`))
+        .where(
+          or(
+            ilike(products.conversion, `%${clientRef}%`), // Busca na referência do cliente
+            ilike(products.code, `%${clientRef}%`),      // Busca no código
+            ilike(products.name, `%${clientRef}%`)       // Busca no nome
+          )
+        )
         .limit(5);
         
       if (productsWithSimilarRef.length > 0) {
