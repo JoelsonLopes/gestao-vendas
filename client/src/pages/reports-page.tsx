@@ -306,45 +306,31 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     
-                    <div className="overflow-hidden">
-                      <DataTable
-                        columns={[
-                          {
-                            header: "Nome",
-                            accessorKey: "name",
-                            sortable: true,
-                          },
-                          {
-                            header: "Total de Pedidos",
-                            accessorKey: "totalOrders",
-                            sortable: true,
-                          },
-                          {
-                            header: "Pedidos Confirmados",
-                            accessorKey: "confirmedOrders",
-                            sortable: true,
-                          },
-                          {
-                            header: "Total de Peças",
-                            accessorKey: "totalPieces",
-                            sortable: true,
-                          },
-                          {
-                            header: "Valor Total",
-                            accessorKey: "totalValue",
-                            cell: (rep) => formatCurrency(rep.totalValue),
-                            sortable: true,
-                          },
-                          {
-                            header: "Comissão Total",
-                            accessorKey: "totalCommission",
-                            cell: (rep) => formatCurrency(rep.totalCommission),
-                            sortable: true,
-                          },
-                        ]}
-                        data={salesByRep || []}
-                        keyField="id"
-                      />
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-100 dark:bg-gray-800">
+                            <th className="p-3 text-left font-medium text-gray-600 dark:text-gray-300">Nome</th>
+                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Total de Pedidos</th>
+                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Pedidos Confirmados</th>
+                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Total de Peças</th>
+                            <th className="p-3 text-right font-medium text-gray-600 dark:text-gray-300">Valor Total</th>
+                            <th className="p-3 text-right font-medium text-gray-600 dark:text-gray-300">Comissão Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(salesByRep || []).map((rep) => (
+                            <tr key={rep.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                              <td className="p-3 text-left">{rep.name}</td>
+                              <td className="p-3 text-center">{rep.totalOrders}</td>
+                              <td className="p-3 text-center">{rep.confirmedOrders}</td>
+                              <td className="p-3 text-center">{rep.totalPieces}</td>
+                              <td className="p-3 text-right">{formatCurrency(rep.totalValue)}</td>
+                              <td className="p-3 text-right">{formatCurrency(rep.totalCommission)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}
