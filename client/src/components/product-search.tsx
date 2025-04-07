@@ -80,15 +80,16 @@ export function ProductSearch({
   
   // Focar no input quando abrir
   useEffect(() => {
-    if (open && autoFocus) {
-      const inputElement = document.getElementById("product-search-input");
-      if (inputElement) {
-        setTimeout(() => {
+    if (open) {
+      // Usar um timeout para garantir que o DOM tenha sido atualizado
+      setTimeout(() => {
+        const inputElement = document.getElementById("product-search-input");
+        if (inputElement) {
           inputElement.focus();
-        }, 100);
-      }
+        }
+      }, 50);
     }
-  }, [open, autoFocus]);
+  }, [open]);
   
   const handleProductSelect = (productId: number) => {
     onProductSelect(productId);
@@ -166,7 +167,7 @@ export function ProductSearch({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
-                autoFocus={autoFocus}
+                autoFocus={true}
                 autoComplete="off"
               />
               {loading && (
