@@ -392,6 +392,7 @@ export default function ProductsPage() {
                 accessorKey: "category",
                 sortable: true,
                 filterable: true,
+                hidden: true, // Oculta a coluna de categoria
               },
               {
                 header: "Marca",
@@ -550,6 +551,7 @@ export default function ProductsPage() {
                 accessorKey: "stockQuantity",
                 sortable: true,
                 filterable: true,
+                hidden: true, // Oculta a coluna de estoque
                 cell: (product) => {
                   if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "stockQuantity") {
                     return (
