@@ -27,6 +27,7 @@ export function ProductSearch({
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   
   // Buscar produto selecionado pelo ID
   const { data: selectedProduct } = useQuery<Product>({
@@ -78,6 +79,11 @@ export function ProductSearch({
     }
   }, [open]);
   
+  // Resetar o índice destacado quando os produtos mudam
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [products]);
+  
   // Focar no input quando abrir
   useEffect(() => {
     if (open) {
@@ -100,9 +106,31 @@ export function ProductSearch({
   };
   
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && products.length > 0) {
-      e.preventDefault();
-      handleProductSelect(products[0].id);
+    if (products.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev < products.length - 1 ? prev + 1 : prev
+        );
+        break;
+        
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : 0
+        );
+        break;
+        
+      case 'Enter':
+        e.preventDefault();
+        handleProductSelect(products[highlightedIndex].id);
+        break;
+        
+      case 'Escape':
+        setOpen(false);
+        break;
     }
   };
   
@@ -184,11 +212,15 @@ export function ProductSearch({
             ) : (
               <ScrollArea className="h-[300px]">
                 <div className="space-y-2">
-                  {products.map((product) => (
+                  {products.map((product, index) => (
                     <div
                       key={product.id}
-                      className="flex items-start p-2 hover:bg-muted rounded-md cursor-pointer"
+                      className={cn(
+                        "flex items-start p-2 hover:bg-muted rounded-md cursor-pointer",
+                        index === highlightedIndex && "bg-muted"
+                      )}
                       onClick={() => handleProductSelect(product.id)}
+                      onMouseEnter={() => setHighlightedIndex(index)}
                     >
                       <div className="bg-primary/10 p-1 rounded-md mr-2">
                         <Package className="h-4 w-4 text-primary" />
@@ -213,6 +245,25 @@ export function ProductSearch({
                   ))}
                 </div>
               </ScrollArea>
+            )}
+            
+            {/* Dicas de navegação */}
+            {products.length > 0 && (
+              <div className="flex gap-2 justify-center text-xs text-muted-foreground border-t pt-2">
+                <div className="flex items-center">
+                  <kbd className="px-1 py-0.5 rounded bg-muted">↑</kbd>
+                  <kbd className="px-1 py-0.5 rounded bg-muted ml-1">↓</kbd>
+                  <span className="ml-1">Navegar</span>
+                </div>
+                <div className="flex items-center">
+                  <kbd className="px-1 py-0.5 rounded bg-muted">Enter</kbd>
+                  <span className="ml-1">Selecionar</span>
+                </div>
+                <div className="flex items-center">
+                  <kbd className="px-1 py-0.5 rounded bg-muted">Esc</kbd>
+                  <span className="ml-1">Fechar</span>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
