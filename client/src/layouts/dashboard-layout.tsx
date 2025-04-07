@@ -48,10 +48,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <ThemeToggle />
               
               {/* Notification button */}
-              <Button variant="ghost" size="icon" className="ml-4 relative">
+              <div className="ml-4 relative">
                 <NotificationBell />
-                <span className="sr-only">Notificações</span>
-              </Button>
+              </div>
               
               {/* User menu */}
               <div className="ml-4 relative flex-shrink-0">
