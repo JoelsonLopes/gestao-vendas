@@ -27,6 +27,8 @@ export interface IStorage {
   updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
   listUsers(): Promise<User[]>;
   listRepresentatives(): Promise<User[]>;
+  getPendingUsers(): Promise<User[]>;
+  deleteUser(id: number): Promise<boolean>;
   
   // Region methods
   getRegion(id: number): Promise<Region | undefined>;
@@ -1238,6 +1240,23 @@ export class DatabaseStorage implements IStorage {
     return Object.values(productMap)
       .sort((a, b) => b.totalPieces - a.totalPieces)
       .slice(0, limit);
+  }
+  // Métodos para gerenciar usuários pendentes
+  async getPendingUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.role, "representative"),
+        eq(users.approved, false)
+      ));
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db
+      .delete(users)
+      .where(eq(users.id, id));
+    return result.rowCount > 0;
   }
 }
 

@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   role: userRoleEnum("role").notNull().default('representative'),
   active: boolean("active").notNull().default(true),
+  approved: boolean("approved").notNull().default(false), // Campo para aprovação de representantes
   googleId: text("google_id"),
   avatar: text("avatar"),
   regionId: integer("region_id").references(() => regions.id),

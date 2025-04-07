@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import WebSocket from 'ws';
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -41,6 +42,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(usersWithoutPasswords);
     } catch (error) {
       res.status(500).json({ message: "Error fetching users" });
+    }
+  });
+  
+  // Get all pending users (admin only)
+  app.get("/api/pending-users", isAdmin, async (req, res) => {
+    try {
+      const pendingUsers = await storage.getPendingUsers();
+      const usersWithoutPasswords = pendingUsers.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários pendentes" });
+    }
+  });
+  
+  // Approve user (admin only)
+  app.post("/api/users/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updatedUser = await storage.updateUser(userId, { approved: true });
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error approving user:", error);
+      res.status(500).json({ message: "Erro ao aprovar usuário" });
+    }
+  });
+  
+  // Delete user (admin only)
+  app.delete("/api/users/:id", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const success = await storage.deleteUser(userId);
+      if (!success) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      res.json({ message: "Usuário excluído com sucesso" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Erro ao excluir usuário" });
     }
   });
 
@@ -1324,5 +1368,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
   return httpServer;
 }

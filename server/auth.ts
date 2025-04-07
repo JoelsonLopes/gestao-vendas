@@ -7,7 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { type User as UserType } from "@shared/schema";
+import { type User as UserType, type InsertUser } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -67,10 +67,16 @@ export function setupAuth(app: Express) {
           if (!user || !(await comparePasswords(password, user.password))) {
             return done(null, false, { message: "Email ou senha inválidos" });
           } else {
-            // Verificar se a propriedade active existe e se é false
+            // Verificar se a conta está desativada
             if (user.active === false) {
               return done(null, false, { message: "Conta desativada. Entre em contato com o administrador." });
             }
+            
+            // Verificar se é um representante que precisa de aprovação
+            if (user.role === 'representative' && user.approved === false) {
+              return done(null, false, { message: "Sua conta ainda não foi aprovada pelo administrador. Tente novamente mais tarde." });
+            }
+            
             return done(null, user);
           }
         } catch (error) {
@@ -94,7 +100,7 @@ export function setupAuth(app: Express) {
     try {
       // Validate request body against schema
       const registerSchema = insertUserSchema.extend({
-        password: z.string().min(6, "Password must be at least 6 characters"),
+        password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
         // Adicionamos um campo opcional para indicar quando criar uma região automaticamente
         createRegion: z.boolean().optional(),
       });
@@ -104,21 +110,30 @@ export function setupAuth(app: Express) {
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
-        return res.status(400).json({ message: "Email already in use" });
+        return res.status(400).json({ message: "Este email já está em uso" });
       }
 
       // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
       
-      // Se for um representante e createRegion estiver marcado como true, criamos uma região com seu nome
+      // Forçar o papel para representante, independente do que foi enviado
+      const userData: InsertUser = {
+        ...validatedData,
+        role: 'representative' as const, // Sempre registra como representante
+        approved: false, // Novo usuário não é aprovado por padrão
+        password: hashedPassword,
+      };
+      
+      // Se createRegion estiver marcado como true, criamos uma região com seu nome
       let regionId = validatedData.regionId;
-      if (validatedData.createRegion && validatedData.role === 'representative') {
+      if (validatedData.createRegion) {
         try {
           const newRegion = await storage.createRegion({
             name: validatedData.name,
           });
           // Usar o ID da nova região para o representante
           regionId = newRegion.id;
+          userData.regionId = regionId;
         } catch (regionError) {
           console.error("Erro ao criar região:", regionError);
           // Continuamos mesmo se houver erro na criação da região
@@ -126,24 +141,20 @@ export function setupAuth(app: Express) {
       }
 
       // Criar o usuário com os dados validados
-      const user = await storage.createUser({
-        ...validatedData,
-        password: hashedPassword,
-        regionId, // Se uma região foi criada, este valor será atualizado
-      });
+      const user = await storage.createUser(userData);
 
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
 
-      // Login the user
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(userWithoutPassword);
+      // Não fazemos login automático, apenas retornamos uma mensagem
+      res.status(201).json({ 
+        ...userWithoutPassword,
+        message: "Cadastro realizado com sucesso. Aguarde a aprovação do administrador para acessar o sistema."
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
-          message: "Validation failed", 
+          message: "Falha na validação", 
           errors: error.errors 
         });
       }
@@ -155,7 +166,10 @@ export function setupAuth(app: Express) {
     passport.authenticate("local", (err: any, user: UserType | false, info: any) => {
       if (err) return next(err);
       if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        // O info contém a mensagem de erro do LocalStrategy
+        return res.status(401).json({ 
+          message: info?.message || "Email ou senha inválidos" 
+        });
       }
       
       req.login(user, (err: Error | null | undefined) => {
