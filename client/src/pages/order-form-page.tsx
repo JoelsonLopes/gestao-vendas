@@ -624,25 +624,28 @@ export default function OrderFormPage() {
       clientRef: clientRef || updatedProduct.conversion || null,
     };
     
-    // Adiciona o item à lista
+    // Verifica se o cliente está selecionado antes de prosseguir
+    if (!clientId) {
+      toast({
+        title: "Atenção",
+        description: "Selecione um cliente antes de adicionar produtos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Adiciona o item à lista e retorna a promise para permitir sequenciar operações
     setOrderItems(prevItems => {
       const updatedItems = [...prevItems, newItem];
-      
-      // Usando um setTimeout para garantir que o estado orderItems seja atualizado
-      setTimeout(() => {
-        // Salvar automaticamente o pedido após adicionar o produto
-        if (clientId) {
-          handleSaveOrder();
-        } else {
-          toast({
-            title: "Atenção",
-            description: "Selecione um cliente antes de adicionar produtos.",
-            variant: "destructive",
-          });
-        }
-      }, 0);
-      
       return updatedItems;
+    });
+    
+    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
+    requestAnimationFrame(() => {
+      // Salvar automaticamente o pedido após adicionar o produto
+      if (clientId) {
+        handleSaveOrder();
+      }
     });
     
     // Fecha a modal e limpa os campos
@@ -672,13 +675,13 @@ export default function OrderFormPage() {
     
     // Salvar automaticamente apenas se solicitado explicitamente
     if (autoSave) {
-      // Usando um setTimeout para garantir que o estado orderItems seja atualizado
-      setTimeout(() => {
+      // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
+      requestAnimationFrame(() => {
         // Salvar automaticamente o pedido após remover um produto
         if (clientId && newItems.length > 0) {
           handleSaveOrder();
         }
-      }, 0);
+      });
     }
   };
   
@@ -716,13 +719,13 @@ export default function OrderFormPage() {
     
     setOrderItems(newItems);
     
-    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
-    setTimeout(() => {
+    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
+    requestAnimationFrame(() => {
       // Salvar automaticamente o pedido após alterar o desconto
       if (clientId) {
         handleSaveOrder();
       }
-    }, 0);
+    });
   };
   
   // Update item quantity
@@ -758,13 +761,13 @@ export default function OrderFormPage() {
     
     setOrderItems(newItems);
     
-    // Usando um setTimeout para garantir que o estado orderItems seja atualizado
-    setTimeout(() => {
+    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
+    requestAnimationFrame(() => {
       // Salvar automaticamente o pedido após alterar a quantidade
       if (clientId) {
         handleSaveOrder();
       }
-    }, 0);
+    });
   };
   
   // Mutation para atualizar pedido existente
