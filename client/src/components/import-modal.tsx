@@ -48,17 +48,15 @@ export function ImportModal({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<boolean>(false);
   
-  // Formulário para representante e região
+  // Formulário apenas para representante (que será vinculado à região automaticamente)
   const importFormSchema = z.object({
     representativeId: z.string().optional(),
-    regionId: z.string().optional(),
   });
   
   const form = useForm<z.infer<typeof importFormSchema>>({
     resolver: zodResolver(importFormSchema),
     defaultValues: {
       representativeId: "",
-      regionId: "",
     },
   });
 
@@ -169,16 +167,19 @@ export function ImportModal({
       const representativeId = formValues.representativeId && formValues.representativeId !== "0" 
                               ? formValues.representativeId 
                               : undefined;
-      const regionId = formValues.regionId && formValues.regionId !== "0" 
-                      ? formValues.regionId 
-                      : undefined;
       
-      // Adiciona representante e região a todos os registros se selecionados
+      // Obtém representante correspondente para encontrar a região associada
+      const selectedRepresentative = representatives.find(rep => rep.id.toString() === representativeId);
+      // Utiliza o mesmo ID para representante e região (quando disponível)
+      const regionId = selectedRepresentative ? selectedRepresentative.id.toString() : undefined;
+      
+      // Adiciona representante e região a todos os registros quando selecionado
       let dataToImport = [...parsedData];
-      if (representativeId || regionId) {
+      if (representativeId) {
         dataToImport = parsedData.map(item => ({
           ...item,
           representativeId: representativeId,
+          // Associa a região ao mesmo ID do representante
           regionId: regionId
         }));
       }
@@ -336,15 +337,15 @@ export function ImportModal({
                   )}
                 </div>
 
-                {/* Formulário para representante e região */}
+                {/* Formulário apenas para representante */}
                 {showRepresentativeSelect && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="grid gap-4 mt-4">
                     <FormField
                       control={form.control}
                       name="representativeId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Representante</FormLabel>
+                          <FormLabel>Representante / Região</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
@@ -359,35 +360,6 @@ export function ImportModal({
                               {representatives.map((rep) => (
                                 <SelectItem key={rep.id} value={rep.id.toString()}>
                                   {rep.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="regionId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Região</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a região" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="0">Nenhuma</SelectItem>
-                              {regions.map((region) => (
-                                <SelectItem key={region.id} value={region.id.toString()}>
-                                  {region.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
