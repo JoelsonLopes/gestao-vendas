@@ -143,49 +143,78 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
     doc.setFontSize(9);
     doc.text(`Data: ${formatDate(order.date)}`, pageWidth - 48, 50, { align: "center" });
 
-    // Seção do cliente
+    // Seção Cliente e Data
     doc.setTextColor(primaryColor);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("INFORMAÇÕES DO CLIENTE", 15, 35);
+    doc.text("CLIENTE", 15, 35);
     
     doc.setDrawColor(primaryColor);
     doc.setLineWidth(0.5);
-    doc.line(15, 37, 100, 37);
+    doc.line(15, 37, 50, 37);
     
     doc.setFillColor(lightGray);
-    doc.roundedRect(15, 40, 150, 25, 2, 2, "F");
+    doc.roundedRect(15, 40, 85, 25, 2, 2, "F");
     
     doc.setTextColor(darkGray);
     doc.setFontSize(9);
-    doc.text("Cliente:", 20, 48);
     doc.setFont("helvetica", "bold");
-    doc.text(`${order.clientName} (Cód: ${order.clientId})`, 50, 48);
+    doc.text(`${order.clientName} (Cód: ${order.clientId})`, 20, 48);
     
     doc.setFont("helvetica", "normal");
     doc.text("CNPJ:", 20, 55);
     doc.setFont("helvetica", "bold");
-    doc.text(order.clientCnpj, 50, 55);
+    doc.text(order.clientCnpj, 45, 55);
     
-    doc.setFont("helvetica", "normal");
-    doc.text("Representante:", 20, 62);
+    // Data
+    doc.setTextColor(primaryColor);
     doc.setFont("helvetica", "bold");
-    doc.text(order.representative, 70, 62);
+    doc.setFontSize(10);
+    doc.text("DATA", 115, 35);
+    
+    doc.setDrawColor(primaryColor);
+    doc.line(115, 37, 150, 37);
+    
+    doc.setFillColor(lightGray);
+    doc.roundedRect(115, 40, 80, 25, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatDate(order.date), 120, 48);
 
+    // Representante
+    doc.setTextColor(primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("REPRESENTANTE", 15, 75);
+    
+    doc.setDrawColor(primaryColor);
+    doc.line(15, 77, 85, 77);
+    
+    doc.setFillColor(lightGray);
+    doc.roundedRect(15, 80, 85, 15, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(order.representative, 20, 90);
+    
     // Condições de pagamento
     doc.setTextColor(primaryColor);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("CONDIÇÕES DE PAGAMENTO", 15, 75);
+    doc.text("PAGAMENTO", 115, 75);
     
     doc.setDrawColor(primaryColor);
-    doc.line(15, 77, 100, 77);
+    doc.line(115, 77, 170, 77);
     
     doc.setFillColor(lightGray);
-    doc.roundedRect(15, 80, 150, 15, 2, 2, "F");
+    doc.roundedRect(115, 80, 80, 15, 2, 2, "F");
     
     doc.setTextColor(darkGray);
-    doc.text(order.paymentTerms, 20, 90);
+    doc.setFont("helvetica", "normal");
+    doc.text(order.paymentTerms, 120, 90);
 
     // Observações (se houver)
     if (order.notes) {

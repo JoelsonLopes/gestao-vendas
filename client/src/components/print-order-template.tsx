@@ -88,24 +88,30 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
       {/* Separador de Seções */}
       <div className="border-b-2 border-blue-200 my-4"></div>
       
-      {/* Seção de Cliente e Informações de Contato */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Seção de Cliente e Data */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
         <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
           <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">CLIENTE</h3>
           <p className="text-base font-medium mb-1">{order.clientName} <span className="text-gray-500">(Cód: {order.clientId})</span></p>
           <p className="text-sm mb-1"><span className="font-medium">CNPJ:</span> {order.clientCnpj}</p>
         </div>
         
-        <div className="grid grid-cols-1 gap-4">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">REPRESENTANTE</h3>
-            <p className="text-base">{order.representative}</p>
-          </div>
-          
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-            <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">PAGAMENTO</h3>
-            <p className="text-base">{order.paymentTerms}</p>
-          </div>
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">DATA</h3>
+          <p className="text-base">{formatDate(order.date)}</p>
+        </div>
+      </div>
+      
+      {/* Seção de Representante e Pagamento */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">REPRESENTANTE</h3>
+          <p className="text-base">{order.representative}</p>
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">PAGAMENTO</h3>
+          <p className="text-base">{order.paymentTerms}</p>
         </div>
       </div>
       
