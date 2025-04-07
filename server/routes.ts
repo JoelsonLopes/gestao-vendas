@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import WebSocket from 'ws';
+import { setupWebSocketServer, createNotificationService, type NotificationService } from "./websockets";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -1368,6 +1368,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Configurar o servidor WebSocket
+  const wss = setupWebSocketServer(httpServer);
+  
+  // Criar o serviço de notificações
+  const notificationService = createNotificationService(wss);
+  
+  // Rota para enviar notificações (apenas para usuários autenticados)
+  app.post("/api/notify", isAuthenticated, (req, res) => {
+    try {
+      const { type = "info", message, targetUsers = "all" } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "O campo 'message' é obrigatório" 
+        });
+      }
+      
+      const notification = {
+        type,
+        message,
+        timestamp: Date.now()
+      };
+      
+      // Enviar notificação com base no alvo especificado
+      if (targetUsers === "admins") {
+        notificationService.notifyAdmins(notification);
+      } else if (typeof targetUsers === "number") {
+        notificationService.notifyUser(targetUsers, notification);
+      } else {
+        notificationService.notifyAll(notification);
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Erro ao enviar notificação:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao enviar notificação" 
+      });
+    }
+  });
+  
+  // Adicionar uma rota específica para notificar sobre aprovação de usuários
+  app.post("/api/notify-user-approval", isAdmin, (req, res) => {
+    try {
+      const { userId, userName } = req.body;
+      
+      if (!userId || !userName) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Os campos 'userId' e 'userName' são obrigatórios" 
+        });
+      }
+      
+      const notification = {
+        type: "success",
+        message: `O representante ${userName} foi aprovado com sucesso!`,
+        timestamp: Date.now()
+      };
+      
+      // Notificar todos os administradores
+      notificationService.notifyAdmins(notification);
+      
+      // Notificar o usuário específico (quando implementarmos o mapeamento de usuários)
+      notificationService.notifyUser(userId, {
+        type: "success",
+        message: "Sua conta foi aprovada! Você já pode acessar o sistema.",
+        timestamp: Date.now()
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Erro ao enviar notificação de aprovação:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao enviar notificação de aprovação" 
+      });
+    }
+  });
+  
+  // Rota para notificar administradores sobre novos usuários pendentes
+  app.post("/api/notify-new-user", (req, res) => {
+    try {
+      const { userName } = req.body;
+      
+      if (!userName) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "O campo 'userName' é obrigatório" 
+        });
+      }
+      
+      const notification = {
+        type: "info",
+        message: `Novo representante ${userName} aguardando aprovação!`,
+        timestamp: Date.now()
+      };
+      
+      // Notificar apenas administradores
+      notificationService.notifyAdmins(notification);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Erro ao enviar notificação de novo usuário:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erro ao enviar notificação de novo usuário" 
+      });
+    }
+  });
   
   return httpServer;
 }

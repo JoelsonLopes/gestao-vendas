@@ -3,7 +3,7 @@ import { Sidebar } from "@/components/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
-import { Bell } from "lucide-react";
+import { NotificationBell } from "@/components/notification-toast";
 import { Button } from "@/components/ui/button";
 
 interface DashboardLayoutProps {
@@ -49,8 +49,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               
               {/* Notification button */}
               <Button variant="ghost" size="icon" className="ml-4 relative">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                <NotificationBell />
                 <span className="sr-only">Notificações</span>
               </Button>
               

@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -21,7 +23,7 @@ const registerSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   passwordConfirm: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  role: z.enum(["admin", "representative"]),
+  role: z.literal("representative"), // Forçando o valor como "representative"
 }).refine((data) => data.password === data.passwordConfirm, {
   message: "Senhas não conferem",
   path: ["passwordConfirm"],
@@ -69,8 +71,20 @@ export default function AuthPage() {
   };
 
   // Handle register form submission
-  const onRegisterSubmit = (data: RegisterFormValues) => {
-    registerMutation.mutate(data);
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
+    // Primeiro registramos o usuário
+    registerMutation.mutate(data, {
+      onSuccess: async (user) => {
+        // Após sucesso no registro, enviamos uma notificação para administradores
+        try {
+          await apiRequest("POST", "/api/notify-new-user", {
+            userName: data.name
+          });
+        } catch (error) {
+          console.error("Erro ao enviar notificação:", error);
+        }
+      }
+    });
   };
 
   return (
@@ -211,21 +225,19 @@ export default function AuthPage() {
                     )}
                   </div>
 
-                  <div>
-                    <Label htmlFor="role">Tipo de Usuário</Label>
-                    <select
-                      id="role"
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      {...registerForm.register("role")}
-                    >
-                      <option value="admin">Administrador</option>
-                      <option value="representative">Representante</option>
-                    </select>
-                    {registerForm.formState.errors.role && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {registerForm.formState.errors.role.message}
-                      </p>
-                    )}
+                  {/* Campo oculto para o tipo de usuário - sempre representante */}
+                  <input
+                    type="hidden"
+                    id="role"
+                    value="representative"
+                    {...registerForm.register("role")}
+                  />
+                  
+                  <div className="p-4 bg-purple-100 dark:bg-purple-900 rounded-md">
+                    <p className="text-sm text-purple-800 dark:text-purple-100">
+                      Após o registro, sua conta precisará ser aprovada por um administrador 
+                      antes que você possa acessar o sistema.
+                    </p>
                   </div>
 
                   <div>

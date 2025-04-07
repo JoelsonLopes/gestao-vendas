@@ -146,6 +146,28 @@ export function setupAuth(app: Express) {
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
 
+      // Enviar notificação para administradores sobre novo usuário
+      try {
+        // Usamos a mesma API que criamos para notificar administradores
+        const notificationPayload = {
+          userName: user.name
+        };
+        
+        // Tentamos enviar a notificação diretamente sem depender do cliente
+        const fetchOptions = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notificationPayload)
+        };
+        
+        fetch('http://localhost:' + process.env.PORT + '/api/notify-new-user', fetchOptions)
+          .catch(err => console.error("Erro ao notificar sobre novo usuário:", err));
+        
+      } catch (notificationError) {
+        console.error("Erro ao enviar notificação:", notificationError);
+        // Continuamos mesmo se houver erro no envio da notificação
+      }
+      
       // Não fazemos login automático, apenas retornamos uma mensagem
       res.status(201).json({ 
         ...userWithoutPassword,
@@ -169,6 +191,13 @@ export function setupAuth(app: Express) {
         // O info contém a mensagem de erro do LocalStrategy
         return res.status(401).json({ 
           message: info?.message || "Email ou senha inválidos" 
+        });
+      }
+      
+      // Verificar se o usuário está aprovado
+      if (user.role === 'representative' && !user.approved) {
+        return res.status(403).json({
+          message: "Sua conta ainda não foi aprovada. Aguarde a aprovação do administrador para acessar o sistema."
         });
       }
       

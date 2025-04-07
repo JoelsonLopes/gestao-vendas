@@ -50,10 +50,12 @@ export function PendingUsersTable() {
       queryClient.invalidateQueries({ queryKey: ['/api/pending-users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
       
-      // Enviar notificação para todos os administradores (exemplo)
-      apiRequest("POST", `/api/notify-admins`, {
-        message: `${selectedUser?.name} foi aprovado como representante`,
-        type: "success"
+      // Enviar notificação sobre a aprovação do usuário
+      apiRequest("POST", `/api/notify-user-approval`, {
+        userId: selectedUser?.id,
+        userName: selectedUser?.name
+      }).catch(err => {
+        console.error("Erro ao enviar notificação:", err);
       });
       
       setSelectedUser(null);

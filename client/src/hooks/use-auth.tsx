@@ -57,12 +57,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Forçar atualização para reconhecer o usuário imediatamente
       window.location.href = "/";
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Falha no login",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      // Verificar se é o erro de conta não aprovada (status 403)
+      if (error.status === 403) {
+        toast({
+          title: "Acesso pendente",
+          description: "Sua conta ainda não foi aprovada. Aguarde a aprovação do administrador para acessar o sistema.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Falha no login",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -73,15 +82,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", userDataWithoutConfirm);
       return await res.json();
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    onSuccess: (response: any) => {
+      // Verifica se recebemos uma mensagem customizada na resposta
+      const message = response.message || `Bem-vindo, ${response.name}!`;
+      
       toast({
         title: "Registro bem-sucedido",
-        description: `Bem-vindo, ${user.name}!`,
+        description: message,
+        duration: 6000, // Tempo maior para mensagens importantes
       });
-      // Forçar atualização para reconhecer o usuário imediatamente
-      window.location.href = "/";
+      
+      // Redirecionamos para a página de login após 2 segundos
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 2000);
     },
     onError: (error: Error) => {
       toast({
