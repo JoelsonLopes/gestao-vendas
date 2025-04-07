@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/data-table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -196,44 +195,33 @@ export default function ReportsPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div className="overflow-hidden">
-                    <DataTable
-                      columns={[
-                        {
-                          header: "ID",
-                          accessorKey: "id",
-                          sortable: true,
-                        },
-                        {
-                          header: "Cliente",
-                          accessorKey: "clientName",
-                          sortable: true,
-                        },
-                        {
-                          header: "Data",
-                          accessorKey: "date",
-                          sortable: true,
-                        },
-                        {
-                          header: "Status",
-                          accessorKey: "status",
-                          cell: (order) => (
-                            <Badge variant={order.status === 'confirmado' ? "success" : "default"}>
-                              {order.status === 'confirmado' ? 'Confirmado' : 'Cotação'}
-                            </Badge>
-                          ),
-                          sortable: true,
-                        },
-                        {
-                          header: "Valor",
-                          accessorKey: "total",
-                          cell: (order) => formatCurrency(order.total),
-                          sortable: true,
-                        },
-                      ]}
-                      data={orders?.slice(0, 10) || []}
-                      keyField="id"
-                    />
+                  <div className="overflow-x-auto rounded-md border">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="p-3 text-left font-medium text-muted-foreground">ID</th>
+                          <th className="p-3 text-left font-medium text-muted-foreground">Cliente</th>
+                          <th className="p-3 text-left font-medium text-muted-foreground">Data</th>
+                          <th className="p-3 text-center font-medium text-muted-foreground">Status</th>
+                          <th className="p-3 text-right font-medium text-muted-foreground">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.isArray(orders) && orders.slice(0, 10).map((order) => (
+                          <tr key={order.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="p-3 text-left">{order.id}</td>
+                            <td className="p-3 text-left">{order.clientName}</td>
+                            <td className="p-3 text-left">{order.date}</td>
+                            <td className="p-3 text-center">
+                              <Badge variant={order.status === 'confirmado' ? "success" : "default"}>
+                                {order.status === 'confirmado' ? 'Confirmado' : 'Cotação'}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-right">{formatCurrency(order.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>
@@ -306,22 +294,22 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-md border">
                       <table className="w-full border-collapse">
                         <thead>
-                          <tr className="bg-gray-100 dark:bg-gray-800">
-                            <th className="p-3 text-left font-medium text-gray-600 dark:text-gray-300">Nome</th>
-                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Total de Pedidos</th>
-                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Pedidos Confirmados</th>
-                            <th className="p-3 text-center font-medium text-gray-600 dark:text-gray-300">Total de Peças</th>
-                            <th className="p-3 text-right font-medium text-gray-600 dark:text-gray-300">Valor Total</th>
-                            <th className="p-3 text-right font-medium text-gray-600 dark:text-gray-300">Comissão Total</th>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left font-medium text-muted-foreground">Nome</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Total de Pedidos</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Pedidos Confirmados</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Total de Peças</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Valor Total</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Comissão Total</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(salesByRep || []).map((rep) => (
+                          {Array.isArray(salesByRep) && salesByRep.map((rep) => (
                             <tr key={rep.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                              <td className="p-3 text-left">{rep.name}</td>
+                              <td className="p-3 text-left font-medium">{rep.name}</td>
                               <td className="p-3 text-center">{rep.totalOrders}</td>
                               <td className="p-3 text-center">{rep.confirmedOrders}</td>
                               <td className="p-3 text-center">{rep.totalPieces}</td>
@@ -405,48 +393,31 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     
-                    <div className="overflow-hidden">
-                      <DataTable
-                        columns={[
-                          {
-                            header: "Código",
-                            accessorKey: "code",
-                            sortable: true,
-                          },
-                          {
-                            header: "Nome",
-                            accessorKey: "name",
-                            sortable: true,
-                          },
-                          {
-                            header: "Marca",
-                            accessorKey: "brand",
-                            sortable: true,
-                            cell: (product) => product.brand || 'Sem Marca',
-                          },
-                          {
-                            header: "Quantidade Vendida",
-                            accessorKey: "totalPieces",
-                            sortable: true,
-                          },
-                          {
-                            header: "Valor Total",
-                            accessorKey: "totalValue",
-                            cell: (product) => formatCurrency(product.totalValue),
-                            sortable: true,
-                          },
-                          {
-                            header: "Comissão",
-                            accessorKey: "totalCommission",
-                            cell: (product) => formatCurrency(product.totalCommission),
-                            sortable: true,
-                          },
-                        ]}
-                        data={topProducts || []}
-                        keyField="id"
-                        searchable
-                        searchPlaceholder="Buscar produtos..."
-                      />
+                    <div className="overflow-x-auto rounded-md border">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left font-medium text-muted-foreground">Código</th>
+                            <th className="p-3 text-left font-medium text-muted-foreground">Nome</th>
+                            <th className="p-3 text-left font-medium text-muted-foreground">Marca</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Quantidade Vendida</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Valor Total</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Comissão</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.isArray(topProducts) && topProducts.map((product) => (
+                            <tr key={product.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                              <td className="p-3 text-left">{product.code}</td>
+                              <td className="p-3 text-left">{product.name}</td>
+                              <td className="p-3 text-left">{product.brand || 'Sem Marca'}</td>
+                              <td className="p-3 text-center">{product.totalPieces}</td>
+                              <td className="p-3 text-right">{formatCurrency(product.totalValue)}</td>
+                              <td className="p-3 text-right">{formatCurrency(product.totalCommission)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}
@@ -528,47 +499,31 @@ export default function ReportsPage() {
                       </div>
                     </div>
                     
-                    <div className="overflow-hidden">
-                      <DataTable
-                        columns={[
-                          {
-                            header: "Marca",
-                            accessorKey: "brand",
-                            sortable: true,
-                          },
-                          {
-                            header: "Total de Peças",
-                            accessorKey: "totalPieces",
-                            sortable: true,
-                          },
-                          {
-                            header: "Pedidos",
-                            accessorKey: "orders",
-                            sortable: true,
-                          },
-                          {
-                            header: "Valor Total",
-                            accessorKey: "totalValue",
-                            cell: (brand) => formatCurrency(brand.totalValue),
-                            sortable: true,
-                          },
-                          {
-                            header: "Comissão Total",
-                            accessorKey: "totalCommission",
-                            cell: (brand) => formatCurrency(brand.totalCommission),
-                            sortable: true,
-                          },
-                          {
-                            header: "Valor Médio por Peça",
-                            cell: (brand) => formatCurrency(brand.totalPieces > 0 ? brand.totalValue / brand.totalPieces : 0),
-                            sortable: false,
-                          },
-                        ]}
-                        data={salesByBrand || []}
-                        keyField="brand"
-                        searchable
-                        searchPlaceholder="Buscar marcas..."
-                      />
+                    <div className="overflow-x-auto rounded-md border">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="p-3 text-left font-medium text-muted-foreground">Marca</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Total de Peças</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Pedidos</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Valor Total</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Comissão Total</th>
+                            <th className="p-3 text-right font-medium text-muted-foreground">Valor Médio por Peça</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.isArray(salesByBrand) && salesByBrand.map((brand) => (
+                            <tr key={brand.brand} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                              <td className="p-3 text-left font-medium">{brand.brand}</td>
+                              <td className="p-3 text-center">{brand.totalPieces}</td>
+                              <td className="p-3 text-center">{brand.orders}</td>
+                              <td className="p-3 text-right">{formatCurrency(brand.totalValue)}</td>
+                              <td className="p-3 text-right">{formatCurrency(brand.totalCommission)}</td>
+                              <td className="p-3 text-right">{formatCurrency(brand.totalPieces > 0 ? brand.totalValue / brand.totalPieces : 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </>
                 )}
