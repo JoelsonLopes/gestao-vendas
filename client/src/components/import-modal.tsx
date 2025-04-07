@@ -165,8 +165,13 @@ export function ImportModal({
       
       // Se estiver selecionado representante ou região, adiciona aos dados
       const formValues = form.getValues();
-      const representativeId = formValues.representativeId ? formValues.representativeId : undefined;
-      const regionId = formValues.regionId ? formValues.regionId : undefined;
+      // Verificar se o valor é "0" (quando nenhum é selecionado) ou um representante válido
+      const representativeId = formValues.representativeId && formValues.representativeId !== "0" 
+                              ? formValues.representativeId 
+                              : undefined;
+      const regionId = formValues.regionId && formValues.regionId !== "0" 
+                      ? formValues.regionId 
+                      : undefined;
       
       // Adiciona representante e região a todos os registros se selecionados
       let dataToImport = [...parsedData];
@@ -350,7 +355,7 @@ export function ImportModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Nenhum</SelectItem>
+                              <SelectItem value="0">Nenhum</SelectItem>
                               {representatives.map((rep) => (
                                 <SelectItem key={rep.id} value={rep.id.toString()}>
                                   {rep.name}
@@ -379,7 +384,7 @@ export function ImportModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Nenhuma</SelectItem>
+                              <SelectItem value="0">Nenhuma</SelectItem>
                               {regions.map((region) => (
                                 <SelectItem key={region.id} value={region.id.toString()}>
                                   {region.name}
