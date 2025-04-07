@@ -494,8 +494,7 @@ export class DatabaseStorage implements IStorage {
         equivalentBrands: products.equivalentBrands
       });
       
-      // MODIFICAÇÃO: Buscar tanto produtos que correspondem exatamente ao nome ou código,
-      // quanto produtos que tenham essa referência como conversão
+      // Primeira etapa: buscar produtos com correspondência exata no código, nome ou conversion
       const exactMatches = await db.select(selectAllProductColumns())
         .from(products)
         .where(
@@ -506,13 +505,41 @@ export class DatabaseStorage implements IStorage {
           )
         )
         .limit(20);
+        
+      // Segunda etapa: buscar produtos relacionados, onde o código pesquisado aparece como "conversion"
+      // Isso fará com que, quando buscarmos por "TM4", o produto "WUNI0004" (que tem conversion = "TM4") também seja encontrado
+      const relatedProducts = await db.select(selectAllProductColumns())
+        .from(products)
+        .where(eq(products.conversion, query))
+        .limit(20);
+        
+      // Terceira etapa: buscar produtos onde o código pesquisado está como valor no campo "conversion" de outros produtos
+      // Isso fará com que, quando buscarmos por "WUNI0004", o produto "TM4" também seja encontrado
+      const productsWithMatchingCode = [];
       
-      if (exactMatches.length > 0) {
-        console.log(`Encontrados ${exactMatches.length} produtos com correspondência exata para "${query}"`);
-        return exactMatches;
+      // Só fazemos essa busca se tivermos exatamente 1 resultado exato, para evitar muitas consultas
+      if (exactMatches.length === 1) {
+        const searchTerm = exactMatches[0].name;
+        const productsWithConversion = await db.select(selectAllProductColumns())
+          .from(products)
+          .where(eq(products.name, exactMatches[0].conversion))
+          .limit(10);
+        
+        if (productsWithConversion.length > 0) {
+          productsWithMatchingCode.push(...productsWithConversion);
+        }
       }
       
-      // Caso não encontre correspondência exata, faz uma busca mais ampla
+      // Combinar todos os resultados, removendo duplicatas por ID
+      const allResults = [...exactMatches, ...relatedProducts, ...productsWithMatchingCode];
+      const uniqueResults = Array.from(new Map(allResults.map(item => [item.id, item])).values());
+      
+      if (uniqueResults.length > 0) {
+        console.log(`Encontrados ${uniqueResults.length} produtos com correspondência para "${query}"`);
+        return uniqueResults;
+      }
+      
+      // Se não encontrou nada com as buscas exatas, faz uma busca mais ampla com LIKE
       const result = await db.select(selectAllProductColumns())
         .from(products)
         .where(
@@ -558,21 +585,50 @@ export class DatabaseStorage implements IStorage {
         equivalentBrands: products.equivalentBrands
       });
       
-      // MODIFICAÇÃO: Verificar também se o código ou nome do produto é igual à referência buscada
-      // Isso resolve o problema de não encontrar produtos como "PSL597" quando buscamos exatamente por "PSL597"
+      // Primeira etapa: buscar produtos com correspondência exata no código, nome ou conversion
       const exactMatches = await db.select(selectAllProductColumns())
         .from(products)
         .where(
           or(
-            eq(products.code, clientRef),      // Verifica se o código do produto é igual à referência
-            eq(products.name, clientRef),      // Verifica se o nome do produto é igual à referência
-            eq(products.conversion, clientRef)  // Verifica na referência de conversão
+            eq(products.code, clientRef),      // Correspondência exata com código
+            eq(products.name, clientRef),      // Correspondência exata com nome
+            eq(products.conversion, clientRef) // Correspondência exata com conversão
           )
         );
+        
+      const allMatches = [...exactMatches];
       
-      if (exactMatches.length > 0) {
-        console.log(`Encontrado(s) ${exactMatches.length} produto(s) com correspondência exata para "${clientRef}"`);
-        return exactMatches[0]; // Retorna o primeiro encontrado
+      // Segunda etapa: se encontrou exatamente um produto, vamos verificar se existem produtos relacionados
+      if (exactMatches.length === 1) {
+        // Verificar se há produtos onde o código coincide com o valor de "conversion"
+        if (exactMatches[0].conversion) {
+          const relatedProducts = await db.select(selectAllProductColumns())
+            .from(products)
+            .where(eq(products.name, exactMatches[0].conversion))
+            .limit(5);
+            
+          if (relatedProducts.length > 0) {
+            allMatches.push(...relatedProducts);
+          }
+        }
+        
+        // Verificar se há produtos que têm este produto como valor em "conversion"
+        const productsWithConversion = await db.select(selectAllProductColumns())
+          .from(products)
+          .where(eq(products.conversion, exactMatches[0].name))
+          .limit(5);
+          
+        if (productsWithConversion.length > 0) {
+          allMatches.push(...productsWithConversion);
+        }
+      }
+      
+      // Remover duplicatas
+      const uniqueMatches = Array.from(new Map(allMatches.map(item => [item.id, item])).values());
+      
+      if (uniqueMatches.length > 0) {
+        console.log(`Encontrado(s) ${uniqueMatches.length} produto(s) com correspondência para "${clientRef}"`);
+        return uniqueMatches[0]; // Retorna o primeiro encontrado
       }
       
       console.log(`Nenhum produto encontrado pela correspondência exata '${clientRef}', buscando similaridades`);
