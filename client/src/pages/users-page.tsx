@@ -3,7 +3,7 @@ import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Loader2, PlusCircle, UserCircle } from "lucide-react";
+import { Loader2, PlusCircle, UserCircle, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +16,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function UsersPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userToToggle, setUserToToggle] = useState<User | null>(null);
+  const [toggleStatusDialogOpen, setToggleStatusDialogOpen] = useState(false);
 
   // Ensure admin access only
   if (user?.role !== "admin") {
@@ -100,6 +103,30 @@ export default function UsersPage() {
       toast({
         title: "Erro",
         description: `Falha ao atualizar usuário: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Toggle user status mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await apiRequest("PATCH", `/api/users/${userId}/toggle-status`, {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setToggleStatusDialogOpen(false);
+      setUserToToggle(null);
+      toast({
+        title: data.active ? "Usuário ativado" : "Usuário desativado",
+        description: `O usuário ${data.name} foi ${data.active ? "ativado" : "desativado"} com sucesso`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao alterar status do usuário: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -209,9 +236,36 @@ export default function UsersPage() {
                 },
               },
               {
+                header: "Status",
+                accessorKey: "active",
+                cell: (user) => (
+                  <Badge variant={user.active !== false ? "success" : "destructive"}>
+                    {user.active !== false ? "Ativo" : "Inativo"}
+                  </Badge>
+                ),
+              },
+              {
                 header: "Criado em",
                 accessorKey: "createdAt",
                 cell: (user) => new Date(user.createdAt).toLocaleDateString(),
+              },
+              {
+                header: "Ações",
+                accessorKey: "id",
+                cell: (user) => (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Evita que o evento de clique abra o modal de edição
+                      setUserToToggle(user);
+                      setToggleStatusDialogOpen(true);
+                    }}
+                  >
+                    <Power className={`h-4 w-4 ${user.active !== false ? "text-red-500" : "text-green-500"}`} />
+                  </Button>
+                ),
               },
             ]}
             data={users || []}
@@ -351,6 +405,39 @@ export default function UsersPage() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {/* Diálogo de confirmação de ativação/desativação */}
+        <AlertDialog open={toggleStatusDialogOpen} onOpenChange={setToggleStatusDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {userToToggle?.active !== false 
+                  ? `Desativar usuário ${userToToggle?.name}?` 
+                  : `Ativar usuário ${userToToggle?.name}?`}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {userToToggle?.active !== false
+                  ? "Um usuário desativado não poderá fazer login no sistema até ser reativado."
+                  : "Ao ativar este usuário, ele poderá fazer login novamente no sistema."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (userToToggle) {
+                    toggleStatusMutation.mutate(userToToggle.id);
+                  }
+                }}
+                disabled={toggleStatusMutation.isPending}
+                className={userToToggle?.active !== false ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}
+              >
+                {toggleStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {userToToggle?.active !== false ? "Desativar" : "Ativar"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

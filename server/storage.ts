@@ -37,6 +37,7 @@ export interface IStorage {
   
   // Client methods
   getClient(id: number): Promise<Client | undefined>;
+  getClientByCode(code: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, clientData: Partial<InsertClient>): Promise<Client | undefined>;
   listClients(): Promise<Client[]>;
@@ -183,6 +184,11 @@ export class DatabaseStorage implements IStorage {
   // Client methods
   async getClient(id: number): Promise<Client | undefined> {
     const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client || undefined;
+  }
+  
+  async getClientByCode(code: string): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.code, code));
     return client || undefined;
   }
 

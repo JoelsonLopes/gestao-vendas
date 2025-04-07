@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
 import { 
@@ -8,7 +8,9 @@ import {
   insertProductSchema, 
   insertOrderSchema, 
   insertOrderItemSchema,
-  insertRegionSchema
+  insertRegionSchema,
+  insertUserSchema, 
+  type Client
 } from "@shared/schema";
 
 // Middleware to check if user is authenticated
@@ -50,6 +52,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(repsWithoutPasswords);
     } catch (error) {
       res.status(500).json({ message: "Error fetching representatives" });
+    }
+  });
+  
+  // Get a specific user (admin only)
+  app.get("/api/users/:id", isAdmin, async (req, res) => {
+    try {
+      const user = await storage.getUser(parseInt(req.params.id));
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user" });
+    }
+  });
+  
+  // Create a new user (admin only)
+  app.post("/api/users", isAdmin, async (req, res) => {
+    try {
+      // Validate request body against schema
+      const createUserSchema = insertUserSchema.extend({
+        password: z.string().min(6, "Password must be at least 6 characters"),
+      });
+      
+      const validatedData = createUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+
+      // Hash password and create user
+      const hashedPassword = await hashPassword(validatedData.password);
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword,
+      });
+
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error creating user" });
+    }
+  });
+  
+  // Update a user (admin only)
+  app.put("/api/users/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the current user
+      const currentUser = await storage.getUser(id);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Validate request body against partial schema
+      const updateSchema = insertUserSchema.partial().extend({
+        password: z.string().min(6, "Password must be at least 6 characters").optional(),
+      });
+      
+      const validatedData = updateSchema.parse(req.body);
+      
+      // Check if updating email and if it's already in use
+      if (validatedData.email && validatedData.email !== currentUser.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        if (existingUser) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+      }
+      
+      // Hash password if provided
+      let updateData = { ...validatedData };
+      if (validatedData.password) {
+        updateData.password = await hashPassword(validatedData.password);
+      }
+      
+      // Update user
+      const user = await storage.updateUser(id, updateData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Error updating user" });
+    }
+  });
+  
+  // Toggle user status (active/inactive) (admin only)
+  app.patch("/api/users/:id/toggle-status", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the current user
+      const currentUser = await storage.getUser(id);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Prevent deactivating the last admin
+      if (currentUser.role === 'admin' && currentUser.active) {
+        const adminUsers = (await storage.listUsers()).filter(u => u.role === 'admin' && u.active);
+        if (adminUsers.length <= 1) {
+          return res.status(400).json({ message: "Cannot deactivate the last admin user" });
+        }
+      }
+      
+      // Toggle the active status
+      const user = await storage.updateUser(id, { active: !currentUser.active });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ message: "Error toggling user status" });
     }
   });
 
@@ -118,6 +256,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CLIENTS API
+  
+  // Associar clientes a um representante (admin only)
+  app.post("/api/representatives/:id/assign-clients", isAdmin, async (req, res) => {
+    try {
+      const representativeId = parseInt(req.params.id);
+      
+      // Verificar se o representante existe
+      const representative = await storage.getUser(representativeId);
+      if (!representative) {
+        return res.status(404).json({ message: "Representante não encontrado" });
+      }
+      
+      // Validar os dados do request
+      const schema = z.object({
+        clientIds: z.array(z.number())
+      });
+      
+      const { clientIds } = schema.parse(req.body);
+      
+      if (!clientIds || clientIds.length === 0) {
+        return res.status(400).json({ message: "Lista de IDs de clientes é obrigatória" });
+      }
+      
+      // Verificar se todos os clientes existem
+      const existingClients = await Promise.all(
+        clientIds.map(id => storage.getClient(id))
+      );
+      
+      const missingClients = clientIds.filter((_, index) => !existingClients[index]);
+      if (missingClients.length > 0) {
+        return res.status(404).json({ 
+          message: "Alguns clientes não foram encontrados", 
+          clientIds: missingClients 
+        });
+      }
+      
+      // Atualizar cada cliente
+      const results = await Promise.all(
+        clientIds.map(clientId => 
+          storage.updateClient(clientId, { representativeId })
+        )
+      );
+      
+      // Registrar no histórico
+      await Promise.all(
+        results.map(client => 
+          storage.addClientHistory({
+            clientId: client!.id,
+            userId: req.user.id,
+            action: 'assigned_representative',
+            details: { 
+              representativeId,
+              representativeName: representative.name
+            }
+          })
+        )
+      );
+      
+      res.json({ 
+        message: `${clientIds.length} clientes atribuídos ao representante ${representative.name}`,
+        updatedClients: results 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Formato de dados inválido", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Erro ao associar clientes ao representante" });
+    }
+  });
+  
+  // Importar clientes para um representante via CSV (admin only)
+  app.post("/api/representatives/:id/import-clients", isAdmin, async (req, res) => {
+    try {
+      const representativeId = parseInt(req.params.id);
+      
+      // Verificar se o representante existe
+      const representative = await storage.getUser(representativeId);
+      if (!representative) {
+        return res.status(404).json({ message: "Representante não encontrado" });
+      }
+      
+      // Validar dados do request
+      const schema = z.object({
+        clients: z.array(z.object({
+          name: z.string(),
+          code: z.string(),
+          cnpj: z.string(),
+          city: z.string().optional(),
+          address: z.string().optional(),
+          state: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.string().email().optional(),
+          regionId: z.number().optional()
+        }))
+      });
+      
+      const { clients } = schema.parse(req.body);
+      
+      if (!clients || clients.length === 0) {
+        return res.status(400).json({ message: "Lista de clientes é obrigatória" });
+      }
+      
+      const results = {
+        created: [] as Client[],
+        updated: [] as Client[],
+        errors: [] as any[]
+      };
+      
+      // Processamento em série para evitar problemas com códigos duplicados
+      for (const clientData of clients) {
+        try {
+          // Verificar se o cliente já existe pelo código
+          const existingClient = await storage.getClientByCode(clientData.code);
+          
+          if (existingClient) {
+            // Atualizar cliente existente
+            const updatedClient = await storage.updateClient(existingClient.id, {
+              ...clientData,
+              representativeId
+            });
+            
+            if (updatedClient) {
+              results.updated.push(updatedClient);
+              
+              // Registrar no histórico
+              await storage.addClientHistory({
+                clientId: updatedClient.id,
+                userId: req.user.id,
+                action: 'updated_via_import',
+                details: { 
+                  representativeId,
+                  representativeName: representative.name,
+                  changedFields: Object.keys(clientData)
+                }
+              });
+            }
+          } else {
+            // Criar novo cliente
+            const newClient = await storage.createClient({
+              ...clientData,
+              representativeId,
+              active: true
+            });
+            
+            results.created.push(newClient);
+            
+            // Registrar no histórico
+            await storage.addClientHistory({
+              clientId: newClient.id,
+              userId: req.user.id,
+              action: 'created_via_import',
+              details: { 
+                representativeId,
+                representativeName: representative.name
+              }
+            });
+          }
+        } catch (error) {
+          results.errors.push({
+            client: clientData,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+      
+      res.json({
+        message: `Importação concluída: ${results.created.length} criados, ${results.updated.length} atualizados, ${results.errors.length} erros`,
+        results
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Formato de dados inválido", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        message: "Erro ao importar clientes", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Get clients by representative
+  app.get("/api/representatives/:id/clients", isAuthenticated, async (req, res) => {
+    try {
+      const representativeId = parseInt(req.params.id);
+      
+      // Verificar se é admin ou se é o próprio representante acessando seus clientes
+      if (req.user.role !== 'admin' && req.user.id !== representativeId) {
+        return res.status(403).json({ message: "Não autorizado a ver clientes de outro representante" });
+      }
+      
+      const clients = await storage.listClientsByRepresentative(representativeId);
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar clientes do representante" });
+    }
+  });
 
   // Get all clients
   app.get("/api/clients", isAuthenticated, async (req, res) => {

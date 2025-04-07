@@ -27,12 +27,8 @@ export function AppRoutes() {
       <ProtectedRoute path="/orders/new" component={OrderFormPage} />
       <ProtectedRoute path="/orders/:id" component={OrderFormPage} />
       <ProtectedRoute path="/reports" component={ReportsPage} />
-      {user?.role === 'admin' && (
-        <>
-          <ProtectedRoute path="/users" component={UsersPage} />
-          <ProtectedRoute path="/regions" component={RegionsPage} />
-        </>
-      )}
+      <ProtectedRoute path="/users" component={UsersPage} />
+      <ProtectedRoute path="/regions" component={RegionsPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/accessibility" component={AccessibilityPage} />
       <Route component={NotFound} />
