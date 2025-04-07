@@ -5,12 +5,16 @@ import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-toast";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { Home } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const [_, navigate] = useLocation();
+  
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Bar */}
@@ -24,8 +28,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
             
-            {/* Search */}
+            {/* Home Button + Search */}
             <div className="flex-1 flex items-center justify-center px-2 lg:ml-6 lg:justify-end">
+              {/* Home Button */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="mr-4 text-blue-400 hover:text-blue-300"
+                onClick={() => navigate('/')}
+                title="Voltar para página inicial"
+              >
+                <Home className="h-5 w-5" />
+              </Button>
+              
               <div className="max-w-lg w-full">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
