@@ -1321,9 +1321,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get dashboard stats
   app.get("/api/stats/dashboard", isAuthenticated, async (req, res) => {
     try {
-      const orderStats = await storage.getOrderStats();
+      // Filtrar estatísticas por usuário logado se não for admin
+      const userId = req.user.id;
+      const isAdmin = req.user.role === 'admin';
+      
+      const orderStats = await storage.getOrderStats(isAdmin ? null : userId);
       const productStats = await storage.getProductStats();
-      const clientStats = await storage.getClientStats();
+      const clientStats = await storage.getClientStats(isAdmin ? null : userId);
       
       res.json({
         orders: orderStats,
@@ -1338,7 +1342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales by representative
   app.get("/api/stats/sales-by-representative", isAuthenticated, async (req, res) => {
     try {
-      const salesByRep = await storage.getSalesByRepresentative();
+      const userId = req.user.id;
+      const isAdmin = req.user.role === 'admin';
+      
+      // Se for admin, mostra de todos, caso contrário apenas do usuário logado
+      const salesByRep = await storage.getSalesByRepresentative(isAdmin ? null : userId);
       res.json(salesByRep);
     } catch (error) {
       res.status(500).json({ message: "Error fetching sales by representative" });
@@ -1348,7 +1356,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales by brand
   app.get("/api/stats/sales-by-brand", isAuthenticated, async (req, res) => {
     try {
-      const salesByBrand = await storage.getSalesByBrand();
+      const userId = req.user.id;
+      const isAdmin = req.user.role === 'admin';
+      
+      // Se for admin, mostra de todos, caso contrário apenas do usuário logado
+      const salesByBrand = await storage.getSalesByBrand(isAdmin ? null : userId);
       res.json(salesByBrand);
     } catch (error) {
       res.status(500).json({ message: "Error fetching sales by brand" });
@@ -1358,9 +1370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get top selling products
   app.get("/api/stats/top-selling-products", isAuthenticated, async (req, res) => {
     try {
+      const userId = req.user.id;
+      const isAdmin = req.user.role === 'admin';
+      
       // O limite padrão é 20, mas pode ser alterado via query parameter
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      const topProducts = await storage.getTopSellingProducts(limit);
+      const topProducts = await storage.getTopSellingProducts(limit, isAdmin ? null : userId);
       res.json(topProducts);
     } catch (error) {
       res.status(500).json({ message: "Error fetching top selling products" });

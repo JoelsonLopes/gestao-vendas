@@ -80,10 +80,12 @@ export interface IStorage {
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   
   // Stats methods
-  getOrderStats(): Promise<any>;
+  getOrderStats(representativeId?: number | null): Promise<any>;
   getProductStats(): Promise<any>;
-  getClientStats(): Promise<any>;
-  getSalesByRepresentative(): Promise<any>;
+  getClientStats(representativeId?: number | null): Promise<any>;
+  getSalesByRepresentative(representativeId?: number | null): Promise<any>;
+  getSalesByBrand(representativeId?: number | null): Promise<any>;
+  getTopSellingProducts(limit?: number, representativeId?: number | null): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1059,9 +1061,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stats methods
-  async getOrderStats(): Promise<any> {
-    // Get total orders count, confirmed orders count, quotes count
-    const allOrders = await this.listOrders();
+  async getOrderStats(representativeId: number | null = null): Promise<any> {
+    // Get orders filtered by representative if specified
+    let allOrders: Order[];
+    
+    if (representativeId) {
+      allOrders = await this.listOrdersByRepresentative(representativeId);
+    } else {
+      allOrders = await this.listOrders();
+    }
+    
     const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
     const quotationOrders = allOrders.filter(order => order.status === 'cotacao');
     
@@ -1084,9 +1093,16 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getClientStats(): Promise<any> {
-    // Get total clients count and active clients count
-    const allClients = await this.listClients();
+  async getClientStats(representativeId: number | null = null): Promise<any> {
+    // Get clients filtered by representative if specified
+    let allClients: Client[];
+    
+    if (representativeId) {
+      allClients = await this.listClientsByRepresentative(representativeId);
+    } else {
+      allClients = await this.listClients();
+    }
+    
     const activeClients = allClients.filter(client => client.active);
     
     return {
@@ -1095,9 +1111,20 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getSalesByRepresentative(): Promise<any> {
+  async getSalesByRepresentative(representativeId: number | null = null): Promise<any> {
     // Get sales by representatives
-    const representatives = await this.listRepresentatives();
+    let representatives: User[];
+    
+    if (representativeId) {
+      // Se tiver um representante específico, busca apenas esse
+      const rep = await this.getUser(representativeId);
+      representatives = rep ? [rep] : [];
+    } else {
+      // Caso contrário, busca todos
+      representatives = await this.listRepresentatives();
+    }
+    
+    // Buscar ordens
     const allOrders = await this.listOrders();
     
     return await Promise.all(representatives.map(async (rep) => {
@@ -1131,10 +1158,19 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Método para obter estatísticas de vendas por marca
-  async getSalesByBrand(): Promise<any> {
-    // Obter todos os pedidos confirmados
-    const allOrders = await this.listOrders();
-    const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+  async getSalesByBrand(representativeId: number | null = null): Promise<any> {
+    // Obter os pedidos confirmados, filtrados por representante se necessário
+    let confirmedOrders: Order[];
+    
+    if (representativeId) {
+      // Buscar apenas pedidos do representante especificado
+      const repOrders = await this.listOrdersByRepresentative(representativeId);
+      confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
+    } else {
+      // Buscar todos os pedidos confirmados
+      const allOrders = await this.listOrders();
+      confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+    }
     
     // Mapa para agregar dados por marca
     const brandMap: Record<string, {
@@ -1186,10 +1222,19 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Método para obter estatísticas de produtos mais vendidos
-  async getTopSellingProducts(limit: number = 20): Promise<any> {
-    // Obter todos os pedidos confirmados
-    const allOrders = await this.listOrders();
-    const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+  async getTopSellingProducts(limit: number = 20, representativeId: number | null = null): Promise<any> {
+    // Obter os pedidos confirmados, filtrados por representante se necessário
+    let confirmedOrders: Order[];
+    
+    if (representativeId) {
+      // Buscar apenas pedidos do representante especificado
+      const repOrders = await this.listOrdersByRepresentative(representativeId);
+      confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
+    } else {
+      // Buscar todos os pedidos confirmados
+      const allOrders = await this.listOrders();
+      confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
+    }
     
     // Mapa para agregar dados por produto
     const productMap: Record<number, {
