@@ -17,6 +17,7 @@ import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { PendingUsersTable } from "@/components/pending-users-table";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -215,6 +216,9 @@ export default function UsersPage() {
             Novo Usuário
           </Button>
         </div>
+        
+        {/* Representantes pendentes de aprovação */}
+        <PendingUsersTable />
 
         {/* Users Table */}
         {isLoading ? (
