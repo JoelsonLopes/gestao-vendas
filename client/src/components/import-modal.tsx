@@ -12,6 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Upload } from "lucide-react";
 import * as Papa from "papaparse";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -21,6 +26,9 @@ interface ImportModalProps {
   description: string;
   templateFields: string[];
   loading?: boolean;
+  showRepresentativeSelect?: boolean;
+  representatives?: Array<{ id: number, name: string }>;
+  regions?: Array<{ id: number, name: string }>;
 }
 
 export function ImportModal({
@@ -30,12 +38,29 @@ export function ImportModal({
   title,
   description,
   templateFields,
-  loading = false
+  loading = false,
+  showRepresentativeSelect = false,
+  representatives = [],
+  regions = []
 }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<boolean>(false);
+  
+  // Formulário para representante e região
+  const importFormSchema = z.object({
+    representativeId: z.string().optional(),
+    regionId: z.string().optional(),
+  });
+  
+  const form = useForm<z.infer<typeof importFormSchema>>({
+    resolver: zodResolver(importFormSchema),
+    defaultValues: {
+      representativeId: "",
+      regionId: "",
+    },
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -54,7 +79,7 @@ export function ImportModal({
         // Mapeamento de cabeçalhos comuns para nomes padronizados
         if (normalizedHeader.includes('idproduto') || normalizedHeader.includes('cod') || normalizedHeader.includes('código')) {
           return 'code';
-        } else if (normalizedHeader.includes('nome') || normalizedHeader === 'produto') {
+        } else if (normalizedHeader.includes('nome') || normalizedHeader === 'produto' || normalizedHeader === 'cliente') {
           return 'name';
         } else if (normalizedHeader.includes('preço') || normalizedHeader === 'preco' || normalizedHeader === 'valor') {
           return 'price';
@@ -74,6 +99,18 @@ export function ImportModal({
           return 'barcode';
         } else if (normalizedHeader.includes('ativo') || normalizedHeader === 'status' || normalizedHeader === 'active') {
           return 'active';
+        } else if (normalizedHeader.includes('cnpj') || normalizedHeader.includes('cpf')) {
+          return 'cnpj';
+        } else if (normalizedHeader.includes('cidade')) {
+          return 'city';
+        } else if (normalizedHeader.includes('estado') || normalizedHeader === 'uf') {
+          return 'state';
+        } else if (normalizedHeader.includes('telefone') || normalizedHeader.includes('contato') || normalizedHeader.includes('whatsapp')) {
+          return 'phone';
+        } else if (normalizedHeader.includes('email') || normalizedHeader.includes('e-mail')) {
+          return 'email';
+        } else if (normalizedHeader.includes('endereco') || normalizedHeader.includes('endereço')) {
+          return 'address';
         }
         
         // Se não tiver um mapeamento específico, manter o cabeçalho original
@@ -125,7 +162,26 @@ export function ImportModal({
   const handleImport = () => {
     if (parsedData.length > 0) {
       console.log(`Enviando ${parsedData.length} registros para importação`);
-      onImport(parsedData);
+      
+      // Se estiver selecionado representante ou região, adiciona aos dados
+      const formValues = form.getValues();
+      const representativeId = formValues.representativeId ? formValues.representativeId : undefined;
+      const regionId = formValues.regionId ? formValues.regionId : undefined;
+      
+      // Adiciona representante e região a todos os registros se selecionados
+      let dataToImport = [...parsedData];
+      if (representativeId || regionId) {
+        dataToImport = parsedData.map(item => ({
+          ...item,
+          representativeId: representativeId,
+          regionId: regionId
+        }));
+      }
+      
+      // Log para debugging
+      console.log("Dados com representante/região:", dataToImport.slice(0, 2));
+      
+      onImport(dataToImport);
       // Não fechamos o modal aqui para que a UI mostre o estado de carregamento
       // O modal será fechado pelo callback de sucesso da mutação
     }
@@ -136,6 +192,7 @@ export function ImportModal({
     setParsedData([]);
     setError(null);
     setPreview(false);
+    form.reset();
     onClose();
   };
 
@@ -177,6 +234,24 @@ export function ImportModal({
         case 'active':
           headers.push('Ativo');
           break;
+        case 'cnpj':
+          headers.push('CNPJ');
+          break;
+        case 'city':
+          headers.push('Cidade');
+          break;
+        case 'phone':
+          headers.push('Telefone');
+          break;
+        case 'email':
+          headers.push('Email');
+          break;
+        case 'address':
+          headers.push('Endereco');
+          break;
+        case 'state':
+          headers.push('Estado');
+          break;
         default:
           headers.push(field);
       }
@@ -187,7 +262,24 @@ export function ImportModal({
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", "modelo-importacao-produtos.csv");
+    // Determinar o tipo de template com base nos campos
+    const isProductTemplate = templateFields.includes('price') || 
+                             templateFields.includes('brand') || 
+                             templateFields.includes('stockQuantity');
+    const isClientTemplate = templateFields.includes('cnpj') || 
+                            templateFields.includes('phone') || 
+                            templateFields.includes('address');
+    
+    let fileName = "modelo-importacao";
+    if (isProductTemplate) {
+      fileName += "-produtos.csv";
+    } else if (isClientTemplate) {
+      fileName += "-clientes.csv";
+    } else {
+      fileName += ".csv";
+    }
+    
+    link.setAttribute("download", fileName);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -206,68 +298,141 @@ export function ImportModal({
         
         {!preview ? (
           <>
-            <div className="grid gap-4 py-4">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-10">
-                <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                  Arraste e solte seu arquivo CSV ou Excel, ou clique para selecionar
-                </p>
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".csv,.xls,.xlsx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <Label
-                  htmlFor="file"
-                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 cursor-pointer"
-                >
-                  Selecionar Arquivo
-                </Label>
-                {file && (
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Arquivo selecionado: {file.name}
+            <Form {...form}>
+              <div className="grid gap-4 py-4">
+                {/* Dropzone para o arquivo */}
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-10">
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    Arraste e solte seu arquivo CSV ou Excel, ou clique para selecionar
                   </p>
-                )}
-                {error && (
-                  <p className="mt-2 text-sm text-red-500">
-                    {error}
-                  </p>
-                )}
-              </div>
-              
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm text-gray-500 dark:text-gray-400 block mb-1">
-                      Campos aceitos:
-                    </Label>
-                    <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
-                      <li>Código / IdProduto / Cod / CODIGO / code</li>
-                      <li>Nome / Produto / NOME / name</li>
-                      <li>Preço / Preco / PRECO / price</li>
-                      <li>Marca / MARCA / brand</li>
-                      <li>Conversao / Conversão / conversion</li>
-                      <li>MarcaConversao / Marca Conversão / conversionBrand</li>
-                      <li>Descrição / Description / DESCRICAO</li>
-                      <li>Categoria / Category / CATEGORIA</li>
-                      <li>Estoque / Quantidade / stockQuantity</li>
-                      <li>Código de Barras / EAN / barcode</li>
-                      <li>Ativo / Status / active</li>
-                    </ul>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={downloadTemplate}
-                    className="text-primary-600"
+                  <Input
+                    id="file"
+                    type="file"
+                    accept=".csv,.xls,.xlsx"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Label
+                    htmlFor="file"
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 cursor-pointer"
                   >
-                    Baixar Modelo
-                  </Button>
+                    Selecionar Arquivo
+                  </Label>
+                  {file && (
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      Arquivo selecionado: {file.name}
+                    </p>
+                  )}
+                  {error && (
+                    <p className="mt-2 text-sm text-red-500">
+                      {error}
+                    </p>
+                  )}
+                </div>
+
+                {/* Formulário para representante e região */}
+                {showRepresentativeSelect && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="representativeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Representante</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o representante" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="">Nenhum</SelectItem>
+                              {representatives.map((rep) => (
+                                <SelectItem key={rep.id} value={rep.id.toString()}>
+                                  {rep.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="regionId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Região</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a região" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="">Nenhuma</SelectItem>
+                              {regions.map((region) => (
+                                <SelectItem key={region.id} value={region.id.toString()}>
+                                  {region.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+                
+                {/* Campos aceitos e botão de download do modelo */}
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm text-gray-500 dark:text-gray-400 block mb-1">
+                        Campos aceitos:
+                      </Label>
+                      <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
+                        {templateFields.includes('code') && <li>Código / IdProduto / Cod / CODIGO</li>}
+                        {templateFields.includes('name') && <li>Nome / Produto / NOME / cliente</li>}
+                        {templateFields.includes('price') && <li>Preço / Preco / PRECO / valor</li>}
+                        {templateFields.includes('brand') && <li>Marca / MARCA</li>}
+                        {templateFields.includes('conversion') && <li>Conversao / Conversão</li>}
+                        {templateFields.includes('conversionBrand') && <li>MarcaConversao / Marca Conversão</li>}
+                        {templateFields.includes('description') && <li>Descrição / Description / DESCRICAO</li>}
+                        {templateFields.includes('category') && <li>Categoria / Category / CATEGORIA</li>}
+                        {templateFields.includes('stockQuantity') && <li>Estoque / Quantidade</li>}
+                        {templateFields.includes('barcode') && <li>Código de Barras / EAN / barcode</li>}
+                        {templateFields.includes('active') && <li>Ativo / Status / active</li>}
+                        {templateFields.includes('cnpj') && <li>CNPJ / CPF / Documento</li>}
+                        {templateFields.includes('city') && <li>Cidade / city</li>}
+                        {templateFields.includes('state') && <li>Estado / UF / state</li>}
+                        {templateFields.includes('phone') && <li>Telefone / Contato / WhatsApp</li>}
+                        {templateFields.includes('email') && <li>Email / E-mail</li>}
+                        {templateFields.includes('address') && <li>Endereço / Logradouro</li>}
+                      </ul>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadTemplate}
+                      className="text-primary-600"
+                    >
+                      Baixar Modelo
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Form>
           </>
         ) : (
           <div className="grid gap-4 py-4">

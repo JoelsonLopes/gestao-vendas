@@ -595,9 +595,12 @@ export default function ClientsPage() {
           onClose={() => setImportModalOpen(false)}
           onImport={handleImport}
           title="Importar Clientes"
-          description="Importe sua lista de clientes a partir de arquivo CSV ou Excel. O sistema reconhecerá os campos: Código do Cliente, Nome do Cliente, Cidade, CNPJ e WhatsApp."
+          description="Importe sua lista de clientes a partir de arquivo CSV ou Excel. O sistema reconhecerá os campos: Código do Cliente, Nome do Cliente, Cidade, CNPJ e WhatsApp. Você pode opcionalmente selecionar um representante para associar a todos os clientes importados."
           templateFields={["code", "name", "city", "cnpj", "phone"]}
           loading={importClientsMutation.isPending}
+          showRepresentativeSelect={user?.role === "admin"}
+          representatives={representatives?.map(rep => ({ id: rep.id, name: rep.name })) || []}
+          regions={regions || []}
         />
       </div>
     </DashboardLayout>
