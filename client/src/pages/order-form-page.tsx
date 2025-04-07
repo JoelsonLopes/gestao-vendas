@@ -121,6 +121,15 @@ export default function OrderFormPage() {
   const clients = clientsQuery.data || [];
   const isLoadingClients = clientsQuery.isLoading;
   
+  // Get representatives (para permitir que o admin selecione o representante)
+  const { data: representatives, isLoading: isLoadingRepresentatives } = useQuery<any[]>({
+    queryKey: ["/api/representatives"],
+    enabled: user?.role === "admin", // Somente carrega se o usuário for admin
+  });
+  
+  // Estado para armazenar o representante selecionado
+  const [representativeId, setRepresentativeId] = useState<number | null>(user?.id || null);
+  
   // Logger para debug - executado apenas uma vez quando os dados carregarem
   useEffect(() => {
     if (clients && clients.length > 0) {
@@ -832,7 +841,7 @@ export default function OrderFormPage() {
     
     const orderData: InsertOrder = {
       clientId,
-      representativeId: user!.id,
+      representativeId: representativeId || user!.id, // Usa o representante selecionado (para admin) ou o próprio usuário
       status,
       paymentTerms,
       subtotal: totals.subtotal.toString(), // Convertido para string conforme esperado pelo InsertOrder
@@ -1230,6 +1239,31 @@ export default function OrderFormPage() {
                           disabled={false} // Permitir edição do cliente mesmo em pedidos existentes
                         />
                       </div>
+                      
+                      {/* Campo de seleção de representante - visível apenas para usuários admin */}
+                      {user?.role === 'admin' && (
+                        <div className="col-span-1 sm:col-span-2">
+                          <Label htmlFor="representative">Representante</Label>
+                          <Select
+                            value={representativeId?.toString() || user!.id.toString()}
+                            onValueChange={(value) => setRepresentativeId(parseInt(value))}
+                          >
+                            <SelectTrigger id="representative">
+                              <SelectValue placeholder="Selecione um representante" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {representatives?.map((rep) => (
+                                <SelectItem key={rep.id} value={rep.id.toString()}>
+                                  {rep.name} {rep.role === 'admin' ? '(Admin)' : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Como administrador, você pode criar pedidos em nome de qualquer representante.
+                          </p>
+                        </div>
+                      )}
                       
                       <div>
                         <Label htmlFor="status">Status</Label>

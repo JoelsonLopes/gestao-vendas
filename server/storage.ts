@@ -135,7 +135,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listRepresentatives(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, 'representative'));
+    // Incluir tanto representantes quanto usuários admin
+    // Esta abordagem permite que o admin atue também como representante
+    return await db.select().from(users).where(
+      or(
+        eq(users.role, 'representative'),
+        eq(users.role, 'admin')
+      )
+    );
   }
 
   // Region methods
