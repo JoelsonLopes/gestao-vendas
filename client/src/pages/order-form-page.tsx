@@ -524,207 +524,248 @@ export default function OrderFormPage() {
   
   // Add product to order
   const addProductToOrder = async () => {
-    if (!selectedProductId || productQuantity <= 0) return;
-    
-    // Buscar o produto pelo ID
-    const product = await fetchProductById(selectedProductId);
-    if (!product) {
-      toast({
-        title: "Erro",
-        description: "Produto não encontrado.",
-        variant: "destructive",
-      });
+    if (!selectedProductId || productQuantity <= 0) {
+      console.log("Não foi possível adicionar produto. Produto não selecionado ou quantidade inválida.");
       return;
     }
     
-    // Sempre atualizamos o produto com a referência do cliente se ela foi fornecida
-    let updatedProduct = {...product};
-    
-    if (clientRef && clientRef.trim() !== "") {
-      updatedProduct.conversion = clientRef;
-      console.log("Atualizando produto com referência do cliente:", clientRef);
-      
-      // Se a opção de salvar conversão estiver marcada, salvamos no servidor
-      if (shouldSaveConversion) {
-        console.log("Salvando conversão no servidor...");
-        
-        try {
-          const response = await fetch(`/api/products/${selectedProductId}/save-conversion`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ clientRef }),
-          });
-          
-          if (!response.ok) throw new Error("Erro ao salvar conversão");
-          
-          await response.json();
-          
-          toast({
-            title: "Referência salva",
-            description: "Referência do cliente vinculada ao produto com sucesso.",
-          });
-          
-          // Atualizar a lista de produtos depois de salvar a conversão
-          queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-        } catch (error) {
-          toast({
-            title: "Aviso",
-            description: "O produto foi adicionado, mas não foi possível salvar a referência.",
-            variant: "destructive",
-          });
-        }
-      }
-    } else if (updatedProduct.conversion) {
-      // Se o produto já tinha uma conversão, mantemos ela
-      console.log("Produto já possui conversão:", updatedProduct.conversion);
-    }
-    
-    // Buscar informações do desconto selecionado
-    const unitPrice = Number(product.price);
-    let discountPercentage = 0;
-    let commission = 0;
-    
-    if (selectedDiscountId !== null) {
-      const discountObj = discounts?.find(d => d.id === selectedDiscountId);
-      if (discountObj) {
-        discountPercentage = parseFloat(discountObj.percentage);
-        commission = parseFloat(discountObj.commission);
-      }
-    }
-    
-    // Cálculo do preço com desconto
-    const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
-    
-    // Subtotal baseado no preço unitário já com desconto
-    const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
-    
-    console.log(`
-      Adicionando produto:
-      - Produto: ${product.name} (${product.code})
-      - Preço original: ${formatCurrency(unitPrice)}
-      - Desconto: ${discountPercentage}%
-      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
-      - Quantidade: ${productQuantity}
-      - Subtotal: ${formatCurrency(subtotal)}
-      ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
-      ${selectedDiscountId ? `- Comissão: ${commission}%` : ''}
-    `);
-    
-    const newItem = {
-      productId: selectedProductId,
-      quantity: productQuantity,
-      unitPrice: unitPrice,
-      discountId: selectedDiscountId,
-      discountPercentage: discountPercentage,
-      commission: commission,
-      subtotal: subtotal,
-      product: updatedProduct, // Usar o produto atualizado com a referência do cliente
-      clientRef: clientRef || updatedProduct.conversion || null,
-    };
-    
-    // Verifica se o cliente está selecionado antes de prosseguir
+    // Verificar se o cliente está selecionado
     if (!clientId) {
       toast({
-        title: "Atenção",
-        description: "Selecione um cliente antes de adicionar produtos.",
+        title: "Cliente não selecionado",
+        description: "Por favor, selecione um cliente antes de adicionar produtos.",
         variant: "destructive",
       });
       return;
     }
     
-    // Adiciona o item à lista e retorna a promise para permitir sequenciar operações
-    setOrderItems(prevItems => {
-      const updatedItems = [...prevItems, newItem];
-      return updatedItems;
-    });
-    
-    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
-    requestAnimationFrame(() => {
-      // Salvar automaticamente o pedido após adicionar o produto
-      if (clientId) {
-        handleSaveOrder();
+    try {
+      // Buscar o produto pelo ID
+      console.log(`Buscando produto ${selectedProductId}`);
+      const product = await fetchProductById(selectedProductId);
+      if (!product) {
+        console.error(`Produto com ID ${selectedProductId} não encontrado.`);
+        toast({
+          title: "Erro",
+          description: "Produto não encontrado.",
+          variant: "destructive",
+        });
+        return;
       }
-    });
-    
-    // Fecha a modal e limpa os campos
-    setAddProductModalOpen(false);
-    setSelectedProductId(null);
-    setSelectedDiscountId(null);
-    setProductQuantity(1);
-    setClientRef("");
-    setIsSearchingByClientRef(false);
-    setShouldSaveConversion(false);
-    
-    // Após adicionar um produto, retorna o foco para o botão "Adicionar Produto"
-    setTimeout(() => {
-      if (addProductButtonRef.current) {
-        addProductButtonRef.current.focus();
+      
+      console.log(`Produto encontrado:`, product);
+      
+      // Sempre atualizamos o produto com a referência do cliente se ela foi fornecida
+      let updatedProduct = {...product};
+      
+      if (clientRef && clientRef.trim() !== "") {
+        console.log(`Atualizando produto com referência do cliente: ${clientRef}`);
+        updatedProduct.conversion = clientRef;
+        
+        // Se a opção de salvar conversão estiver marcada, salvamos no servidor
+        if (shouldSaveConversion) {
+          console.log(`Salvando conversão para o produto ${selectedProductId} no servidor...`);
+          
+          try {
+            const response = await fetch(`/api/products/${selectedProductId}/save-conversion`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ clientRef }),
+            });
+            
+            if (!response.ok) throw new Error("Erro ao salvar conversão");
+            
+            const saveResult = await response.json();
+            console.log("Resultado do salvamento da conversão:", saveResult);
+            
+            toast({
+              title: "Referência salva",
+              description: "Referência do cliente vinculada ao produto com sucesso.",
+            });
+            
+            // Atualizar a lista de produtos depois de salvar a conversão
+            queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+          } catch (error) {
+            console.error("Erro ao salvar conversão:", error);
+            toast({
+              title: "Aviso",
+              description: "O produto foi adicionado, mas não foi possível salvar a referência.",
+              variant: "destructive",
+            });
+          }
+        }
+      } else if (updatedProduct.conversion) {
+        // Se o produto já tinha uma conversão, mantemos ela
+        console.log(`Produto ${selectedProductId} já possui conversão: ${updatedProduct.conversion}`);
       }
-    }, 100);
+      
+      // Buscar informações do desconto selecionado
+      const unitPrice = Number(product.price);
+      let discountPercentage = 0;
+      let commission = 0;
+      
+      if (selectedDiscountId !== null) {
+        console.log(`Buscando desconto com ID ${selectedDiscountId}`);
+        const discountObj = discounts?.find(d => d.id === selectedDiscountId);
+        if (discountObj) {
+          console.log(`Desconto encontrado:`, discountObj);
+          discountPercentage = parseFloat(discountObj.percentage);
+          commission = parseFloat(discountObj.commission);
+        } else {
+          console.log(`Desconto com ID ${selectedDiscountId} não encontrado na lista:`, discounts);
+        }
+      }
+      
+      // Cálculo do preço com desconto
+      const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
+      
+      // Subtotal baseado no preço unitário já com desconto
+      const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
+      
+      console.log(`
+        Adicionando produto:
+        - Produto: ${product.name} (${product.code})
+        - Preço original: ${formatCurrency(unitPrice)}
+        - Desconto: ${discountPercentage}%
+        - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+        - Quantidade: ${productQuantity}
+        - Subtotal: ${formatCurrency(subtotal)}
+        ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
+        ${selectedDiscountId ? `- Comissão: ${commission}%` : ''}
+      `);
+      
+      // Criar o novo item com todos os dados necessários
+      const newItem = {
+        productId: selectedProductId,
+        quantity: productQuantity,
+        unitPrice: unitPrice,
+        discountId: selectedDiscountId,
+        discountPercentage: discountPercentage,
+        commission: commission,
+        subtotal: subtotal,
+        product: updatedProduct, // Usar o produto atualizado com a referência do cliente
+        clientRef: clientRef || updatedProduct.conversion || null,
+      };
+      
+      console.log("Novo item criado para adicionar ao pedido:", newItem);
+      
+      // Usar um callback para garantir que estamos trabalhando com a versão mais recente do estado
+      // e somente depois disparar o salvamento do pedido
+      setOrderItems(prevItems => {
+        const updatedItems = [...prevItems, newItem];
+        console.log("Nova lista de itens atualizada:", updatedItems);
+        
+        // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
+        // antes de tentar salvar o pedido
+        setTimeout(() => {
+          if (clientId) {
+            console.log("Salvando pedido automaticamente após atualização do estado");
+            handleSaveOrder();
+          }
+        }, 0);
+        
+        return updatedItems;
+      });
+      
+      // Fecha a modal e limpa os campos imediatamente para melhorar a experiência do usuário
+      setAddProductModalOpen(false);
+      setSelectedProductId(null);
+      setSelectedDiscountId(null);
+      setProductQuantity(1);
+      setClientRef("");
+      setIsSearchingByClientRef(false);
+      setShouldSaveConversion(false);
+      
+      // Após adicionar um produto, retorna o foco para o botão "Adicionar Produto"
+      setTimeout(() => {
+        if (addProductButtonRef.current) {
+          addProductButtonRef.current.focus();
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Erro ao adicionar produto:", error);
+      toast({
+        title: "Erro ao adicionar produto",
+        description: "Ocorreu um erro ao adicionar o produto. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Remove product from order
   const removeOrderItem = (index: number, autoSave = false) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
     const actualIndex = orderItems.length - 1 - index;
-    const newItems = [...orderItems];
-    newItems.splice(actualIndex, 1);
-    setOrderItems(newItems);
     
-    // Salvar automaticamente apenas se solicitado explicitamente
-    if (autoSave) {
-      // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
-      requestAnimationFrame(() => {
-        // Salvar automaticamente o pedido após remover um produto
-        if (clientId && newItems.length > 0) {
-          handleSaveOrder();
-        }
-      });
-    }
+    // Usar o callback do setOrderItems para garantir que temos o estado mais recente
+    setOrderItems(prevItems => {
+      const newItems = [...prevItems];
+      newItems.splice(actualIndex, 1);
+      console.log(`Removendo item na posição ${actualIndex}. Novos itens:`, newItems);
+      
+      // Salvar automaticamente apenas se solicitado explicitamente
+      if (autoSave) {
+        // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
+        // antes de tentar salvar o pedido
+        setTimeout(() => {
+          if (clientId && newItems.length > 0) {
+            console.log("Salvando pedido automaticamente após remoção");
+            handleSaveOrder();
+          }
+        }, 0);
+      }
+      
+      return newItems;
+    });
   };
   
   // Update item discount
   const updateItemDiscount = (index: number, discountId: number | null, discountPercentage: number, commission: number) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
     const actualIndex = orderItems.length - 1 - index;
-    const newItems = [...orderItems];
-    const item = newItems[actualIndex];
     
-    // Calcular o preço unitário com desconto primeiro
-    const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
-    
-    // Calcular o subtotal com base no preço unitário já com desconto
-    const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2));
-    
-    console.log(`
-      Aplicando desconto:
-      - Produto: ${item.product?.name} (${item.product?.code})
-      - Preço original: ${formatCurrency(item.unitPrice)}
-      - Desconto: ${discountPercentage}%
-      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
-      - Quantidade: ${item.quantity}
-      - Subtotal: ${formatCurrency(discountedSubtotal)}
-      - Comissão: ${commission}%
-    `);
-    
-    newItems[actualIndex] = {
-      ...item,
-      discountId,
-      discountPercentage,
-      commission,
-      subtotal: discountedSubtotal,
-    };
-    
-    setOrderItems(newItems);
-    
-    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
-    requestAnimationFrame(() => {
-      // Salvar automaticamente o pedido após alterar o desconto
-      if (clientId) {
-        handleSaveOrder();
-      }
+    // Usar o callback do setOrderItems para garantir que temos o estado mais recente
+    setOrderItems(prevItems => {
+      const newItems = [...prevItems];
+      const item = newItems[actualIndex];
+      
+      // Calcular o preço unitário com desconto primeiro
+      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
+      
+      // Calcular o subtotal com base no preço unitário já com desconto
+      const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2));
+      
+      console.log(`
+        Aplicando desconto:
+        - Produto: ${item.product?.name} (${item.product?.code})
+        - Preço original: ${formatCurrency(item.unitPrice)}
+        - Desconto: ${discountPercentage}%
+        - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+        - Quantidade: ${item.quantity}
+        - Subtotal: ${formatCurrency(discountedSubtotal)}
+        - Comissão: ${commission}%
+      `);
+      
+      newItems[actualIndex] = {
+        ...item,
+        discountId,
+        discountPercentage,
+        commission,
+        subtotal: discountedSubtotal,
+      };
+      
+      // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
+      // antes de tentar salvar o pedido
+      setTimeout(() => {
+        if (clientId) {
+          console.log("Salvando pedido automaticamente após atualizar desconto");
+          handleSaveOrder();
+        }
+      }, 0);
+      
+      return newItems;
     });
   };
   
@@ -734,39 +775,44 @@ export default function OrderFormPage() {
     
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
     const actualIndex = orderItems.length - 1 - index;
-    const newItems = [...orderItems];
-    const item = newItems[actualIndex];
     
-    // Pegar o preço unitário com desconto
-    const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
-    
-    // Recalcular subtotal com base no preço unitário já com desconto
-    const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2));
-    
-    console.log(`
-      Atualizando quantidade:
-      - Produto: ${item.product?.name} (${item.product?.code})
-      - Preço original: ${formatCurrency(item.unitPrice)}
-      - Desconto: ${item.discountPercentage}%
-      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
-      - Nova quantidade: ${quantity}
-      - Novo subtotal: ${formatCurrency(discountedSubtotal)}
-    `);
-    
-    newItems[actualIndex] = {
-      ...item,
-      quantity,
-      subtotal: discountedSubtotal,
-    };
-    
-    setOrderItems(newItems);
-    
-    // Força o React a atualizar o estado antes de salvar o pedido usando um requestAnimationFrame
-    requestAnimationFrame(() => {
-      // Salvar automaticamente o pedido após alterar a quantidade
-      if (clientId) {
-        handleSaveOrder();
-      }
+    // Usar o callback do setOrderItems para garantir que temos o estado mais recente
+    setOrderItems(prevItems => {
+      const newItems = [...prevItems];
+      const item = newItems[actualIndex];
+      
+      // Pegar o preço unitário com desconto
+      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
+      
+      // Recalcular subtotal com base no preço unitário já com desconto
+      const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2));
+      
+      console.log(`
+        Atualizando quantidade:
+        - Produto: ${item.product?.name} (${item.product?.code})
+        - Preço original: ${formatCurrency(item.unitPrice)}
+        - Desconto: ${item.discountPercentage}%
+        - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+        - Nova quantidade: ${quantity}
+        - Novo subtotal: ${formatCurrency(discountedSubtotal)}
+      `);
+      
+      newItems[actualIndex] = {
+        ...item,
+        quantity,
+        subtotal: discountedSubtotal,
+      };
+      
+      // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
+      // antes de tentar salvar o pedido
+      setTimeout(() => {
+        if (clientId) {
+          console.log("Salvando pedido automaticamente após atualizar quantidade");
+          handleSaveOrder();
+        }
+      }, 0);
+      
+      return newItems;
     });
   };
   
@@ -854,16 +900,20 @@ export default function OrderFormPage() {
       notes,
     };
     
-    const itemsData = orderItems.map(item => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice.toString(), // Convertido para string
-      discountId: item.discountId,
-      discountPercentage: item.discountPercentage.toString(), // Convertido para string
-      commission: item.commission.toString(), // Convertido para string
-      subtotal: item.subtotal.toString(), // Convertido para string
-      clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
-    }));
+    const itemsData = orderItems.map(item => {
+      const itemData = {
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toString(), // Convertido para string
+        discountId: item.discountId,
+        discountPercentage: item.discountPercentage.toString(), // Convertido para string
+        commission: item.commission.toString(), // Convertido para string
+        subtotal: item.subtotal.toString(), // Convertido para string
+        clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
+      };
+      console.log("Preparando item para envio:", itemData);
+      return itemData;
+    });
     
     if (isEditMode && id && id !== "new") {
       // Atualizar pedido existente

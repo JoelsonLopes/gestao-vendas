@@ -753,6 +753,22 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Tentando criar item de pedido com SQL direto:", orderItem);
       
+      // Validação de parâmetros para evitar erros
+      if (!orderItem.orderId || !Number.isInteger(Number(orderItem.orderId)) || Number(orderItem.orderId) <= 0) {
+        console.error(`ID de pedido inválido: ${orderItem.orderId}`);
+        throw new Error("ID de pedido inválido");
+      }
+      
+      if (!orderItem.productId || !Number.isInteger(Number(orderItem.productId)) || Number(orderItem.productId) <= 0) {
+        console.error(`ID de produto inválido: ${orderItem.productId}`);
+        throw new Error("ID de produto inválido");
+      }
+      
+      if (!orderItem.quantity || Number(orderItem.quantity) <= 0) {
+        console.error(`Quantidade inválida: ${orderItem.quantity}`);
+        throw new Error("Quantidade deve ser maior que zero");
+      }
+      
       const insertQuery = `
         INSERT INTO order_items (
           order_id, product_id, quantity, unit_price, 
@@ -764,7 +780,7 @@ export class DatabaseStorage implements IStorage {
       
       // Preparar valores garantindo que estejam no formato correto
       const values = [
-        orderItem.orderId,
+        Number(orderItem.orderId),
         Number(orderItem.productId),
         Number(orderItem.quantity),
         orderItem.unitPrice.toString(),
@@ -801,6 +817,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Erro ao criar item de pedido:", error);
       console.error("Dados que causaram o erro:", JSON.stringify(orderItem));
+      console.error("Stack trace:", error.stack);
       throw error;
     }
   }
@@ -808,6 +825,20 @@ export class DatabaseStorage implements IStorage {
   async updateOrderItems(orderId: number, items: InsertOrderItem[]): Promise<OrderItem[]> {
     try {
       console.log(`Atualizando itens do pedido ${orderId} usando SQL direto`);
+      
+      // Validação adicional para garantir que o orderId e items são válidos
+      if (!orderId || !Number.isInteger(orderId) || orderId <= 0) {
+        console.error(`ID de pedido inválido: ${orderId}`);
+        throw new Error("ID de pedido inválido");
+      }
+      
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        console.log(`Nenhum item para atualizar no pedido ${orderId}, apenas removendo os existentes`);
+        // Se não há itens, apenas excluir os existentes e retornar um array vazio
+        const deleteQuery = `DELETE FROM order_items WHERE order_id = $1`;
+        await pool.query(deleteQuery, [orderId]);
+        return [];
+      }
       
       // Primeiro apaga todos os itens existentes do pedido com SQL direto
       const deleteQuery = `DELETE FROM order_items WHERE order_id = $1`;
@@ -817,8 +848,33 @@ export class DatabaseStorage implements IStorage {
       // Depois cria novos itens usando SQL direto, sem a coluna clientRef
       const newItems: OrderItem[] = [];
       
+      // Log detalhado de todos os itens antes do processamento
+      console.log(`Processando ${items.length} itens para o pedido ${orderId}:`);
+      items.forEach((item, index) => {
+        console.log(`Item ${index + 1}:`, {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discountId: item.discountId,
+          discountPercentage: item.discountPercentage,
+          commission: item.commission,
+          subtotal: item.subtotal
+        });
+      });
+      
       for (const item of items) {
         try {
+          // Validação adicional para cada item
+          if (!item.productId || !Number.isInteger(Number(item.productId)) || Number(item.productId) <= 0) {
+            console.error(`ID de produto inválido: ${item.productId}`);
+            continue; // Pular este item e continuar com o próximo
+          }
+          
+          if (!item.quantity || Number(item.quantity) <= 0) {
+            console.error(`Quantidade inválida: ${item.quantity}`);
+            continue; // Pular este item e continuar com o próximo
+          }
+          
           const insertQuery = `
             INSERT INTO order_items (
               order_id, product_id, quantity, unit_price, 
@@ -863,6 +919,8 @@ export class DatabaseStorage implements IStorage {
           }
         } catch (itemError) {
           console.error(`Erro ao criar item para o pedido ${orderId}:`, itemError);
+          console.error(`Dados do item:`, JSON.stringify(item));
+          console.error(`Stack trace:`, itemError.stack);
           // Continuar com o próximo item
         }
       }
@@ -871,6 +929,7 @@ export class DatabaseStorage implements IStorage {
       return newItems;
     } catch (error) {
       console.error(`Erro ao atualizar itens do pedido ${orderId}:`, error);
+      console.error(`Stack trace:`, error.stack);
       throw error;
     }
   }
