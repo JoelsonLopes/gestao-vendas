@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FileDown, Printer } from "lucide-react";
-import { PrintOrderTemplate } from "./print-order-template";
+import { PrintOrderTemplateNew } from "./print-order-template-new";
 
 interface PdfItem {
   id: number;
@@ -557,7 +557,7 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
 
         {/* Conteúdo otimizado para impressão - só aparece na impressão */}
         <div className="hidden print:block mt-4">
-          <PrintOrderTemplate order={order} items={items} />
+          <PrintOrderTemplateNew order={order} items={items} />
         </div>
       </div>
 
