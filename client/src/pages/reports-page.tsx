@@ -185,14 +185,6 @@ export default function ReportsPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400">Total de Pedidos</p>
                           <p className="text-2xl font-bold">{stats?.orders?.total || 0}</p>
                         </div>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Ticket Médio</p>
-                          <p className="text-2xl font-bold">
-                            {stats?.orders?.total > 0
-                              ? formatCurrency((stats?.orders?.totalValue || 0) / stats?.orders?.total)
-                              : formatCurrency(0)}
-                          </p>
-                        </div>
                       </div>
                     )}
                   </div>
