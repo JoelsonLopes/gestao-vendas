@@ -33,6 +33,21 @@ const isAdmin = (req: Request, res: Response, next: Function) => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
+  
+  // Create websocket server and notification service
+  const httpServer = createServer(app);
+  const wss = setupWebSocketServer(httpServer);
+  const notificationService = createNotificationService(wss);
+  
+  // Rota de teste para enviar notificação manualmente
+  app.get("/api/send-test-notification", isAuthenticated, (req, res) => {
+    notificationService.notifyAll({
+      type: "info",
+      message: "Esta é uma notificação de teste!",
+      timestamp: Date.now()
+    });
+    res.json({ success: true, message: "Notificação de teste enviada" });
+  });
 
   // Get all users (admin only)
   app.get("/api/users", isAdmin, async (req, res) => {
@@ -1381,14 +1396,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error fetching top selling products" });
     }
   });
-
-  const httpServer = createServer(app);
-  
-  // Configurar o servidor WebSocket
-  const wss = setupWebSocketServer(httpServer);
-  
-  // Criar o serviço de notificações
-  const notificationService = createNotificationService(wss);
   
   // Rota para enviar notificações (apenas para usuários autenticados)
   app.post("/api/notify", isAuthenticated, (req, res) => {

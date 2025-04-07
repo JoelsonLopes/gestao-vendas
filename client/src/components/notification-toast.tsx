@@ -160,20 +160,108 @@ export function NotificationListener() {
   return null;
 }
 
-// Componente que exibe um ícone de sino com contador de notificações (opcional)
+// Componente que exibe um ícone de sino com contador e dropdown de notificações
 export function NotificationBell() {
   const { notifications, clearNotifications } = useWebSocketNotifications();
+  const [isOpen, setIsOpen] = useState(false);
   
   // Filtrar apenas notificações que são info, success ou warning para contagem
-  const count = notifications.filter(n => ['info', 'success', 'warning'].includes(n.type)).length;
+  const filteredNotifications = notifications.filter(n => ['info', 'success', 'warning'].includes(n.type));
+  const count = filteredNotifications.length;
+  
+  // Função para alternar a exibição do dropdown
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+  
+  // Fechar o dropdown quando clicar fora dele
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.notification-bell-container')) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Determinar o ícone com base no tipo de notificação
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'success':
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'warning':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Info className="h-4 w-4 text-blue-500" />;
+    }
+  };
+  
+  // Formatar data
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString();
+  };
+  
+  // Limpar notificações e fechar dropdown
+  const handleClearNotifications = () => {
+    clearNotifications();
+    setIsOpen(false);
+  };
   
   return (
-    <div className="relative inline-block cursor-pointer" onClick={clearNotifications}>
-      <Bell className="h-5 w-5" />
-      {count > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1 min-w-[16px] h-4 flex items-center justify-center">
-          {count > 99 ? '99+' : count}
-        </span>
+    <div className="notification-bell-container relative inline-block">
+      <div className="cursor-pointer" onClick={toggleDropdown}>
+        <Bell className="h-5 w-5" />
+        {count > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1 min-w-[16px] h-4 flex items-center justify-center">
+            {count > 99 ? '99+' : count}
+          </span>
+        )}
+      </div>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 className="text-sm font-medium">Notificações</h3>
+            {count > 0 && (
+              <button 
+                className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                onClick={handleClearNotifications}
+              >
+                Limpar todas
+              </button>
+            )}
+          </div>
+          
+          <div className="max-h-80 overflow-y-auto">
+            {filteredNotifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                Nenhuma notificação disponível
+              </div>
+            ) : (
+              <ul>
+                {filteredNotifications.map((notification, index) => (
+                  <li key={index} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-start">
+                      <div className="mr-3 mt-1">
+                        {getIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-800 dark:text-gray-200">{notification.message}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(notification.timestamp)}</p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
