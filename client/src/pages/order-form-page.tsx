@@ -1240,31 +1240,6 @@ export default function OrderFormPage() {
                         />
                       </div>
                       
-                      {/* Campo de seleção de representante - visível apenas para usuários admin */}
-                      {user?.role === 'admin' && (
-                        <div className="col-span-1 sm:col-span-2">
-                          <Label htmlFor="representative">Representante</Label>
-                          <Select
-                            value={representativeId?.toString() || user!.id.toString()}
-                            onValueChange={(value) => setRepresentativeId(parseInt(value))}
-                          >
-                            <SelectTrigger id="representative">
-                              <SelectValue placeholder="Selecione um representante" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {representatives?.map((rep) => (
-                                <SelectItem key={rep.id} value={rep.id.toString()}>
-                                  {rep.name} {rep.role === 'admin' ? '(Admin)' : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Como administrador, você pode criar pedidos em nome de qualquer representante.
-                          </p>
-                        </div>
-                      )}
-                      
                       <div>
                         <Label htmlFor="status">Status</Label>
                         <Select 
