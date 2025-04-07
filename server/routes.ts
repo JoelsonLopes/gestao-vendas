@@ -566,15 +566,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create client
-  app.post("/api/clients", isAuthenticated, async (req, res) => {
+  // Create client (admin only)
+  app.post("/api/clients", isAdmin, async (req, res) => {
     try {
       let validatedData = insertClientSchema.parse(req.body);
-      
-      // If representative, force their ID as representative
-      if (req.user.role === 'representative') {
-        validatedData = { ...validatedData, representativeId: req.user.id };
-      }
       
       console.log("Criando cliente com dados:", JSON.stringify(validatedData));
       const client = await storage.createClient(validatedData);
@@ -783,8 +778,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Salvar conversão de produto
-  app.post("/api/products/:id/save-conversion", isAuthenticated, async (req, res) => {
+  // Salvar conversão de produto (admin only)
+  app.post("/api/products/:id/save-conversion", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { clientRef } = req.body;
@@ -835,8 +830,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update product
-  app.put("/api/products/:id", isAuthenticated, async (req, res) => {
+  // Update product (admin only)
+  app.put("/api/products/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const product = await storage.getProduct(id);
@@ -845,22 +840,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Product not found" });
       }
       
-      // Check if user is admin for certain fields
+      // Validate data
       const validatedData = insertProductSchema.partial().parse(req.body);
       
-      // If not admin, limit updatable fields
-      if (req.user.role !== 'admin') {
-        const { price, description, stockQuantity } = validatedData;
-        // Only allow updating these fields for non-admin users
-        const allowedUpdates = { price, description, stockQuantity };
-        Object.keys(allowedUpdates).forEach(key => {
-          if (allowedUpdates[key] === undefined) delete allowedUpdates[key];
-        });
-        
-        const updatedProduct = await storage.updateProduct(id, allowedUpdates);
-        return res.json(updatedProduct);
-      }
-      
+      // Update product
       const updatedProduct = await storage.updateProduct(id, validatedData);
       res.json(updatedProduct);
     } catch (error) {

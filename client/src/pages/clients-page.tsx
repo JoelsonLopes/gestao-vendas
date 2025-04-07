@@ -291,14 +291,18 @@ export default function ClientsPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Clientes</h1>
           <div className="flex gap-2">
-            <Button onClick={() => setImportModalOpen(true)} variant="outline">
-              <Import className="mr-2 h-4 w-4" />
-              Importar
-            </Button>
-            <Button onClick={openNewClientModal}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Novo Cliente
-            </Button>
+            {user?.role === "admin" && (
+              <>
+                <Button onClick={() => setImportModalOpen(true)} variant="outline">
+                  <Import className="mr-2 h-4 w-4" />
+                  Importar
+                </Button>
+                <Button onClick={openNewClientModal}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Novo Cliente
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -353,7 +357,7 @@ export default function ClientsPage() {
             keyField="id"
             searchable
             searchPlaceholder="Buscar clientes por nome, CNPJ ou código..."
-            onRowClick={openEditClientModal}
+            onRowClick={user?.role === "admin" ? openEditClientModal : undefined}
           />
         )}
 

@@ -429,17 +429,19 @@ export default function ProductsPage() {
                       <span className={product.conversion ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded" : ""}>
                         {product.conversion || "-"}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startInlineEdit(product.id, "conversion", product.conversion || "");
-                        }}
-                      >
-                        <Edit size={14} />
-                      </Button>
+                      {user?.role === "admin" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startInlineEdit(product.id, "conversion", product.conversion || "");
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                      )}
                     </div>
                   );
                 },
@@ -473,17 +475,19 @@ export default function ProductsPage() {
                       <span className={product.conversionBrand ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400 px-2 py-1 rounded" : ""}>
                         {product.conversionBrand || "-"}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startInlineEdit(product.id, "conversionBrand", product.conversionBrand || "");
-                        }}
-                      >
-                        <Edit size={14} />
-                      </Button>
+                      {user?.role === "admin" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startInlineEdit(product.id, "conversionBrand", product.conversionBrand || "");
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                      )}
                     </div>
                   );
                 },
@@ -517,18 +521,20 @@ export default function ProductsPage() {
                     <div className="flex items-center">
                       <span>{formatCurrency(Number(product.price))}</span>
                       <div className="flex ml-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startInlineEdit(product.id, "price", product.price.toString());
-                          }}
-                          title="Editar preço"
-                        >
-                          <Edit size={14} />
-                        </Button>
+                        {user?.role === "admin" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startInlineEdit(product.id, "price", product.price.toString());
+                            }}
+                            title="Editar preço"
+                          >
+                            <Edit size={14} />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -574,17 +580,19 @@ export default function ProductsPage() {
                   return (
                     <div className="flex items-center">
                       <span>{product.stockQuantity}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startInlineEdit(product.id, "stockQuantity", product.stockQuantity?.toString() || "0");
-                        }}
-                      >
-                        <Edit size={14} />
-                      </Button>
+                      {user?.role === "admin" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startInlineEdit(product.id, "stockQuantity", product.stockQuantity?.toString() || "0");
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                      )}
                     </div>
                   );
                 },
