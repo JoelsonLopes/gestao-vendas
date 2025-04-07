@@ -48,6 +48,14 @@ export function ImportModal({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<boolean>(false);
   
+  // Determinar o tipo de template com base nos campos 
+  const isProductTemplate = templateFields.includes('price') || 
+                           templateFields.includes('brand') || 
+                           templateFields.includes('stockQuantity');
+  const isClientTemplate = templateFields.includes('cnpj') || 
+                          templateFields.includes('phone') || 
+                          templateFields.includes('address');
+  
   // Formulário para representante (que será vinculado à região automaticamente)
   const importFormSchema = z.object({
     representativeId: z.string().min(1, "Representante é obrigatório"),
@@ -70,7 +78,7 @@ export function ImportModal({
     Papa.parse(selectedFile, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: function(header) {
+      transformHeader: function(header: any) {
         // Normalizar cabeçalhos para evitar duplicatas
         const normalizedHeader = header.trim().toLowerCase();
         
@@ -150,7 +158,7 @@ export function ImportModal({
         setParsedData(data);
         setPreview(true);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error("Erro no parse:", error);
         setError(`Erro ao processar o arquivo: ${error.message || "Formato inválido"}`);
       }
@@ -204,62 +212,92 @@ export function ImportModal({
 
   const downloadTemplate = () => {
     // Usar nomes de cabeçalho mais descritivos para o modelo
-    const headers = [];
+    const headers: string[] = [];
+    
     templateFields.forEach(field => {
-      switch(field) {
-        case 'code':
-          headers.push('IdProduto');
-          break;
-        case 'name':
-          headers.push('Nome');
-          break;
-        case 'price':
-          headers.push('Preco');
-          break;
-        case 'brand':
-          headers.push('Marca');
-          break;
-        case 'conversion':
-          headers.push('Conversao');
-          break;
-        case 'conversionBrand':
-          headers.push('MarcaConversao');
-          break;
-        case 'description':
-          headers.push('Descricao');
-          break;
-        case 'category':
-          headers.push('Categoria');
-          break;
-        case 'stockQuantity':
-          headers.push('Estoque');
-          break;
-        case 'barcode':
-          headers.push('CodigoBarras');
-          break;
-        case 'active':
-          headers.push('Ativo');
-          break;
-        case 'cnpj':
-          headers.push('CNPJ');
-          break;
-        case 'city':
-          headers.push('Cidade');
-          break;
-        case 'phone':
-          headers.push('Telefone');
-          break;
-        case 'email':
-          headers.push('Email');
-          break;
-        case 'address':
-          headers.push('Endereco');
-          break;
-        case 'state':
-          headers.push('Estado');
-          break;
-        default:
-          headers.push(field);
+      // Cabeçalhos para produtos
+      if (isProductTemplate) {
+        switch(field) {
+          case 'code':
+            headers.push('IdProduto');
+            break;
+          case 'name':
+            headers.push('Produto');
+            break;
+          case 'price':
+            headers.push('Preco');
+            break;
+          case 'brand':
+            headers.push('Marca');
+            break;
+          case 'conversion':
+            headers.push('Conversao');
+            break;
+          case 'conversionBrand':
+            headers.push('MarcaConversao');
+            break;
+          case 'description':
+            headers.push('Descricao');
+            break;
+          case 'category':
+            headers.push('Categoria');
+            break;
+          case 'stockQuantity':
+            headers.push('Estoque');
+            break;
+          case 'barcode':
+            headers.push('CodigoBarras');
+            break;
+          case 'active':
+            headers.push('Ativo');
+            break;
+          default:
+            headers.push(field);
+        }
+      } 
+      // Cabeçalhos para clientes
+      else if (isClientTemplate) {
+        switch(field) {
+          case 'code':
+            headers.push('CodigoCliente');
+            break;
+          case 'name':
+            headers.push('NomeCliente');
+            break;
+          case 'cnpj':
+            headers.push('CNPJ');
+            break;
+          case 'city':
+            headers.push('Cidade');
+            break;
+          case 'phone':
+            headers.push('Telefone');
+            break;
+          case 'email':
+            headers.push('Email');
+            break;
+          case 'address':
+            headers.push('Endereco');
+            break;
+          case 'state':
+            headers.push('Estado');
+            break;
+          default:
+            headers.push(field);
+        }
+      }
+      // Cabeçalhos genéricos
+      else {
+        switch(field) {
+          case 'code':
+            headers.push('Codigo');
+            break;
+          case 'name':
+            headers.push('Nome');
+            break;
+          default:
+            headers.push(field);
+        }
       }
     });
     
@@ -268,13 +306,6 @@ export function ImportModal({
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    // Determinar o tipo de template com base nos campos
-    const isProductTemplate = templateFields.includes('price') || 
-                             templateFields.includes('brand') || 
-                             templateFields.includes('stockQuantity');
-    const isClientTemplate = templateFields.includes('cnpj') || 
-                            templateFields.includes('phone') || 
-                            templateFields.includes('address');
     
     let fileName = "modelo-importacao";
     if (isProductTemplate) {
@@ -291,7 +322,7 @@ export function ImportModal({
     link.click();
     document.body.removeChild(link);
   };
-
+                          
   return (
     <Dialog open={isOpen} onOpenChange={resetModal}>
       <DialogContent className="sm:max-w-[600px]">
@@ -386,23 +417,50 @@ export function ImportModal({
                         Campos aceitos:
                       </Label>
                       <ul className="text-xs text-gray-500 dark:text-gray-400 list-disc pl-4">
-                        {templateFields.includes('code') && <li>Código / IdProduto / Cod / CODIGO</li>}
-                        {templateFields.includes('name') && <li>Nome / Produto / NOME / cliente</li>}
-                        {templateFields.includes('price') && <li>Preço / Preco / PRECO / valor</li>}
-                        {templateFields.includes('brand') && <li>Marca / MARCA</li>}
-                        {templateFields.includes('conversion') && <li>Conversao / Conversão</li>}
-                        {templateFields.includes('conversionBrand') && <li>MarcaConversao / Marca Conversão</li>}
-                        {templateFields.includes('description') && <li>Descrição / Description / DESCRICAO</li>}
-                        {templateFields.includes('category') && <li>Categoria / Category / CATEGORIA</li>}
-                        {templateFields.includes('stockQuantity') && <li>Estoque / Quantidade</li>}
-                        {templateFields.includes('barcode') && <li>Código de Barras / EAN / barcode</li>}
-                        {templateFields.includes('active') && <li>Ativo / Status / active</li>}
-                        {templateFields.includes('cnpj') && <li>CNPJ / CPF / Documento</li>}
-                        {templateFields.includes('city') && <li>Cidade / city</li>}
-                        {templateFields.includes('state') && <li>Estado / UF / state</li>}
-                        {templateFields.includes('phone') && <li>Telefone / Contato / WhatsApp</li>}
-                        {templateFields.includes('email') && <li>Email / E-mail</li>}
-                        {templateFields.includes('address') && <li>Endereço / Logradouro</li>}
+                        {/* Campos para Produtos */}
+                        {isProductTemplate && (
+                          <>
+                            {templateFields.includes('code') && <li>Código / IdProduto / Cod / CODIGO</li>}
+                            {templateFields.includes('name') && <li>Nome / Produto / NOME</li>}
+                            {templateFields.includes('price') && <li>Preço / Preco / PRECO / valor</li>}
+                            {templateFields.includes('brand') && <li>Marca / MARCA</li>}
+                            {templateFields.includes('conversion') && <li>Conversao / Conversão</li>}
+                            {templateFields.includes('conversionBrand') && <li>MarcaConversao / Marca Conversão</li>}
+                            {templateFields.includes('description') && <li>Descrição / Description / DESCRICAO</li>}
+                            {templateFields.includes('category') && <li>Categoria / Category / CATEGORIA</li>}
+                            {templateFields.includes('stockQuantity') && <li>Estoque / Quantidade</li>}
+                            {templateFields.includes('barcode') && <li>Código de Barras / EAN / barcode</li>}
+                            {templateFields.includes('active') && <li>Ativo / Status / active</li>}
+                          </>
+                        )}
+                        
+                        {/* Campos para Clientes */}
+                        {isClientTemplate && (
+                          <>
+                            {templateFields.includes('code') && <li>Código do Cliente / Código</li>}
+                            {templateFields.includes('name') && <li>Nome do Cliente / Nome</li>}
+                            {templateFields.includes('cnpj') && <li>CNPJ / CPF / Documento</li>}
+                            {templateFields.includes('city') && <li>Cidade</li>}
+                            {templateFields.includes('state') && <li>Estado / UF</li>}
+                            {templateFields.includes('phone') && <li>Telefone / Contato / WhatsApp</li>}
+                            {templateFields.includes('email') && <li>Email / E-mail</li>}
+                            {templateFields.includes('address') && <li>Endereço / Logradouro</li>}
+                          </>
+                        )}
+                        
+                        {/* Campos genéricos (quando não é produto nem cliente) */}
+                        {!isProductTemplate && !isClientTemplate && (
+                          <>
+                            {templateFields.includes('code') && <li>Código</li>}
+                            {templateFields.includes('name') && <li>Nome</li>}
+                            {templateFields.includes('cnpj') && <li>CNPJ</li>}
+                            {templateFields.includes('city') && <li>Cidade</li>}
+                            {templateFields.includes('state') && <li>Estado</li>}
+                            {templateFields.includes('phone') && <li>Telefone</li>}
+                            {templateFields.includes('email') && <li>Email</li>}
+                            {templateFields.includes('address') && <li>Endereço</li>}
+                          </>
+                        )}
                       </ul>
                     </div>
                     <Button
