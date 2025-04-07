@@ -64,11 +64,22 @@ export default function UsersPage() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: z.infer<typeof userFormSchema>) => {
-      const response = await apiRequest("POST", "/api/register", userData);
+      // Se for representante, vamos informar ao backend para criar também uma região
+      const dataToSend = {
+        ...userData,
+        // Não precisamos de sinalizador pois o backend sempre cria a região para representantes
+        createRegion: userData.role === "representative",
+      };
+      
+      const response = await apiRequest("POST", "/api/register", dataToSend);
       return response.json();
     },
     onSuccess: () => {
+      // Invalidamos tanto usuários quanto regiões, já que ambos podem ter sido modificados
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/regions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/representatives"] });
+      
       setUserModalOpen(false);
       toast({
         title: "Usuário criado",
@@ -87,11 +98,22 @@ export default function UsersPage() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<z.infer<typeof userFormSchema>> }) => {
-      const response = await apiRequest("PUT", `/api/users/${id}`, data);
+      // Se o usuário for editado e for um representante, pode ser necessário atualizar também a região
+      const dataToSend = {
+        ...data,
+        // Sinalizador para o backend atualizar a região automaticamente se for um representante
+        updateRegion: data.role === "representative" && Boolean(editingUser?.regionId),
+      };
+      
+      const response = await apiRequest("PUT", `/api/users/${id}`, dataToSend);
       return response.json();
     },
     onSuccess: () => {
+      // Invalidamos tanto usuários quanto regiões, já que ambos podem ter sido modificados
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/regions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/representatives"] });
+      
       setUserModalOpen(false);
       setEditingUser(null);
       toast({
@@ -358,36 +380,13 @@ export default function UsersPage() {
                   )}
                 />
 
+                {/* Nota: Removemos a seleção de região pois cada representante terá automaticamente uma região com seu nome */}
                 {form.watch("role") === "representative" && (
-                  <FormField
-                    control={form.control}
-                    name="regionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Região</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                          defaultValue={field.value?.toString() || ""}
-                          value={field.value?.toString() || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a região" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhuma região</SelectItem>
-                            {regions?.map((region) => (
-                              <SelectItem key={region.id} value={region.id.toString()}>
-                                {region.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-md">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      <strong>Nota:</strong> Ao criar um representante, uma região com o mesmo nome será criada automaticamente e associada a este usuário.
+                    </p>
+                  </div>
                 )}
 
                 <DialogFooter>

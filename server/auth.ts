@@ -95,6 +95,8 @@ export function setupAuth(app: Express) {
       // Validate request body against schema
       const registerSchema = insertUserSchema.extend({
         password: z.string().min(6, "Password must be at least 6 characters"),
+        // Adicionamos um campo opcional para indicar quando criar uma região automaticamente
+        createRegion: z.boolean().optional(),
       });
       
       const validatedData = registerSchema.parse(req.body);
@@ -105,11 +107,29 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already in use" });
       }
 
-      // Hash password and create user
+      // Hash password
       const hashedPassword = await hashPassword(validatedData.password);
+      
+      // Se for um representante e createRegion estiver marcado como true, criamos uma região com seu nome
+      let regionId = validatedData.regionId;
+      if (validatedData.createRegion && validatedData.role === 'representative') {
+        try {
+          const newRegion = await storage.createRegion({
+            name: validatedData.name,
+          });
+          // Usar o ID da nova região para o representante
+          regionId = newRegion.id;
+        } catch (regionError) {
+          console.error("Erro ao criar região:", regionError);
+          // Continuamos mesmo se houver erro na criação da região
+        }
+      }
+
+      // Criar o usuário com os dados validados
       const user = await storage.createUser({
         ...validatedData,
         password: hashedPassword,
+        regionId, // Se uma região foi criada, este valor será atualizado
       });
 
       // Remove password from response

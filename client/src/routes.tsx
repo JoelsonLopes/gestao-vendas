@@ -8,7 +8,7 @@ import OrdersPage from "@/pages/orders-page";
 import OrderFormPage from "@/pages/order-form-page";
 import ReportsPage from "@/pages/reports-page";
 import UsersPage from "@/pages/users-page";
-import RegionsPage from "@/pages/regions-page";
+
 import SettingsPage from "@/pages/settings-page";
 import AccessibilityPage from "@/pages/accessibility-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -28,7 +28,7 @@ export function AppRoutes() {
       <ProtectedRoute path="/orders/:id" component={OrderFormPage} />
       <ProtectedRoute path="/reports" component={ReportsPage} />
       <ProtectedRoute path="/users" component={UsersPage} />
-      <ProtectedRoute path="/regions" component={RegionsPage} />
+
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/accessibility" component={AccessibilityPage} />
       <Route component={NotFound} />

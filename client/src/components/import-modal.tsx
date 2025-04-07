@@ -48,15 +48,15 @@ export function ImportModal({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<boolean>(false);
   
-  // Formulário apenas para representante (que será vinculado à região automaticamente)
+  // Formulário para representante (que será vinculado à região automaticamente)
   const importFormSchema = z.object({
-    representativeId: z.string().optional(),
+    representativeId: z.string().min(1, "Representante é obrigatório"),
   });
   
   const form = useForm<z.infer<typeof importFormSchema>>({
     resolver: zodResolver(importFormSchema),
     defaultValues: {
-      representativeId: "",
+      representativeId: representatives && representatives.length > 0 ? representatives[0].id.toString() : "0",
     },
   });
 
@@ -345,10 +345,11 @@ export function ImportModal({
                       name="representativeId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Representante / Região</FormLabel>
+                          <FormLabel>Representante</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
+                            value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -356,15 +357,21 @@ export function ImportModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="0">Nenhum</SelectItem>
-                              {representatives.map((rep) => (
-                                <SelectItem key={rep.id} value={rep.id.toString()}>
-                                  {rep.name}
-                                </SelectItem>
-                              ))}
+                              {representatives.length > 0 ? (
+                                representatives.map((rep) => (
+                                  <SelectItem key={rep.id} value={rep.id.toString()}>
+                                    {rep.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="0">Nenhum representante disponível</SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Todos os clientes importados serão associados a este representante.
+                          </p>
                         </FormItem>
                       )}
                     />

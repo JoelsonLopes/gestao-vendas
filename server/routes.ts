@@ -87,10 +87,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash password and create user
       const hashedPassword = await hashPassword(validatedData.password);
-      const user = await storage.createUser({
-        ...validatedData,
-        password: hashedPassword,
-      });
+      
+      let user;
+      
+      try {
+        // Se for representante, primeiro cria uma região com o mesmo nome
+        if (validatedData.role === 'representative') {
+          const region = await storage.createRegion({
+            name: validatedData.name, // Nome da região igual ao nome do representante
+            // A descrição é um campo opcional na tabela regiões
+            ...(typeof validatedData.name === 'string' && { description: `Região de ${validatedData.name}` }),
+          });
+          
+          // Depois cria o usuário com a regionId associada
+          user = await storage.createUser({
+            ...validatedData,
+            password: hashedPassword,
+            regionId: region.id, // Vincula o representante à região criada
+          });
+          
+          console.log(`Região ${region.name} (ID: ${region.id}) criada para representante ${user.name} (ID: ${user.id})`);
+        } else {
+          // Caso não seja representante, cria sem região associada
+          user = await storage.createUser({
+            ...validatedData,
+            password: hashedPassword,
+          });
+        }
+      } catch (createError) {
+        console.error('Erro ao criar usuário:', createError);
+        return res.status(500).json({ 
+          message: "Erro ao criar usuário", 
+          error: createError instanceof Error ? createError.message : String(createError)
+        });
+      }
 
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
@@ -120,6 +150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body against partial schema
       const updateSchema = insertUserSchema.partial().extend({
         password: z.string().min(6, "Password must be at least 6 characters").optional(),
+        // Campo para controlar a atualização da região
+        updateRegion: z.boolean().optional()
       });
       
       const validatedData = updateSchema.parse(req.body);
@@ -136,6 +168,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let updateData = { ...validatedData };
       if (validatedData.password) {
         updateData.password = await hashPassword(validatedData.password);
+      }
+      
+      // Verificar se precisamos atualizar a região relacionada
+      if (validatedData.updateRegion && validatedData.name && currentUser.regionId) {
+        try {
+          // Verifica se a região existe
+          const region = await storage.getRegion(currentUser.regionId);
+          if (region) {
+            // Atualiza o nome da região para corresponder ao nome atualizado do representante
+            await storage.updateRegion(currentUser.regionId, {
+              name: validatedData.name
+            });
+          }
+        } catch (regionError) {
+          console.error("Erro ao atualizar região:", regionError);
+          // Continuamos mesmo se houver erro na atualização da região
+        }
       }
       
       // Update user
