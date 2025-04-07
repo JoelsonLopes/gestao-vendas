@@ -49,154 +49,217 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
         }, 0)
       : 0
   );
+  
+  // Calcular o total de peças
+  const totalPieces = items.reduce((total, item) => {
+    const quantity = typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0);
+    return total + quantity;
+  }, 0);
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      {/* Cabeçalho */}
-      <div className="flex justify-between items-start">
+    <div className="max-w-4xl mx-auto p-8 print:p-4">
+      {/* Cabeçalho com Logotipo e Informações */}
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-blue-600 text-xl font-bold">GestãoPedidos</h1>
-          <h2 className="text-xl font-bold mt-2">PEDIDO #{order.id}</h2>
-          <p className="text-sm text-gray-500">Data: {formatDate(order.date)}</p>
+          <div className="flex items-center">
+            <div className="bg-blue-600 text-white p-2 rounded-md mr-3">
+              <h1 className="text-xl font-bold">JP</h1>
+            </div>
+            <div>
+              <h1 className="text-blue-600 text-xl font-bold">Joelson Lopes</h1>
+              <p className="text-sm text-gray-500">Representações Comerciais</p>
+            </div>
+          </div>
+          <h2 className="text-xl font-bold mt-3 text-gray-800">PEDIDO #{order.id}</h2>
         </div>
         
         <div className="text-right">
-          <div className={`border px-3 py-1 ${order.status === 'confirmado' ? 'border-green-600' : 'border-amber-500'}`}>
+          <div className={`border-2 px-4 py-2 rounded-md ${
+            order.status === 'confirmado' 
+              ? 'border-green-600 bg-green-50 text-green-700' 
+              : 'border-amber-500 bg-amber-50 text-amber-700'
+          }`}>
             <span className="text-sm font-bold">{order.status === 'confirmado' ? 'PEDIDO CONFIRMADO' : 'COTAÇÃO'}</span>
+          </div>
+          <p className="text-sm mt-2">Data: <span className="font-medium">{formatDate(order.date)}</span></p>
+        </div>
+      </div>
+      
+      {/* Separador de Seções */}
+      <div className="border-b-2 border-blue-200 my-4"></div>
+      
+      {/* Seção de Cliente e Informações de Contato */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">CLIENTE</h3>
+          <p className="text-base font-medium mb-1">{order.clientName} <span className="text-gray-500">(Cód: {order.clientId})</span></p>
+          <p className="text-sm mb-1"><span className="font-medium">CNPJ:</span> {order.clientCnpj}</p>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">REPRESENTANTE</h3>
+            <p className="text-base">{order.representative}</p>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">PAGAMENTO</h3>
+            <p className="text-base">{order.paymentTerms}</p>
           </div>
         </div>
       </div>
       
-      {/* Separador */}
-      <div className="border-b border-gray-300 my-4"></div>
-      
-      {/* Cliente e Data */}
-      <div className="grid grid-cols-2 gap-6 mb-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase mb-1">CLIENTE</h3>
-          <p className="mb-1">{order.clientName} (Cód:{order.clientId})</p>
-          <p className="text-sm">CNPJ: {order.clientCnpj}</p>
-        </div>
-        
-        <div>
-          <h3 className="text-sm font-bold uppercase mb-1">DATA</h3>
-          <p>{formatDate(order.date)}</p>
-        </div>
-      </div>
-      
-      {/* Representante e Pagamento */}
-      <div className="grid grid-cols-2 gap-6 mb-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase mb-1">REPRESENTANTE</h3>
-          <p>{order.representative}</p>
-        </div>
-        
-        <div>
-          <h3 className="text-sm font-bold uppercase mb-1">PAGAMENTO</h3>
-          <p>{order.paymentTerms}</p>
-        </div>
-      </div>
-      
-      {/* Observações */}
+      {/* Observações do Pedido */}
       <div className="mb-6">
-        <h3 className="text-sm font-bold uppercase mb-1">OBSERVAÇÕES</h3>
-        <div className="border border-gray-300 p-3">
+        <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">OBSERVAÇÕES</h3>
           <p className="text-sm">{order.notes ? order.notes : "Nenhuma observação."}</p>
         </div>
       </div>
       
-      {/* Itens do Pedido */}
+      {/* Tabela de Itens do Pedido - Melhorada com Design Responsivo */}
       <div className="mb-6">
-        <h3 className="text-sm font-bold uppercase mb-2">ITENS DO PEDIDO</h3>
+        <h3 className="text-sm font-bold uppercase text-blue-600 mb-3 border-b border-blue-200 pb-1">ITENS DO PEDIDO</h3>
         
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-gray-300">
-              <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase">Ref. Cliente</th>
-              <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-              <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase">Qtd</th>
-              <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase">Desconto</th>
-              <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase">Preço c/ Desconto</th>
-              <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => {
-              // Cálculo do preço com desconto
-              const itemDiscount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
-              const itemUnitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
-              const priceWithDiscount = itemDiscount > 0 
-                ? itemUnitPrice * (1 - itemDiscount / 100) 
-                : itemUnitPrice;
-                
-              return (
-                <tr key={index} className="border-b border-gray-200">
-                  <td className="py-3 align-middle text-sm">
-                    {item.clientRef || '-'}
-                  </td>
-                  <td className="py-3 align-middle text-sm">{item.name}</td>
-                  <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
-                  <td className="py-3 align-middle text-sm text-right">
-                    {itemDiscount > 0 ? (
-                      order.status === 'confirmado' && item.discountName 
-                        ? <span>{item.discountName}</span>
-                        : `${itemDiscount}%`
-                    ) : '-'}
-                  </td>
-                  <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
-                  <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(item.subtotal)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="py-2 px-3 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Ref. Cliente</th>
+                <th className="py-2 px-3 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Produto</th>
+                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Qtd</th>
+                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Desconto</th>
+                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Preço c/ Desconto</th>
+                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => {
+                // Cálculo do preço com desconto
+                const itemDiscount = typeof item.discount === 'string' ? Number(item.discount) : (item.discount || 0);
+                const itemUnitPrice = typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0);
+                const priceWithDiscount = itemDiscount > 0 
+                  ? itemUnitPrice * (1 - itemDiscount / 100) 
+                  : itemUnitPrice;
+                  
+                return (
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b border-gray-200 hover:bg-blue-50`}>
+                    <td className="py-3 px-3 align-middle text-sm">
+                      {item.clientRef ? (
+                        <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-medium">
+                          {item.clientRef}
+                        </span>
+                      ) : '-'}
+                    </td>
+                    <td className="py-3 px-3 align-middle text-sm">
+                      <span className="font-medium">{item.name}</span>
+                      {item.brand && <span className="text-gray-500 ml-1">({item.brand})</span>}
+                    </td>
+                    <td className="py-3 px-3 align-middle text-sm text-right font-medium">{item.quantity}</td>
+                    <td className="py-3 px-3 align-middle text-sm text-right">
+                      {itemDiscount > 0 ? (
+                        order.status === 'confirmado' && item.discountName ? (
+                          <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md">
+                            {item.discountName}
+                          </span>
+                        ) : (
+                          <span>{itemDiscount}%</span>
+                        )
+                      ) : '-'}
+                    </td>
+                    <td className="py-3 px-3 align-middle text-sm text-right font-medium">{formatCurrency(priceWithDiscount)}</td>
+                    <td className="py-3 px-3 align-middle text-sm text-right font-bold">{formatCurrency(item.subtotal)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
       
-      {/* Resumo Financeiro */}
-      <div className="flex justify-between items-start">
+      {/* Cards com Resumo Financeiro e de Peças */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Resumo de Quantidades */}
-        <div className="w-56 bg-gray-50 p-3 rounded-md border border-gray-200">
-          <div className="flex justify-between items-center py-1 border-b border-gray-200 mb-1">
-            <span className="text-sm font-bold text-gray-700">RESUMO DE PEÇAS</span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm font-medium text-gray-600">Total de Peças:</span>
-            <span className="text-sm font-bold">{items.reduce((total, item) => total + Number(item.quantity), 0)}</span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm font-medium text-gray-600">Quantidade de Itens:</span>
-            <span className="text-sm font-medium">{items.length}</span>
-          </div>
-        </div>
-
-        {/* Resumo Financeiro */}
-        <div className="w-56">
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-gray-600">Subtotal:</span>
-            <span className="text-sm font-medium">{formatCurrency(order.subtotal)}</span>
-          </div>
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-gray-600">Taxa de Frete:</span>
-            <span className="text-sm font-medium">{formatCurrency(order.taxes)}</span>
-          </div>
-          <div className="flex justify-between items-center py-1 font-bold">
-            <span className="text-base">Total:</span>
-            <span className="text-base">{formatCurrency(order.total)}</span>
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2 border-b border-gray-200 pb-1">RESUMO DE PEÇAS</h3>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 bg-white rounded-md shadow-sm">
+              <p className="text-sm text-gray-600">Total de Peças</p>
+              <p className="text-xl font-bold text-blue-600">{totalPieces}</p>
+            </div>
+            
+            <div className="p-3 bg-white rounded-md shadow-sm">
+              <p className="text-sm text-gray-600">Qtd. Itens</p>
+              <p className="text-xl font-bold text-blue-600">{items.length}</p>
+            </div>
           </div>
           
+          {/* Código por Marca (opcional) */}
           {order.status === 'confirmado' && (
-            <div className="flex justify-between items-center py-1 mt-2 border-t border-gray-200">
-              <span className="text-sm font-medium text-gray-600">Total Comissão:</span>
-              <span className="text-sm font-medium">{formatCurrency(totalCommission)}</span>
+            <div className="mt-3 pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-600 mb-1">Produtos por marca:</p>
+              {Object.entries(items.reduce((acc, item) => {
+                const brand = item.brand || 'Sem marca';
+                acc[brand] = (acc[brand] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>)).map(([brand, count], i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span>{brand}:</span>
+                  <span>{count} itens</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
+        {/* Resumo Financeiro */}
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+          <h3 className="text-sm font-bold uppercase text-blue-600 mb-3 border-b border-gray-200 pb-1">RESUMO FINANCEIRO</h3>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center py-1">
+              <span className="text-sm text-gray-600">Subtotal:</span>
+              <span className="text-sm font-medium">{formatCurrency(order.subtotal)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center py-1">
+              <span className="text-sm text-gray-600">Taxa de Frete:</span>
+              <span className="text-sm font-medium">{formatCurrency(order.taxes)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 mt-2 border-t border-gray-200">
+              <span className="text-base font-bold">Total:</span>
+              <span className="text-lg font-bold text-blue-600">{formatCurrency(order.total)}</span>
+            </div>
+            
+            {order.status === 'confirmado' && (
+              <div className="flex justify-between items-center py-1 mt-2 bg-blue-50 p-2 rounded-md">
+                <span className="text-sm font-medium text-blue-600">Total Comissão:</span>
+                <span className="text-sm font-bold text-blue-600">{formatCurrency(totalCommission)}</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
-      {/* Rodapé */}
-      <div className="mt-10 pt-2 border-t border-gray-300 text-center text-xs text-gray-500">
-        <p>Este documento não possui valor fiscal.</p>
-        <p>Impresso em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+      {/* Área de Assinaturas */}
+      {order.status === 'confirmado' && (
+        <div className="mt-8 grid grid-cols-2 gap-12">
+          <div className="border-t border-gray-300 pt-2 text-center">
+            <p className="text-xs text-gray-500">Assinatura do Cliente</p>
+          </div>
+          <div className="border-t border-gray-300 pt-2 text-center">
+            <p className="text-xs text-gray-500">Assinatura do Representante</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Rodapé Aprimorado */}
+      <div className="mt-10 pt-3 border-t border-gray-300 text-center">
+        <p className="text-xs text-gray-500 mb-1">Este documento não possui valor fiscal.</p>
+        <p className="text-xs text-gray-500">Impresso em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
+        <p className="text-xs font-medium text-blue-600 mt-1">Joelson Lopes Representações</p>
       </div>
     </div>
   );

@@ -86,290 +86,355 @@ export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
   const createPdfDocument = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
     // Cores para um design mais moderno
     const primaryColor = "#3b82f6"; // azul
     const secondaryColor = "#f0f9ff"; // azul claro
+    const accentGreen = "#10b981"; // verde
+    const accentAmber = "#f59e0b"; // amarelo
     const darkGray = "#374151";
+    const lightGray = "#f3f4f6";
 
-    // Background header
+    // Cabeçalho superior
     doc.setFillColor(primaryColor);
-    doc.rect(0, 0, pageWidth, 22, "F");
+    doc.rect(0, 0, pageWidth, 18, "F");
 
-    // Título do documento
-    doc.setTextColor(255, 255, 255); // branco
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(`PEDIDO #${order.id}`, 15, 15);
-
-    // Add status badge
-    if (order.status === "confirmado") {
-      doc.setFillColor(34, 197, 94); // verde
-    } else {
-      doc.setFillColor(245, 158, 11); // amarelo
-    }
-
-    // Badge de status moderno
-    const statusText = order.status.toUpperCase();
-    const statusX = pageWidth - 40;
-    const statusY = 15;
-    doc.roundedRect(statusX - 20, statusY - 6, 40, 12, 2, 2, "F");
+    // Logotipo e nome da empresa
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text(statusText, statusX, statusY);
-
-    // Reset de cores
-    doc.setTextColor(darkGray);
-
-    // Informações da empresa
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("GestãoPedidos", 15, 35);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text("CNPJ: 00.000.000/0000-00", 15, 40);
-    doc.text("contato@gestaopedidos.com", 15, 45);
-
-    // Card com informações do cliente
-    doc.setFillColor(secondaryColor);
-    doc.roundedRect(15, 55, 85, 30, 3, 3, "F");
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(15, 5, 8, 8, 1, 1, "F");
+    
+    doc.setFillColor(primaryColor);
     doc.setTextColor(primaryColor);
-    doc.text("CLIENTE", 20, 63);
-    doc.setTextColor(darkGray);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Nome: ${order.clientName}`, 20, 70);
-    doc.text(`CNPJ: ${order.clientCnpj}`, 20, 77);
-
-    // Card com informações do pedido (AGORA ABAIXO do card de cliente)
-    doc.setFillColor(secondaryColor);
-    doc.roundedRect(15, 90, 85, 30, 3, 3, "F"); // Alterado Y de 55 para 90
-
-    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(primaryColor);
-    doc.text("INFORMAÇÕES DO PEDIDO", 20, 98); // Ajustado para novo Y
-    doc.setTextColor(darkGray);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Data: ${formatDate(order.date)}`, 20, 105); // Ajustado Y
-    doc.text(`Condição: ${order.paymentTerms}`, 20, 112); // Ajustado Y
-    doc.text(`Representante: ${order.representative}`, 20, 119); // Ajustado Y
-
-    // Título da tabela de itens
     doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("ITENS DO PEDIDO", 15, 95);
+    doc.text("JL", 16, 11);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text("Joelson Lopes", 30, 10);
+    doc.setFontSize(8);
+    doc.text("Representações Comerciais", 30, 14);
 
-    // Linha decorativa abaixo do título
+    // Informações do documento
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(pageWidth - 80, 22, 65, 35, 3, 3, "F");
+    doc.setTextColor(primaryColor);
+    doc.setFontSize(12);
+    doc.text(`PEDIDO #${order.id}`, pageWidth - 45, 30, { align: "center" });
+    
+    // Badge de status moderno
+    if (order.status === "confirmado") {
+      doc.setFillColor(accentGreen);
+    } else {
+      doc.setFillColor(accentAmber);
+    }
+    
+    const statusText = order.status === "confirmado" ? "PEDIDO CONFIRMADO" : "COTAÇÃO";
+    doc.roundedRect(pageWidth - 68, 35, 40, 8, 2, 2, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(statusText, pageWidth - 48, 40, { align: "center" });
+    
+    // Data do pedido
+    doc.setTextColor(darkGray);
+    doc.setFontSize(9);
+    doc.text(`Data: ${formatDate(order.date)}`, pageWidth - 48, 50, { align: "center" });
+
+    // Seção do cliente
+    doc.setTextColor(primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("INFORMAÇÕES DO CLIENTE", 15, 35);
+    
     doc.setDrawColor(primaryColor);
     doc.setLineWidth(0.5);
-    doc.line(15, 97, 70, 97);
+    doc.line(15, 37, 100, 37);
+    
+    doc.setFillColor(lightGray);
+    doc.roundedRect(15, 40, 150, 25, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.setFontSize(9);
+    doc.text("Cliente:", 20, 48);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${order.clientName} (Cód: ${order.clientId})`, 50, 48);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("CNPJ:", 20, 55);
+    doc.setFont("helvetica", "bold");
+    doc.text(order.clientCnpj, 50, 55);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Representante:", 20, 62);
+    doc.setFont("helvetica", "bold");
+    doc.text(order.representative, 70, 62);
 
-    // Cabeçalho da tabela com design moderno
-    const tableX = 15;
-    let tableY = 105;
+    // Condições de pagamento
+    doc.setTextColor(primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("CONDIÇÕES DE PAGAMENTO", 15, 75);
+    
+    doc.setDrawColor(primaryColor);
+    doc.line(15, 77, 100, 77);
+    
+    doc.setFillColor(lightGray);
+    doc.roundedRect(15, 80, 150, 15, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.text(order.paymentTerms, 20, 90);
+
+    // Observações (se houver)
+    if (order.notes) {
+      doc.setTextColor(primaryColor);
+      doc.setFontSize(10);
+      doc.text("OBSERVAÇÕES", 15, 105);
+      
+      doc.setDrawColor(primaryColor);
+      doc.line(15, 107, 70, 107);
+      
+      doc.setFillColor("#e0f2fe"); // Azul bem claro
+      doc.roundedRect(15, 110, 180, 15, 2, 2, "F");
+      
+      doc.setTextColor(darkGray);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(order.notes, 20, 120);
+    }
+
+    // Cabeçalho da tabela de itens
+    const tableY = order.notes ? 135 : 110;
+    
+    doc.setTextColor(primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("ITENS DO PEDIDO", 15, tableY - 5);
+    
+    doc.setDrawColor(primaryColor);
+    doc.line(15, tableY - 3, 70, tableY - 3);
 
     // Fundo do cabeçalho da tabela
+    const tableX = 15;
     doc.setFillColor(primaryColor);
-    doc.rect(tableX, tableY - 7, 180, 8, "F");
+    doc.rect(tableX, tableY, 180, 8, "F");
 
     // Textos do cabeçalho
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-
-    doc.text("Ref. Cliente", tableX + 5, tableY - 1);
-    doc.text("Código", tableX + 30, tableY - 1);
-    doc.text("Descrição", tableX + 50, tableY - 1);
-    doc.text("Qtd", tableX + 95, tableY - 1);
-    doc.text("Preço Tabela", tableX + 115, tableY - 1);
-    doc.text("Desconto", tableX + 140, tableY - 1);
-    doc.text("Preço c/ Desc.", tableX + 163, tableY - 1);
-    doc.text("Subtotal", tableX + 190, tableY - 1);
-
-    // Reset de cores
-    doc.setTextColor(darkGray);
+    doc.setFontSize(8);
+    doc.text("Ref. Cliente", tableX + 5, tableY + 5);
+    doc.text("Produto", tableX + 35, tableY + 5);
+    doc.text("Qtd", tableX + 100, tableY + 5);
+    doc.text("Desconto", tableX + 120, tableY + 5);
+    doc.text("Preço c/ Desc.", tableX + 145, tableY + 5);
+    doc.text("Total", tableX + 175, tableY + 5);
 
     // Linhas da tabela
+    let currentY = tableY + 8;
     doc.setFontSize(8);
+    
     items.forEach((item, index) => {
       // Nova página se necessário
-      if (tableY > 270) {
+      if (currentY > pageHeight - 60) {
         doc.addPage();
-        tableY = 20;
+        currentY = 20;
+        
+        // Adicionar cabeçalho na nova página
+        doc.setFillColor(primaryColor);
+        doc.rect(tableX, currentY, 180, 8, "F");
+        
+        doc.setTextColor(255, 255, 255);
+        doc.text("Ref. Cliente", tableX + 5, currentY + 5);
+        doc.text("Produto", tableX + 35, currentY + 5);
+        doc.text("Qtd", tableX + 100, currentY + 5);
+        doc.text("Desconto", tableX + 120, currentY + 5);
+        doc.text("Preço c/ Desc.", tableX + 145, currentY + 5);
+        doc.text("Total", tableX + 175, currentY + 5);
+        
+        currentY += 8;
       }
 
       // Zebra striping para melhor legibilidade
       if (index % 2 === 0) {
-        doc.setFillColor(245, 247, 250);
-        doc.rect(tableX, tableY, 180, 7, "F");
+        doc.setFillColor(lightGray);
+        doc.rect(tableX, currentY, 180, 8, "F");
       }
 
+      // Reset de cores
+      doc.setTextColor(darkGray);
+      doc.setFont("helvetica", "normal");
+
       // Conversão de valores para números
-      const discount =
-        typeof item.discount === "string"
-          ? Number(item.discount)
-          : item.discount || 0;
-      const unitPrice =
-        typeof item.unitPrice === "string"
-          ? Number(item.unitPrice)
-          : item.unitPrice || 0;
-      const quantity =
-        typeof item.quantity === "string"
-          ? Number(item.quantity)
-          : item.quantity || 0;
+      const discount = typeof item.discount === "string" ? Number(item.discount) : (item.discount || 0);
+      const unitPrice = typeof item.unitPrice === "string" ? Number(item.unitPrice) : (item.unitPrice || 0);
+      const quantity = typeof item.quantity === "string" ? Number(item.quantity) : (item.quantity || 0);
+      const priceWithDiscount = discount > 0 ? unitPrice * (1 - discount / 100) : unitPrice;
 
       // Destaque para referência do cliente
       if (item.clientRef) {
         doc.setFillColor(primaryColor);
         doc.setTextColor(255, 255, 255);
-        doc.roundedRect(tableX + 2, tableY + 1, 22, 5, 1, 1, "F");
-        doc.text(item.clientRef, tableX + 5, tableY + 4.5);
-        doc.setTextColor(darkGray);
+        doc.roundedRect(tableX + 3, currentY + 1.5, 22, 5, 1, 1, "F");
+        doc.text(item.clientRef, tableX + 5, currentY + 5);
       } else {
-        doc.text("-", tableX + 5, tableY + 4.5);
+        doc.setTextColor(darkGray);
+        doc.text("-", tableX + 5, currentY + 5);
       }
 
       // Dados do item
-      doc.text(item.code, tableX + 30, tableY + 4.5);
-      const displayName =
-        item.name.length > 25 ? item.name.substring(0, 25) + "..." : item.name;
-      doc.text(displayName, tableX + 50, tableY + 4.5);
-      doc.text(quantity.toString(), tableX + 95, tableY + 4.5);
-      doc.text(formatCurrency(unitPrice), tableX + 115, tableY + 4.5);
+      doc.setTextColor(darkGray);
+      const displayName = item.name.length > 40 ? item.name.substring(0, 40) + "..." : item.name;
+      doc.text(displayName, tableX + 35, currentY + 5);
+      doc.text(quantity.toString(), tableX + 100, currentY + 5);
 
       // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
       if (discount > 0) {
         if (order.status === "confirmado" && item.discountName) {
           // Destacar o nome do desconto para pedidos confirmados
-          doc.setFillColor(51, 102, 204, 0.1); // Azul claro com transparência
-          doc.roundedRect(tableX + 135, tableY + 1, 24, 5, 1, 1, "F");
+          doc.setFillColor(204, 229, 255); // Azul claro
+          doc.roundedRect(tableX + 115, currentY + 1.5, 15, 5, 1, 1, "F");
           doc.setTextColor(0, 51, 153); // Azul escuro
-          doc.text(`${item.discountName}`, tableX + 140, tableY + 4.5);
-          doc.setTextColor(darkGray); // Voltar à cor padrão
+          doc.text(item.discountName, tableX + 120, currentY + 5);
         } else {
-          doc.text(`${discount}%`, tableX + 140, tableY + 4.5);
+          doc.setTextColor(darkGray);
+          doc.text(`${discount}%`, tableX + 120, currentY + 5);
         }
       } else {
-        doc.text("-", tableX + 140, tableY + 4.5);
+        doc.text("-", tableX + 120, currentY + 5);
       }
 
-      // Preço com desconto
-      const priceWithDiscount =
-        discount > 0 ? unitPrice * (1 - discount / 100) : unitPrice;
-      doc.text(formatCurrency(priceWithDiscount), tableX + 163, tableY + 4.5);
+      // Preço com desconto e subtotal
+      doc.setTextColor(darkGray);
+      doc.text(formatCurrency(priceWithDiscount), tableX + 145, currentY + 5);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(item.subtotal), tableX + 175, currentY + 5);
 
-      // Subtotal
-      doc.text(formatCurrency(item.subtotal), tableX + 190, tableY + 4.5);
-
-      tableY += 7;
+      currentY += 8;
     });
 
     // Resumo financeiro com layout moderno
-    const totalsY = tableY + 15;
-
-    // Card para resumo de peças
-    doc.setFillColor(secondaryColor);
-    doc.roundedRect(15, totalsY - 10, 80, 35, 3, 3, "F");
-
-    // Título do resumo de peças
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(primaryColor);
-    doc.text("RESUMO DE PEÇAS", 20, totalsY);
+    const summaryY = currentY + 15;
     
-    // Conteúdo do resumo de peças
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(darkGray);
-    
-    // Cálculo do total de peças
+    // Total peças e itens
     const totalPieces = items.reduce((total, item) => {
       const quantity = typeof item.quantity === "string" ? Number(item.quantity) : (item.quantity || 0);
       return total + quantity;
     }, 0);
     
-    doc.text("Total de Peças:", 20, totalsY + 10);
-    doc.setFont("helvetica", "bold");
-    doc.text(totalPieces.toString(), 75, totalsY + 10, { align: "right" });
+    // Grid para resumo de peças - lado esquerdo
+    doc.setFillColor("#f8fafc"); // Cinza claro
+    doc.roundedRect(15, summaryY, 85, 40, 3, 3, "F");
     
-    doc.setFont("helvetica", "normal");
-    doc.text("Quantidade de Itens:", 20, totalsY + 20);
-    doc.text(items.length.toString(), 75, totalsY + 20, { align: "right" });
-
-    // Card para os totais
-    doc.setFillColor(secondaryColor);
-    doc.roundedRect(pageWidth - 95, totalsY - 10, 80, 45, 3, 3, "F");
-
-    // Informações de totais
-    doc.setFontSize(9);
-    doc.text("Subtotal:", pageWidth - 90, totalsY);
-    doc.text(formatCurrency(order.subtotal), pageWidth - 20, totalsY, {
-      align: "right",
-    });
-
-    doc.text("Desconto:", pageWidth - 90, totalsY + 8);
-    doc.text(formatCurrency(order.discount), pageWidth - 20, totalsY + 8, {
-      align: "right",
-    });
-
-    doc.text("Taxa de Frete:", pageWidth - 90, totalsY + 16);
-    doc.text(formatCurrency(order.taxes), pageWidth - 20, totalsY + 16, {
-      align: "right",
-    });
-
-    // Linha separadora antes do total
-    doc.setDrawColor(primaryColor);
-    doc.line(pageWidth - 90, totalsY + 20, pageWidth - 20, totalsY + 20);
-
-    // Total em destaque
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
     doc.setTextColor(primaryColor);
-    doc.text("Total:", pageWidth - 90, totalsY + 28);
-    doc.text(formatCurrency(order.total), pageWidth - 20, totalsY + 28, {
-      align: "right",
-    });
-
-    // Mostrar comissão se o pedido estiver confirmado
-    if (order.status === "confirmado") {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(darkGray);
-      doc.text("Total Comissão:", pageWidth - 90, totalsY + 36);
-      doc.text(formatCurrency(totalCommission), pageWidth - 20, totalsY + 36, {
-        align: "right",
-      });
-    }
-
-    // Rodapé
-    const footerY = totalsY + 50;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("RESUMO DE PEÇAS", 57.5, summaryY + 8, { align: "center" });
+    
+    // Card para total de peças
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(25, summaryY + 15, 30, 18, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.setFontSize(8);
+    doc.text("Total de Peças", 40, summaryY + 20, { align: "center" });
+    
+    doc.setTextColor(primaryColor);
+    doc.setFontSize(14);
+    doc.text(totalPieces.toString(), 40, summaryY + 28, { align: "center" });
+    
+    // Card para quantidade de itens
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(60, summaryY + 15, 30, 18, 2, 2, "F");
+    
+    doc.setTextColor(darkGray);
+    doc.setFontSize(8);
+    doc.text("Qtd. Itens", 75, summaryY + 20, { align: "center" });
+    
+    doc.setTextColor(primaryColor);
+    doc.setFontSize(14);
+    doc.text(items.length.toString(), 75, summaryY + 28, { align: "center" });
+    
+    // Resumo financeiro - lado direito
+    doc.setFillColor("#f8fafc");
+    doc.roundedRect(110, summaryY, 85, 45, 3, 3, "F");
+    
+    doc.setTextColor(primaryColor);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("RESUMO FINANCEIRO", 152.5, summaryY + 8, { align: "center" });
+    
     doc.setTextColor(darkGray);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-
-    // Linha divisória do rodapé
-    doc.setDrawColor(200, 200, 200);
+    
+    // Valores financeiros
+    doc.text("Subtotal:", 120, summaryY + 18);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(order.subtotal), 185, summaryY + 18, { align: "right" });
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Taxa de Frete:", 120, summaryY + 25);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(order.taxes), 185, summaryY + 25, { align: "right" });
+    
+    // Linha separadora
+    doc.setDrawColor(primaryColor);
+    doc.line(120, summaryY + 30, 185, summaryY + 30);
+    
+    // Total em destaque
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Total:", 120, summaryY + 37);
+    doc.setTextColor(primaryColor);
+    doc.setFontSize(12);
+    doc.text(formatCurrency(order.total), 185, summaryY + 37, { align: "right" });
+    
+    // Mostrar comissão se o pedido estiver confirmado
+    if (order.status === "confirmado") {
+      doc.setFillColor("#dbeafe"); // Azul bem claro
+      doc.roundedRect(120, summaryY + 40, 65, 10, 2, 2, "F");
+      
+      doc.setTextColor(primaryColor);
+      doc.setFontSize(8);
+      doc.text("Total Comissão:", 125, summaryY + 46);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(totalCommission), 180, summaryY + 46, { align: "right" });
+    }
+    
+    // Área para assinaturas (apenas para pedidos confirmados)
+    if (order.status === "confirmado") {
+      const signatureY = summaryY + 60;
+      
+      doc.setDrawColor(darkGray);
+      doc.setLineWidth(0.2);
+      
+      // Assinatura cliente
+      doc.line(25, signatureY, 85, signatureY);
+      doc.setTextColor(darkGray);
+      doc.setFontSize(7);
+      doc.text("Assinatura do Cliente", 55, signatureY + 5, { align: "center" });
+      
+      // Assinatura representante
+      doc.line(125, signatureY, 185, signatureY);
+      doc.text("Assinatura do Representante", 155, signatureY + 5, { align: "center" });
+    }
+    
+    // Rodapé
+    const footerY = pageHeight - 10;
+    
+    doc.setDrawColor(darkGray);
     doc.setLineWidth(0.2);
-    doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
-
-    // Texto do rodapé
-    doc.text(
-      "Este documento não possui valor fiscal.",
-      pageWidth / 2,
-      footerY,
-      { align: "center" },
-    );
-    doc.text(
-      `Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`,
-      pageWidth / 2,
-      footerY + 5,
-      { align: "center" },
-    );
-
+    doc.line(15, footerY - 8, pageWidth - 15, footerY - 8);
+    
+    doc.setTextColor(darkGray);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    
+    doc.text("Este documento não possui valor fiscal.", pageWidth / 2, footerY - 5, { align: "center" });
+    doc.text(`Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, pageWidth / 2, footerY, { align: "center" });
+    
     return doc;
   };
 

@@ -22,7 +22,7 @@
   }
 }
 
-/* Estilos básicos para impressão */
+/* Estilos aprimorados para impressão */
 @media print {
   @page {
     size: A4 portrait;
@@ -175,5 +175,102 @@
   .print-content::before {
     display: none !important;
     content: none !important;
+  }
+  
+  /* Novos estilos melhorados para o layout de impressão */
+  .bg-blue-50,
+  .bg-blue-100,
+  .bg-gray-50 {
+    background-color: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  /* Melhorar visual de referência do cliente */
+  .inline-block.bg-blue-100,
+  span.bg-blue-100 {
+    background-color: #e1effe !important;
+    border: 1px solid #3b82f6 !important;
+    color: #1e40af !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+  }
+  
+  /* Manter cores para status */
+  .border-green-600,
+  .text-green-700,
+  .bg-green-50 {
+    border-color: #059669 !important;
+    color: #047857 !important;
+    background-color: #ecfdf5 !important;
+  }
+  
+  .border-amber-500,
+  .text-amber-700,
+  .bg-amber-50 {
+    border-color: #d97706 !important;
+    color: #b45309 !important;
+    background-color: #fffbeb !important;
+  }
+  
+  /* Melhorar visual da tabela na impressão */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    page-break-inside: auto !important;
+  }
+  
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+  
+  th, td {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 8px 6px !important;
+  }
+  
+  thead {
+    display: table-header-group !important;
+  }
+  
+  tfoot {
+    display: table-footer-group !important;
+  }
+  
+  /* Melhorar espaçamento entre seções */
+  .grid {
+    display: block !important;
+  }
+  
+  .grid > div {
+    margin-bottom: 15px !important;
+  }
+  
+  /* Evitar quebra de página em elementos importantes */
+  .mb-6 {
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Ajustar cores e destacar textos importantes */
+  .text-blue-600,
+  .text-blue-700 {
+    color: #2563eb !important;
+    font-weight: bold !important;
+  }
+  
+  /* Garantir que o nome da empresa apareça destacado */
+  .text-xl.font-bold.text-blue-600 {
+    color: #2563eb !important;
+    font-size: 18pt !important;
+    font-weight: bold !important;
+  }
+  
+  /* Adicionar espaço para assinaturas */
+  .mt-8.grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 40px !important;
+    margin-top: 40px !important;
   }
 }
