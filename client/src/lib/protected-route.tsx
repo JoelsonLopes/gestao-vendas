@@ -20,7 +20,7 @@ export function ProtectedRoute({
   }
 
   if (!user) {
-    return <Redirect to="/" />;
+    return <Redirect to="/auth" />;
   }
 
   return <Component />;

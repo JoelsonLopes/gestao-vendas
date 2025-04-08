@@ -8,7 +8,6 @@ import OrdersPage from "@/pages/orders-page";
 import OrderFormPage from "@/pages/order-form-page";
 import ReportsPage from "@/pages/reports-page";
 import UsersPage from "@/pages/users-page";
-import LandingPage from "@/pages/landing-page";
 
 import SettingsPage from "@/pages/settings-page";
 import AccessibilityPage from "@/pages/accessibility-page";
@@ -20,9 +19,8 @@ export function AppRoutes() {
   
   return (
     <Switch>
-      <Route path="/" component={LandingPage} />
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/dashboard" component={DashboardPage} />
+      <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/clients" component={ClientsPage} />
       <ProtectedRoute path="/products" component={ProductsPage} />
       <ProtectedRoute path="/orders" component={OrdersPage} />

@@ -40,7 +40,7 @@ export default function AuthPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      setLocation("/dashboard");
+      setLocation("/");
     }
   }, [user, setLocation]);
 
