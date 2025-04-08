@@ -38,16 +38,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = setupWebSocketServer(httpServer);
   const notificationService = createNotificationService(wss);
-  
-  // Rota de teste para enviar notificação manualmente
-  app.get("/api/send-test-notification", isAuthenticated, (req, res) => {
-    notificationService.notifyAll({
-      type: "info",
-      message: "Esta é uma notificação de teste!",
-      timestamp: Date.now()
-    });
-    res.json({ success: true, message: "Notificação de teste enviada" });
-  });
 
   // Get all users (admin only)
   app.get("/api/users", isAdmin, async (req, res) => {
