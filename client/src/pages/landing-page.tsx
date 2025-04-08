@@ -110,9 +110,9 @@ export default function LandingPage() {
               <div className="p-3 bg-primary/10 rounded-full w-fit mb-4">
                 <Car className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Aplicação Veicular</h3>
+              <h3 className="text-xl font-bold mb-2">Conversão de Referências</h3>
               <p className="text-muted-foreground">
-                Sistema de busca inteligente por aplicação veicular, com tabelas completas de compatibilidade.
+                Sistema de conversão entre referências de diferentes marcas, facilitando a identificação de equivalentes.
               </p>
             </div>
             
