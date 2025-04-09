@@ -55,10 +55,11 @@ app.use((req, res, next) => {
   }
 
   // Correção feita aqui: escutando em 127.0.0.1
-  const port = 5000;
-  const host = "127.0.0.1"; // Ou "localhost"
+  const port = parseInt(process.env.PORT ?? "", 10) || 5000;
+  const host = process.env.HOST || "0.0.0.0"; 
+
 
   server.listen(port, host, () => {
-    log(`serving on http://${host}:${port}`);
+    log(`🚀 Servidor rodando em http://${host}:${port}`);
   });
 })();
