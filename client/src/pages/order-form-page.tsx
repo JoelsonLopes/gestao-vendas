@@ -1899,34 +1899,7 @@ export default function OrderFormPage() {
                     </TabsContent>
                   </Tabs>
                   
-                  {selectedProductId && (
-                    <div className="space-y-4 pt-2">
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
-                        <div className="flex-1">
-                          <Input 
-                            id="clientReferenceInput"
-                            type="text" 
-                            placeholder="Digite a referência deste produto para o cliente"
-                            value={clientRef}
-                            onChange={(e) => setClientRef(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="saveProdConversion"
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          checked={shouldSaveConversion}
-                          onChange={e => setShouldSaveConversion(e.target.checked)}
-                        />
-                        <Label htmlFor="saveProdConversion" className="text-sm font-normal cursor-pointer">
-                          Salvar esta referência para uso futuro
-                        </Label>
-                      </div>
-                    </div>
-                  )}
+                  
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">

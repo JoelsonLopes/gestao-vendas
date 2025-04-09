@@ -31,10 +31,25 @@ export default function ProductsPage() {
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // Fetch products
-  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-  });
+ // Fetch e ordenar produtos do menor código para o maior
+const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
+  queryKey: ["/api/products"],
+  queryFn: async () => {
+    const response = await apiRequest("GET", "/api/products");
+    const raw = await response.json();
+
+    // Ordena por código (tentando numérico, senão alfabético)
+    return raw.sort((a: Product, b: Product) => {
+      const codeA = parseInt(a.code);
+      const codeB = parseInt(b.code);
+
+      if (!isNaN(codeA) && !isNaN(codeB)) return codeA - codeB;
+
+      return a.code.localeCompare(b.code);
+    });
+  },
+});
+
 
   // Product form validation schema
   const productFormSchema = z.object({
@@ -75,29 +90,38 @@ export default function ProductsPage() {
     },
   });
 
-  // Update product mutation
-  const updateProductMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertProduct> }) => {
-      const response = await apiRequest("PUT", `/api/products/${id}`, data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      setProductModalOpen(false);
-      setEditingProduct(null);
-      toast({
-        title: "Produto atualizado",
-        description: "Produto foi atualizado com sucesso",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: `Falha ao atualizar produto: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  // Update product mutation com atualização direta na lista da tabela
+const updateProductMutation = useMutation({
+  mutationFn: async ({ id, data }: { id: number; data: Partial<Product> }) => {
+    const response = await apiRequest("PUT", `/api/products/${id}`, data);
+    return response.json();
+  },
+  onSuccess: (updatedProduct) => {
+    // Atualiza direto no cache
+    queryClient.setQueryData<Product[]>(["/api/products"], (oldProducts) => {
+      if (!oldProducts) return [];
+      return oldProducts.map((product) =>
+        product.id === updatedProduct.id ? { ...product, ...updatedProduct } : product
+      );
+    });
+
+    setProductModalOpen(false);
+    setEditingProduct(null);
+
+    toast({
+      title: "Produto atualizado",
+      description: "As alterações foram salvas com sucesso.",
+    });
+  },
+  onError: (error) => {
+    toast({
+      title: "Erro ao atualizar",
+      description: `Não foi possível atualizar o produto: ${error.message}`,
+      variant: "destructive",
+    });
+  },
+});
+
 
   // Inline edit mutation
   const inlineEditMutation = useMutation({
