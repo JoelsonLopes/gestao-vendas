@@ -23,7 +23,7 @@ export function ProductSearch({
   autoFocus = false,
   disabled = false
 }: ProductSearchProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);

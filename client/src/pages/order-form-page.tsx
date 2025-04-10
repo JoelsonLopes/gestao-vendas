@@ -83,7 +83,7 @@ export default function OrderFormPage() {
     discountPercentage: number;
     commission: number;
     subtotal: number;
-    product?: Product;
+    product?: Product | null;
     clientRef?: string | null;
   }>>([]);
   
@@ -1822,7 +1822,7 @@ export default function OrderFormPage() {
                                   });
                               }
                             }}
-                            autoFocus
+                            
                           />
                           <Button 
                             onClick={() => {
@@ -1931,15 +1931,15 @@ export default function OrderFormPage() {
                   </div>
                 </div>
                 
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
-                    Cancelar
-                  </Button>
+                <DialogFooter>                  
                   <Button 
                     onClick={addProductToOrder}
                     disabled={!selectedProductId || productQuantity <= 0}
                   >
                     Adicionar
+                  </Button>
+                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
+                    Cancelar
                   </Button>
                 </DialogFooter>
               </DialogContent>
