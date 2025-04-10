@@ -1533,9 +1533,9 @@ export default function OrderFormPage() {
                           ) : (
                             // Invertemos a ordem para mostrar os mais recentes primeiro
                             [...orderItems].reverse().map((item, index) => (
-                              <TableRow key={index} className="md:table-row border md:border-none rounded-lg block md:table-row mb-4 md:mb-0 shadow-md md:shadow-none">
+                              <TableRow key={index} className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none">
                                 {/* Referência do Cliente */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Ref. Cliente:</span>
                                   {item.clientRef || item.product?.conversion ? (
                                     <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
@@ -1547,7 +1547,7 @@ export default function OrderFormPage() {
                                 </TableCell>
                                 
                                 {/* Nome do Produto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Produto:</span>
                                   <div>
                                     <p>{item.product?.name || `Produto #${item.productId}`}</p>
@@ -1556,7 +1556,7 @@ export default function OrderFormPage() {
                                 </TableCell>
                                 
                                 {/* Quantidade */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Quantidade:</span>
                                   <Input 
                                     type="number" 
@@ -1574,7 +1574,7 @@ export default function OrderFormPage() {
                                 </TableCell>
                                 
                                 {/* Desconto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Desconto:</span>
                                   <DiscountSelect
                                     value={item.discountId}
@@ -1587,7 +1587,7 @@ export default function OrderFormPage() {
                                 </TableCell>
                                 
                                 {/* Preço com Desconto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Preço c/ Desc.:</span>
                                   {formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}
                                 </TableCell>
@@ -1598,13 +1598,13 @@ export default function OrderFormPage() {
                                 </TableCell>
                                 
                                 {/* Subtotal */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell">
+                                <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Subtotal:</span>
                                   {formatCurrency(item.subtotal)}
                                 </TableCell>
                                 
                                 {/* Ações */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block md:table-cell text-center md:text-right">
+                                <TableCell className="md:table-cell p-4 md:p-2 block text-center md:text-right">
                                   <span className="md:hidden font-bold">Ações:</span>
                                   <div className="flex justify-center md:justify-end space-x-1">
                                     <Button 
@@ -1742,7 +1742,7 @@ export default function OrderFormPage() {
                         <ProductSearch 
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
-                          autoFocus={true}
+                          
                           onEnterKeyPressed={() => {
                             // Se um produto foi selecionado e tudo está OK, adicionar o produto
                             if (selectedProductId && productQuantity > 0) {
@@ -1899,7 +1899,34 @@ export default function OrderFormPage() {
                     </TabsContent>
                   </Tabs>
                   
-                  
+                  {/* {selectedProductId && (
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
+                        <div className="flex-1">
+                          <Input 
+                            id="clientReferenceInput"
+                            type="text" 
+                            placeholder="Digite a referência deste produto para o cliente"
+                            value={clientRef}
+                            onChange={(e) => setClientRef(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="saveProdConversion"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={shouldSaveConversion}
+                          onChange={e => setShouldSaveConversion(e.target.checked)}
+                        />
+                        <Label htmlFor="saveProdConversion" className="text-sm font-normal cursor-pointer">
+                          Salvar esta referência para uso futuro
+                        </Label>
+                      </div>
+                    </div>
+                  )} */}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1931,8 +1958,8 @@ export default function OrderFormPage() {
                   </div>
                 </div>
                 
-                <DialogFooter>                  
-                  <Button 
+                <DialogFooter>
+                <Button 
                     onClick={addProductToOrder}
                     disabled={!selectedProductId || productQuantity <= 0}
                   >
@@ -1941,6 +1968,7 @@ export default function OrderFormPage() {
                   <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
                     Cancelar
                   </Button>
+                  
                 </DialogFooter>
               </DialogContent>
             </Dialog>

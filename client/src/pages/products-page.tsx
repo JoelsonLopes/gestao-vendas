@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
 import { DataTable } from "@/components/data-table";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -31,25 +31,12 @@ export default function ProductsPage() {
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
- // Fetch e ordenar produtos do menor código para o maior
-const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-  queryKey: ["/api/products"],
-  queryFn: async () => {
-    const response = await apiRequest("GET", "/api/products");
-    const raw = await response.json();
-
-    // Ordena por código (tentando numérico, senão alfabético)
-    return raw.sort((a: Product, b: Product) => {
-      const codeA = parseInt(a.code);
-      const codeB = parseInt(b.code);
-
-      if (!isNaN(codeA) && !isNaN(codeB)) return codeA - codeB;
-
-      return a.code.localeCompare(b.code);
-    });
-  },
-});
-
+  // Fetch products com configurações otimizadas para melhor desempenho
+  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+    staleTime: 2 * 60 * 1000, // 2 minutos de cache para evitar refetches frequentes
+    refetchOnWindowFocus: false, // Não recarregar quando a janela ganha foco novamente
+  });
 
   // Product form validation schema
   const productFormSchema = z.object({
@@ -69,7 +56,7 @@ const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
 
   // Create product mutation
   const createProductMutation = useMutation({
-    mutationFn: async (product: z.infer<typeof productFormSchema>) => {
+    mutationFn: async (product: any) => {
       const response = await apiRequest("POST", "/api/products", product);
       return response.json();
     },
@@ -90,38 +77,29 @@ const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
     },
   });
 
-  // Update product mutation com atualização direta na lista da tabela
-const updateProductMutation = useMutation({
-  mutationFn: async ({ id, data }: { id: number; data: Partial<Product> }) => {
-    const response = await apiRequest("PUT", `/api/products/${id}`, data);
-    return response.json();
-  },
-  onSuccess: (updatedProduct) => {
-    // Atualiza direto no cache
-    queryClient.setQueryData<Product[]>(["/api/products"], (oldProducts) => {
-      if (!oldProducts) return [];
-      return oldProducts.map((product) =>
-        product.id === updatedProduct.id ? { ...product, ...updatedProduct } : product
-      );
-    });
-
-    setProductModalOpen(false);
-    setEditingProduct(null);
-
-    toast({
-      title: "Produto atualizado",
-      description: "As alterações foram salvas com sucesso.",
-    });
-  },
-  onError: (error) => {
-    toast({
-      title: "Erro ao atualizar",
-      description: `Não foi possível atualizar o produto: ${error.message}`,
-      variant: "destructive",
-    });
-  },
-});
-
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertProduct> }) => {
+      const response = await apiRequest("PUT", `/api/products/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setProductModalOpen(false);
+      setEditingProduct(null);
+      toast({
+        title: "Produto atualizado",
+        description: "Produto foi atualizado com sucesso",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao atualizar produto: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Inline edit mutation
   const inlineEditMutation = useMutation({
@@ -246,22 +224,33 @@ const updateProductMutation = useMutation({
       equivalentBrands: product.equivalentBrands || [],
       price: Number(product.price),
       stockQuantity: product.stockQuantity || 0,
-      active: product.active,
+      active: product.active === null ? true : product.active,
     });
     setProductModalOpen(true);
   };
 
   const onSubmit = (data: z.infer<typeof productFormSchema>) => {
     // Converte o preço para string para corresponder ao backend
-    const formattedData = {
+    const formattedData: InsertProduct = {
       ...data,
-      price: data.price.toString()
+      name: data.name,
+      code: data.code,
+      active: data.active,
+      price: data.price.toString(),
+      stockQuantity: data.stockQuantity,
+      barcode: data.barcode,
+      brand: data.brand,
+      category: data.category,
+      conversion: data.conversion,
+      conversionBrand: data.conversionBrand,
+      description: data.description,
+      equivalentBrands: data.equivalentBrands
     };
     
     if (editingProduct) {
       updateProductMutation.mutate({ id: editingProduct.id, data: formattedData });
     } else {
-      createProductMutation.mutate(formattedData);
+      createProductMutation.mutate(formattedData as any);
     }
   };
 
@@ -347,11 +336,25 @@ const updateProductMutation = useMutation({
     // Convert to proper type based on field
     if (field === 'price') {
       // Converte para string para corresponder ao tipo esperado pelo backend
-      data[field] = value;
+      data.price = value;
     } else if (field === 'stockQuantity') {
-      data[field] = parseInt(value);
-    } else {
-      data[field] = value;
+      data.stockQuantity = parseInt(value);
+    } else if (field === 'conversion') {
+      data.conversion = value;
+    } else if (field === 'conversionBrand') {
+      data.conversionBrand = value;
+    } else if (field === 'name') {
+      data.name = value;
+    } else if (field === 'code') {
+      data.code = value;
+    } else if (field === 'brand') {
+      data.brand = value;
+    } else if (field === 'category') {
+      data.category = value;
+    } else if (field === 'barcode') {
+      data.barcode = value;
+    } else if (field === 'description') {
+      data.description = value;
     }
     
     inlineEditMutation.mutate({ id, data });
@@ -398,6 +401,7 @@ const updateProductMutation = useMutation({
                 accessorKey: "code",
                 sortable: true,
                 filterable: true,
+                hidden: true,
               },
               {
                 header: "Produto",
@@ -626,6 +630,7 @@ const updateProductMutation = useMutation({
                 accessorKey: "active",
                 sortable: true,
                 filterable: true,
+                hidden: true,
                 filterOptions: ["Ativo", "Inativo"],
                 cell: (product) => (
                   <Badge className={product.active ? "badge-success" : ""} variant={product.active ? undefined : "secondary"}>

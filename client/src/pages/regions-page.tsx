@@ -16,6 +16,13 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
+type Representative = {
+  id: number;
+  name: string;
+  regionId: number;
+};
+
+
 export default function RegionsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -46,8 +53,9 @@ export default function RegionsPage() {
   });
 
   // Representatives for each region
-  const { data: representatives } = useQuery({
+  const { data: representatives = [] } = useQuery<Representative[]>({
     queryKey: ["/api/representatives"],
+    enabled: true,
   });
 
   // Region form validation schema
@@ -212,24 +220,26 @@ export default function RegionsPage() {
               {
                 header: "Criada em",
                 accessorKey: "createdAt",
-                cell: (region) => new Date(region.createdAt).toLocaleDateString(),
+                cell: (region) =>
+                  region.createdAt ? new Date(region.createdAt).toLocaleDateString() : "Data não disponível",
+                
               },
               {
                 header: "Ações",
-                accessorKey: "actions",
                 cell: (region) => (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       confirmDelete(region);
-                    }}
+                    } }
                     className="text-red-500 hover:text-red-700 hover:bg-red-100"
                   >
                     <Trash className="h-4 w-4" />
                   </Button>
                 ),
+                accessorKey: "id"
               },
             ]}
             data={regions || []}

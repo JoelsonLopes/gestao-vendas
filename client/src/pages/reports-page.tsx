@@ -1,19 +1,99 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/layouts/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 
 // Charts colors
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'];
+
+// Interface para tipagem dos dados
+interface DashboardStats {
+  orders?: {
+    total: number;
+    confirmed: number;
+    quotation: number;
+    totalValue: number;
+  };
+  clients?: {
+    total: number;
+    active: number;
+  };
+}
+
+interface Order {
+  clientCode: string;
+  id: number;
+  clientId: number;
+  clientName: string;
+  date: string;
+  status: string;
+  total: number;
+  totalPieces: number;
+}
+
+interface Representative {
+  id: number;
+  name: string;
+  totalOrders: number;
+  confirmedOrders: number;
+  totalPieces: number;
+  totalValue: number;
+  totalCommission: number;
+}
+
+interface Product {
+  id: number;
+  code: string;
+  name: string;
+  brand: string;
+  totalPieces: number;
+  totalValue: number;
+  totalCommission: number;
+}
+
+interface Brand {
+  id: number;
+  name: string;
+  totalPieces: number;
+  totalValue: number;
+}
 
 export default function ReportsPage() {
   const [reportPeriod, setReportPeriod] = useState<string>("month");
@@ -21,27 +101,27 @@ export default function ReportsPage() {
   const [dateTo, setDateTo] = useState<string>("");
   
   // Fetch dashboard stats for summary data
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
     queryKey: ["/api/stats/dashboard"],
   });
   
   // Fetch orders for sales report
-  const { data: orders, isLoading: isLoadingOrders } = useQuery({
+  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
   
   // Fetch sales by representative
-  const { data: salesByRep, isLoading: isLoadingSalesByRep } = useQuery({
+  const { data: salesByRep, isLoading: isLoadingSalesByRep } = useQuery<Representative[]>({
     queryKey: ["/api/stats/sales-by-representative"],
   });
   
   // Fetch sales by brand
-  const { data: salesByBrand, isLoading: isLoadingSalesByBrand } = useQuery({
+  const { data: salesByBrand, isLoading: isLoadingSalesByBrand } = useQuery<Brand[]>({
     queryKey: ["/api/stats/sales-by-brand"],
   });
   
   // Fetch top selling products
-  const { data: topProducts, isLoading: isLoadingTopProducts } = useQuery({
+  const { data: topProducts, isLoading: isLoadingTopProducts } = useQuery<Product[]>({
     queryKey: ["/api/stats/top-selling-products"],
   });
   
@@ -154,13 +234,13 @@ export default function ReportsPage() {
                               cy="50%"
                               outerRadius={80}
                               fill="#8884d8"
-                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              label={({ name, percent }: {name: string, percent: number}) => `${name} ${(percent * 100).toFixed(0)}%`}
                             >
                               {orderStatusData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                               ))}
                             </Pie>
-                            <Tooltip formatter={(value) => [`${value} pedidos`, 'Quantidade']} />
+                            <Tooltip formatter={(value: any) => [`${value} pedidos`, 'Quantidade']} />
                             <Legend />
                           </PieChart>
                         </ResponsiveContainer>
@@ -199,25 +279,29 @@ export default function ReportsPage() {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b bg-muted/50">
-                          <th className="p-3 text-left font-medium text-muted-foreground">ID</th>
-                          <th className="p-3 text-left font-medium text-muted-foreground">Cliente</th>
+                          <th className="p-3 text-left font-medium text-muted-foreground">Cliente e Código</th>
                           <th className="p-3 text-left font-medium text-muted-foreground">Data</th>
+                          <th className="p-3 text-center font-medium text-muted-foreground">Total de Peças</th>
+                          <th className="p-3 text-right font-medium text-muted-foreground">Total</th>
                           <th className="p-3 text-center font-medium text-muted-foreground">Status</th>
-                          <th className="p-3 text-right font-medium text-muted-foreground">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
                         {Array.isArray(orders) && orders.slice(0, 10).map((order) => (
                           <tr key={order.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td className="p-3 text-left">{order.id}</td>
-                            <td className="p-3 text-left">{order.clientName}</td>
+                            <td className="p-3 text-left">
+                              {/* Mostrar nome do cliente e código do pedido */}
+                              <div className="font-medium">{order.clientName || 'Cliente'}</div>
+                              <div className="text-sm text-muted-foreground">Cód: {order.clientCode || ''}</div>
+                            </td>
                             <td className="p-3 text-left">{order.date}</td>
+                            <td className="p-3 text-center">{order.totalPieces || 0}</td>
+                            <td className="p-3 text-right">{formatCurrency(order.total)}</td>
                             <td className="p-3 text-center">
                               <Badge variant={order.status === 'confirmado' ? "success" : "default"}>
                                 {order.status === 'confirmado' ? 'Confirmado' : 'Cotação'}
                               </Badge>
                             </td>
-                            <td className="p-3 text-right">{formatCurrency(order.total)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -247,21 +331,21 @@ export default function ReportsPage() {
                         <div className="h-80">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                              data={salesByRep}
+                              data={salesByRep || []}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" />
                               <YAxis />
-                              <Tooltip formatter={(value, name) => [
-                                name === "totalValue" ? formatCurrency(value) : value,
+                              <Tooltip formatter={(value: any, name: any) => [
+                                name === "totalValue" ? formatCurrency(Number(value)) : value,
                                 name === "totalValue" ? "Valor Total" : 
                                 name === "totalPieces" ? "Total de Peças" : 
                                 name === "confirmedOrders" ? "Pedidos Confirmados" : 
                                 "Total de Pedidos"
                               ]} />
                               <Legend 
-                                formatter={(value) => (
+                                formatter={(value: string) => (
                                   value === "totalValue" ? "Valor Total" : 
                                   value === "totalPieces" ? "Total de Peças" : 
                                   value === "confirmedOrders" ? "Pedidos Confirmados" : 
@@ -279,13 +363,13 @@ export default function ReportsPage() {
                         <div className="h-80">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                              data={salesByRep}
+                              data={salesByRep || []}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" />
                               <YAxis />
-                              <Tooltip formatter={(value) => [value, "Total de Peças"]} />
+                              <Tooltip formatter={(value: any) => [value, "Total de Peças"]} />
                               <Legend />
                               <Bar dataKey="totalPieces" fill="#22c55e" />
                             </BarChart>
@@ -345,7 +429,7 @@ export default function ReportsPage() {
                         <div className="h-96">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                              data={topProducts?.slice(0, 10)}
+                              data={topProducts?.slice(0, 10) || []}
                               layout="vertical"
                               margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
                             >
@@ -354,10 +438,10 @@ export default function ReportsPage() {
                               <YAxis 
                                 type="category" 
                                 dataKey="name" 
-                                tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                                tickFormatter={(value: string) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
                                 width={140}
                               />
-                              <Tooltip formatter={(value, name) => [value, "Quantidade Vendida"]} />
+                              <Tooltip formatter={(value: any, name: any) => [value, "Quantidade Vendida"]} />
                               <Legend />
                               <Bar dataKey="totalPieces" fill="#3b82f6" name="Quantidade Vendida" />
                             </BarChart>
@@ -370,9 +454,11 @@ export default function ReportsPage() {
                         <div className="h-96">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                              data={[...topProducts || []]
-                                .sort((a, b) => b.totalValue - a.totalValue)
-                                .slice(0, 10)}
+                              data={Array.isArray(topProducts) 
+                                ? [...topProducts]
+                                  .sort((a, b) => b.totalValue - a.totalValue)
+                                  .slice(0, 10)
+                                : []}
                               layout="vertical"
                               margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
                             >
@@ -381,10 +467,10 @@ export default function ReportsPage() {
                               <YAxis 
                                 type="category" 
                                 dataKey="name" 
-                                tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                                tickFormatter={(value: string) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
                                 width={140}
                               />
-                              <Tooltip formatter={(value) => [formatCurrency(value), "Valor Total"]} />
+                              <Tooltip formatter={(value: any) => [formatCurrency(Number(value)), "Valor Total"]} />
                               <Legend />
                               <Bar dataKey="totalValue" fill="#ef4444" name="Valor Total" />
                             </BarChart>
@@ -444,27 +530,15 @@ export default function ReportsPage() {
                         <div className="h-80">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                              data={brandData}
+                              data={brandData || []}
                               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis 
-                                dataKey="brand" 
-                                tickFormatter={(value) => value.length > 10 ? `${value.substring(0, 10)}...` : value}
-                              />
+                              <XAxis dataKey="name" />
                               <YAxis />
-                              <Tooltip 
-                                formatter={(value, name) => [
-                                  value, 
-                                  name === "totalPieces" ? "Total de Peças" : 
-                                  name === "totalValue" ? "Valor Total" : 
-                                  name === "totalCommission" ? "Comissão Total" : 
-                                  "Pedidos"
-                                ]}
-                                labelFormatter={(label) => `Marca: ${label}`}
-                              />
+                              <Tooltip formatter={(value: any, name: any) => [value, "Quantidade Vendida"]} />
                               <Legend />
-                              <Bar dataKey="totalPieces" fill="#3b82f6" name="Total de Peças" />
+                              <Bar dataKey="totalPieces" fill="#3b82f6" name="Quantidade Vendida" />
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
@@ -477,21 +551,18 @@ export default function ReportsPage() {
                             <PieChart>
                               <Pie
                                 dataKey="totalValue"
-                                nameKey="brand"
                                 data={brandData}
                                 cx="50%"
                                 cy="50%"
                                 outerRadius={80}
                                 fill="#8884d8"
-                                label={({ name, percent }) => 
-                                  `${name.length > 10 ? `${name.substring(0, 10)}...` : name} ${(percent * 100).toFixed(0)}%`
-                                }
+                                label={(entry: any) => entry.name}
                               >
-                                {brandData.map((entry, index) => (
+                                {brandData.map((entry: any, index: number) => (
                                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                               </Pie>
-                              <Tooltip formatter={(value) => [formatCurrency(value), "Valor Total"]} />
+                              <Tooltip formatter={(value: any) => [formatCurrency(Number(value)), "Valor Total"]} />
                               <Legend />
                             </PieChart>
                           </ResponsiveContainer>
@@ -504,22 +575,16 @@ export default function ReportsPage() {
                         <thead>
                           <tr className="border-b bg-muted/50">
                             <th className="p-3 text-left font-medium text-muted-foreground">Marca</th>
-                            <th className="p-3 text-center font-medium text-muted-foreground">Total de Peças</th>
-                            <th className="p-3 text-center font-medium text-muted-foreground">Pedidos</th>
+                            <th className="p-3 text-center font-medium text-muted-foreground">Quantidade Vendida</th>
                             <th className="p-3 text-right font-medium text-muted-foreground">Valor Total</th>
-                            <th className="p-3 text-right font-medium text-muted-foreground">Comissão Total</th>
-                            <th className="p-3 text-right font-medium text-muted-foreground">Valor Médio por Peça</th>
                           </tr>
                         </thead>
                         <tbody>
                           {Array.isArray(salesByBrand) && salesByBrand.map((brand) => (
-                            <tr key={brand.brand} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                              <td className="p-3 text-left font-medium">{brand.brand}</td>
+                            <tr key={brand.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                              <td className="p-3 text-left font-medium">{brand.name}</td>
                               <td className="p-3 text-center">{brand.totalPieces}</td>
-                              <td className="p-3 text-center">{brand.orders}</td>
                               <td className="p-3 text-right">{formatCurrency(brand.totalValue)}</td>
-                              <td className="p-3 text-right">{formatCurrency(brand.totalCommission)}</td>
-                              <td className="p-3 text-right">{formatCurrency(brand.totalPieces > 0 ? brand.totalValue / brand.totalPieces : 0)}</td>
                             </tr>
                           ))}
                         </tbody>

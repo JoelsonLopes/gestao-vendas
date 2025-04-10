@@ -51,7 +51,7 @@ export const getQueryFn: <T>(options: {
       url = String(queryKey);
     }
     
-    console.log("Fazendo requisição para:", url);
+    // Removido console.log para melhorar performance
     
     const res = await fetch(url, {
       credentials: "include",
@@ -71,7 +71,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 0, // Alterado para 0 para forçar refetch ao navegar de volta
+      staleTime: 5 * 60 * 1000, // 5 minutos de cache para melhorar performance
       retry: false,
     },
     mutations: {

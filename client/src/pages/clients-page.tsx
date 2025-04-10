@@ -20,6 +20,16 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCnpj } from "@/lib/utils";
 
+type Region = {
+  id: number;
+  name: string;
+};
+
+type Representative = {
+  id: number;
+  name: string;
+};
+
 export default function ClientsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -33,13 +43,14 @@ export default function ClientsPage() {
   });
 
   // Fetch regions (for admin users)
-  const { data: regions, isLoading: isLoadingRegions } = useQuery({
+  const { data: regions = [], isLoading: isLoadingRegions } = useQuery<Region[]>({
     queryKey: ["/api/regions"],
     enabled: user?.role === "admin",
   });
+  
 
   // Fetch representatives (for admin users)
-  const { data: representatives, isLoading: isLoadingRepresentatives } = useQuery({
+  const { data: representatives = [], isLoading: isLoadingRepresentatives } = useQuery<Representative[]>({
     queryKey: ["/api/representatives"],
     enabled: user?.role === "admin",
   });
@@ -264,9 +275,9 @@ export default function ClientsPage() {
       state: client.state || "",
       phone: client.phone || "",
       email: client.email || "",
-      representativeId: client.representativeId,
-      regionId: client.regionId,
-      active: client.active,
+      representativeId: client.representativeId ?? undefined,
+      regionId: client.regionId ?? undefined,
+      active: client.active ?? undefined,
     });
     setClientModalOpen(true);
   };
@@ -532,7 +543,7 @@ export default function ClientsPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {regions?.map((region) => (
+                                {regions?.map((region: Region) => (
                                   <SelectItem key={region.id} value={region.id.toString()}>
                                     {region.name}
                                   </SelectItem>

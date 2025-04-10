@@ -31,7 +31,7 @@ export function AppRoutes() {
 
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <ProtectedRoute path="/accessibility" component={AccessibilityPage} />
-      <Route component={NotFound} />
+      <Route path="*">{() => <NotFound />}</Route>
     </Switch>
   );
 }

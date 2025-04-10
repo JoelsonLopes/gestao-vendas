@@ -66,6 +66,11 @@
     display: none !important;
   }
   
+  /* Garantir que o conteúdo de impressão seja exibido plenamente */
+  .hidden.print\:block {
+    display: block !important;
+  }
+  
   .print-document {
     display: block !important;
     position: absolute !important;
@@ -90,126 +95,6 @@
   .dashboard-layout > div > div > div.tabs,
   .dashboard-layout > div h1 {
     display: none !important;
-  }
-  
-  /* Garantir que o total de peças seja exibido na impressão */
-  .print-footer {
-    display: flex !important;
-    width: 100% !important;
-    justify-content: flex-end !important;
-    margin-top: 30px !important;
-  }
-  
-  .print-footer > div {
-    width: 33% !important;
-  }
-  
-  /* Não ocultar informações de totais */
-  .print-footer .border-t div {
-    display: flex !important;
-    justify-content: space-between !important;
-  }
-  
-  .total-pecas-print {
-    display: block !important;
-  }
-  
-  /* Exibir conteúdo de impressão oculto normalmente */
-  .hidden.print\:block {
-    display: block !important;
-  }
-  
-  /* Estilos para elementos específicos do pedido */
-  .print-header {
-    display: block !important;
-    margin-bottom: 20px !important;
-  }
-  
-  .print-items {
-    display: block !important;
-    width: 100% !important;
-    margin-top: 20px !important;
-  }
-  
-  .print-items table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-  }
-  
-  .print-items th,
-  .print-items td {
-    padding: 6px !important;
-    text-align: left !important;
-    border-bottom: 1px solid #ddd !important;
-  }
-  
-  /* Remover linha azul vertical na impressão */
-  body::after,
-  body::before,
-  *::after,
-  *::before,
-  div::after,
-  div::before {
-    content: none !important;
-    display: none !important;
-    border: none !important;
-    background: none !important;
-  }
-
-  /* Esconder bordas indesejadas */
-  .print-document *,
-  * {
-    border-right: none !important;
-  }
-  
-  /* Remover qualquer linha vertical ou decoração não desejada */
-  .print-document::after,
-  .print-document::before,
-  .print-document *::after,
-  .print-document *::before {
-    display: none !important;
-  }
-  
-  /* Forçar remoção de elementos CSS pseudo */
-  .print-content::after,
-  .print-content::before {
-    display: none !important;
-    content: none !important;
-  }
-  
-  /* Novos estilos melhorados para o layout de impressão */
-  .bg-blue-50,
-  .bg-blue-100,
-  .bg-gray-50 {
-    background-color: #f9fafb !important;
-    border: 1px solid #e5e7eb !important;
-  }
-  
-  /* Melhorar visual de referência do cliente */
-  .inline-block.bg-blue-100,
-  span.bg-blue-100 {
-    background-color: #e1effe !important;
-    border: 1px solid #3b82f6 !important;
-    color: #1e40af !important;
-    padding: 1px 6px !important;
-    border-radius: 4px !important;
-  }
-  
-  /* Manter cores para status */
-  .border-green-600,
-  .text-green-700,
-  .bg-green-50 {
-    border-color: #059669 !important;
-    color: #047857 !important;
-    background-color: #ecfdf5 !important;
-  }
-  
-  .border-amber-500,
-  .text-amber-700,
-  .bg-amber-50 {
-    border-color: #d97706 !important;
-    color: #b45309 !important;
-    background-color: #fffbeb !important;
   }
   
   /* Melhorar visual da tabela na impressão */
@@ -237,40 +122,114 @@
     display: table-footer-group !important;
   }
   
-  /* Melhorar espaçamento entre seções */
-  .grid {
-    display: block !important;
+  /* Forçar flexbox na impressão */
+  .flex {
+    display: flex !important;
   }
   
-  .grid > div {
-    margin-bottom: 15px !important;
+  .flex-col {
+    flex-direction: column !important;
   }
   
-  /* Evitar quebra de página em elementos importantes */
-  .mb-6 {
+  .flex-row {
+    flex-direction: row !important;
+  }
+  
+  .flex-1 {
+    flex: 1 1 0% !important;
+  }
+  
+  .justify-between {
+    justify-content: space-between !important;
+  }
+  
+  /* Ajustar cores para impressão */
+  .bg-gray-50, .bg-blue-50 {
+    background-color: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .text-blue-600 {
+    color: #2563eb !important;
+    font-weight: bold !important;
+  }
+  
+  /* Espaçamento para assinaturas */
+  .border-t {
+    border-top: 1px solid #e5e7eb !important;
+  }
+  
+  /* Estilos para referências do cliente */
+  .inline-block.bg-blue-100,
+  span.bg-blue-100 {
+    background-color: #e1effe !important;
+    border: 1px solid #3b82f6 !important;
+    color: #1e40af !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+  }
+  
+  /* Status badges */
+  .border-green-600,
+  .text-green-700,
+  .bg-green-50 {
+    border-color: #059669 !important;
+    color: #047857 !important;
+    background-color: #ecfdf5 !important;
+  }
+  
+  .border-amber-500,
+  .text-amber-700,
+  .bg-amber-50 {
+    border-color: #d97706 !important;
+    color: #b45309 !important;
+    background-color: #fffbeb !important;
+  }
+  
+  /* Estilos para o print-order-template.tsx */
+  .max-w-\[210mm\] {
+    max-width: 210mm !important;
+    width: 100% !important;
+  }
+  
+  .p-8.print\:p-\[15mm\] {
+    padding: 15mm !important;
+  }
+  
+  .mb-4, .mb-6 {
     margin-bottom: 20px !important;
     page-break-inside: avoid !important;
   }
   
-  /* Ajustar cores e destacar textos importantes */
-  .text-blue-600,
-  .text-blue-700 {
-    color: #2563eb !important;
-    font-weight: bold !important;
+  .mr-4 {
+    margin-right: 16px !important;
   }
   
-  /* Garantir que o nome da empresa apareça destacado */
-  .text-xl.font-bold.text-blue-600 {
-    color: #2563eb !important;
-    font-size: 18pt !important;
-    font-weight: bold !important;
+  .p-4 {
+    padding: 16px !important;
   }
   
-  /* Adicionar espaço para assinaturas */
-  .mt-8.grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 40px !important;
-    margin-top: 40px !important;
+  .rounded-md {
+    border-radius: 6px !important;
+  }
+  
+  .border {
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  /* Assinaturas */
+  .w-\[45\%\] {
+    width: 45% !important;
+  }
+  
+  /* Remove linhas indesejadas */
+  body::after,
+  body::before,
+  *::after,
+  *::before {
+    content: none !important;
+    display: none !important;
+    border: none !important;
+    background: none !important;
   }
 }

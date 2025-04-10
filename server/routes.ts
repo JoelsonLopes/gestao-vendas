@@ -1014,13 +1014,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let orders;
       // If rep, show only their orders
-      if (req.user.role === 'representative') {
+      if (req.user && req.user.role === 'representative') {
         orders = await storage.listOrdersByRepresentative(req.user.id);
       } else {
         orders = await storage.listOrders();
       }
-      res.json(orders);
+      
+      // Enriquecer os dados dos pedidos com informações de totalPieces e nome do cliente
+      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
+        try {
+          // Buscar itens para calcular o total de peças
+          const items = await storage.getOrderItems(order.id);
+          const totalPieces = items.reduce((sum, item) => sum + item.quantity, 0);
+          
+          // Buscar informações do cliente
+          let clientName = 'Cliente';
+          let clientCode = '';
+          try {
+            const client = await storage.getClient(order.clientId);
+            if (client) {
+              clientName = client.name || `Cliente #${client.id}`;
+              clientCode = client.code || '';
+            }
+          } catch (clientError) {
+            console.error(`Erro ao buscar cliente para o pedido ${order.id}:`, clientError);
+          }
+          
+          // Formatar a data para exibição
+          let formattedDate = 'Data não disponível';
+          if (order.createdAt) {
+            try {
+              // Usar createdAt como data do pedido
+              const date = new Date(order.createdAt);
+              if (!isNaN(date.getTime())) {
+                formattedDate = date.toLocaleDateString('pt-BR');
+              }
+            } catch (dateError) {
+              console.error(`Erro ao formatar data do pedido ${order.id}:`, dateError);
+            }
+          }
+          
+          // Gerar código do pedido no formato ORD-XXXX
+          const orderCode = `ORD-${order.id.toString().padStart(4, '0')}`;
+          
+          return {
+            ...order,
+            totalPieces,
+            clientName,
+            date: formattedDate,
+            code: orderCode,
+            clientCode: clientCode
+          };
+        } catch (error) {
+          console.error(`Erro ao buscar itens para o pedido ${order.id}:`, error);
+          // Gerar código do pedido no formato ORD-XXXX mesmo para casos de erro
+          const orderCode = `ORD-${order.id.toString().padStart(4, '0')}`;
+          
+          return {
+            ...order,
+            totalPieces: 0,
+            clientName: 'Cliente',
+            date: 'Data não disponível',
+            code: orderCode,
+            clientCode: ''
+          };
+        }
+      }));
+      
+      res.json(ordersWithDetails);
     } catch (error) {
+      console.error("Erro ao buscar pedidos:", error);
       res.status(500).json({ message: "Error fetching orders" });
     }
   });

@@ -57,86 +57,88 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
   }, 0);
 
   return (
-    <div className="max-w-4xl mx-auto p-8 print:p-4">
-      {/* Cabeçalho com Logotipo e Informações */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
+    <div className="max-w-[210mm] mx-auto print:mx-0 p-8 print:p-[15mm] bg-white">
+      {/* Cabeçalho Principal */}
+      <header className="w-full border-b border-blue-200 pb-4 mb-4">
+        <div className="flex justify-between items-start">
+          {/* Logo e Nome da Empresa */}
           <div className="flex items-center">
-            <div className="bg-blue-600 text-white p-2 rounded-md mr-3">
-              <h1 className="text-xl font-bold">JP</h1>
-            </div>
+            <div className="bg-blue-600 text-white font-bold text-xl p-2 rounded-md mr-3">JP</div>
             <div>
               <h1 className="text-blue-600 text-xl font-bold">Joelson Lopes</h1>
               <p className="text-sm text-gray-500">Representações Comerciais</p>
             </div>
           </div>
-          <h2 className="text-xl font-bold mt-3 text-gray-800">PEDIDO #{order.id}</h2>
-        </div>
-        
-        <div className="text-right">
-          <div className={`border-2 px-4 py-2 rounded-md ${
-            order.status === 'confirmado' 
-              ? 'border-green-600 bg-green-50 text-green-700' 
-              : 'border-amber-500 bg-amber-50 text-amber-700'
-          }`}>
-            <span className="text-sm font-bold">{order.status === 'confirmado' ? 'PEDIDO CONFIRMADO' : 'COTAÇÃO'}</span>
+          
+          {/* Número do Pedido e Status */}
+          <div className="text-right">
+            {/* Badge de Status */}
+            <div className={`inline-block border-2 px-4 py-1 rounded-md font-medium text-sm ${
+              order.status === 'confirmado' 
+                ? 'border-green-600 bg-green-50 text-green-700' 
+                : 'border-amber-500 bg-amber-50 text-amber-700'
+            }`}>
+              {order.status === 'confirmado' ? 'PEDIDO CONFIRMADO' : 'COTAÇÃO'}
+            </div>
+            <h2 className="text-xl font-bold mt-2">PEDIDO #{order.id}</h2>
           </div>
-          <p className="text-sm mt-2">Data: <span className="font-medium">{formatDate(order.date)}</span></p>
         </div>
-      </div>
+      </header>
       
-      {/* Separador de Seções */}
-      <div className="border-b-2 border-blue-200 my-4"></div>
-      
-      {/* Seção de Cliente e Data */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">CLIENTE</h3>
-          <p className="text-base font-medium mb-1">{order.clientName} <span className="text-gray-500">(Cód: {order.clientId})</span></p>
-          <p className="text-sm mb-1"><span className="font-medium">CNPJ:</span> {order.clientCnpj}</p>
+      {/* Seção de Informações Principais - Cliente/Data e Representante/Pagamento */}
+      <section className="mb-6">
+        {/* Cliente e Data na mesma linha */}
+        <div className="flex w-full mb-4">
+          <div className="flex-1 mr-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+            <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">CLIENTE</h3>
+            <p className="text-base font-medium">{order.clientName} <span className="text-gray-500 text-sm">#{order.clientId}</span></p>
+            <p className="text-sm mt-1">CNPJ: <span className="font-medium">{order.clientCnpj}</span></p>
+          </div>
+          
+          <div className="flex-1 p-4 bg-gray-50 rounded-md border border-gray-200">
+            <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">DATA</h3>
+            <p className="text-base">{formatDate(order.date)}</p>
+          </div>
         </div>
         
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">DATA</h3>
-          <p className="text-base">{formatDate(order.date)}</p>
+        {/* Representante e Pagamento na mesma linha */}
+        <div className="flex w-full">
+          <div className="flex-1 mr-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+            <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">REPRESENTANTE</h3>
+            <p className="text-base">{order.representative}</p>
+          </div>
+          
+          <div className="flex-1 p-4 bg-gray-50 rounded-md border border-gray-200">
+            <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">PAGAMENTO</h3>
+            <p className="text-base">{order.paymentTerms}</p>
+          </div>
         </div>
-      </div>
-      
-      {/* Seção de Representante e Pagamento */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">REPRESENTANTE</h3>
-          <p className="text-base">{order.representative}</p>
-        </div>
-        
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">PAGAMENTO</h3>
-          <p className="text-base">{order.paymentTerms}</p>
-        </div>
-      </div>
+      </section>
       
       {/* Observações do Pedido */}
-      <div className="mb-6">
-        <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2">OBSERVAÇÕES</h3>
-          <p className="text-sm">{order.notes ? order.notes : "Nenhuma observação."}</p>
-        </div>
-      </div>
+      {order.notes && (
+        <section className="mb-6">
+          <div className="p-4 bg-blue-50 rounded-md border border-blue-200">
+            <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-blue-200 pb-1 mb-2">OBSERVAÇÕES</h3>
+            <p className="text-sm">{order.notes}</p>
+          </div>
+        </section>
+      )}
       
-      {/* Tabela de Itens do Pedido - Melhorada com Design Responsivo */}
-      <div className="mb-6">
-        <h3 className="text-sm font-bold uppercase text-blue-600 mb-3 border-b border-blue-200 pb-1">ITENS DO PEDIDO</h3>
+      {/* Tabela de Itens */}
+      <section className="mb-6">
+        <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-blue-200 pb-1 mb-3">ITENS DO PEDIDO</h3>
         
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100">
-                <th className="py-2 px-3 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Ref. Cliente</th>
-                <th className="py-2 px-3 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Produto</th>
-                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Qtd</th>
-                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Desconto</th>
-                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Preço c/ Desconto</th>
-                <th className="py-2 px-3 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Total</th>
+                <th className="p-2 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Ref. Cliente</th>
+                <th className="p-2 text-left text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Produto</th>
+                <th className="p-2 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Qtd</th>
+                <th className="p-2 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Desconto</th>
+                <th className="p-2 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Preço c/ Desc.</th>
+                <th className="p-2 text-right text-xs font-medium text-gray-600 uppercase border-b-2 border-gray-200">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -149,20 +151,20 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
                   : itemUnitPrice;
                   
                 return (
-                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b border-gray-200 hover:bg-blue-50`}>
-                    <td className="py-3 px-3 align-middle text-sm">
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b border-gray-200`}>
+                    <td className="p-2 align-middle text-sm">
                       {item.clientRef ? (
                         <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-medium">
                           {item.clientRef}
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="py-3 px-3 align-middle text-sm">
+                    <td className="p-2 align-middle text-sm">
                       <span className="font-medium">{item.name}</span>
                       {item.brand && <span className="text-gray-500 ml-1">({item.brand})</span>}
                     </td>
-                    <td className="py-3 px-3 align-middle text-sm text-right font-medium">{item.quantity}</td>
-                    <td className="py-3 px-3 align-middle text-sm text-right">
+                    <td className="p-2 align-middle text-sm text-right font-medium">{item.quantity}</td>
+                    <td className="p-2 align-middle text-sm text-right">
                       {itemDiscount > 0 ? (
                         order.status === 'confirmado' && item.discountName ? (
                           <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md">
@@ -173,37 +175,37 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
                         )
                       ) : '-'}
                     </td>
-                    <td className="py-3 px-3 align-middle text-sm text-right font-medium">{formatCurrency(priceWithDiscount)}</td>
-                    <td className="py-3 px-3 align-middle text-sm text-right font-bold">{formatCurrency(item.subtotal)}</td>
+                    <td className="p-2 align-middle text-sm text-right font-medium">{formatCurrency(priceWithDiscount)}</td>
+                    <td className="p-2 align-middle text-sm text-right font-bold">{formatCurrency(item.subtotal)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
       
-      {/* Cards com Resumo Financeiro e de Peças */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Resumo de Quantidades */}
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-2 border-b border-gray-200 pb-1">RESUMO DE PEÇAS</h3>
+      {/* Resumos Financeiros e de Peças */}
+      <section className="flex w-full mb-6">
+        {/* Resumo de Peças */}
+        <div className="flex-1 mr-4 p-4 bg-gray-50 rounded-md border border-gray-200">
+          <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">RESUMO DE PEÇAS</h3>
           
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 bg-white rounded-md shadow-sm">
+          <div className="flex mb-3">
+            <div className="flex-1 mr-2 p-3 bg-white rounded-md shadow-sm">
               <p className="text-sm text-gray-600">Total de Peças</p>
               <p className="text-xl font-bold text-blue-600">{totalPieces}</p>
             </div>
             
-            <div className="p-3 bg-white rounded-md shadow-sm">
+            <div className="flex-1 p-3 bg-white rounded-md shadow-sm">
               <p className="text-sm text-gray-600">Qtd. Itens</p>
               <p className="text-xl font-bold text-blue-600">{items.length}</p>
             </div>
           </div>
           
-          {/* Código por Marca (opcional) */}
+          {/* Produtos por marca (opcional) */}
           {order.status === 'confirmado' && (
-            <div className="mt-3 pt-2 border-t border-gray-200">
+            <div className="mt-2 pt-2 border-t border-gray-200">
               <p className="text-xs text-gray-600 mb-1">Produtos por marca:</p>
               {Object.entries(items.reduce((acc, item) => {
                 const brand = item.brand || 'Sem marca';
@@ -220,8 +222,8 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
         </div>
 
         {/* Resumo Financeiro */}
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
-          <h3 className="text-sm font-bold uppercase text-blue-600 mb-3 border-b border-gray-200 pb-1">RESUMO FINANCEIRO</h3>
+        <div className="flex-1 p-4 bg-gray-50 rounded-md border border-gray-200">
+          <h3 className="text-sm font-bold uppercase text-blue-600 border-b border-gray-200 pb-1 mb-2">RESUMO FINANCEIRO</h3>
           
           <div className="space-y-2">
             <div className="flex justify-between items-center py-1">
@@ -247,26 +249,31 @@ export function PrintOrderTemplate({ order, items }: PrintOrderTemplateProps) {
             )}
           </div>
         </div>
-      </div>
+      </section>
       
-      {/* Área de Assinaturas */}
+      {/* Área para Assinaturas */}
       {order.status === 'confirmado' && (
-        <div className="mt-8 grid grid-cols-2 gap-12">
-          <div className="border-t border-gray-300 pt-2 text-center">
-            <p className="text-xs text-gray-500">Assinatura do Cliente</p>
+        <section className="flex justify-between mt-8 mb-6">
+          <div className="w-[45%]">
+            <div className="border-t border-gray-300 pt-2">
+              <p className="text-xs text-center text-gray-500">Assinatura do Cliente</p>
+            </div>
           </div>
-          <div className="border-t border-gray-300 pt-2 text-center">
-            <p className="text-xs text-gray-500">Assinatura do Representante</p>
+          
+          <div className="w-[45%]">
+            <div className="border-t border-gray-300 pt-2">
+              <p className="text-xs text-center text-gray-500">Assinatura do Representante</p>
+            </div>
           </div>
-        </div>
+        </section>
       )}
       
-      {/* Rodapé Aprimorado */}
-      <div className="mt-10 pt-3 border-t border-gray-300 text-center">
+      {/* Rodapé */}
+      <footer className="mt-10 pt-3 border-t border-gray-300 text-center">
         <p className="text-xs text-gray-500 mb-1">Este documento não possui valor fiscal.</p>
         <p className="text-xs text-gray-500">Impresso em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
         <p className="text-xs font-medium text-blue-600 mt-1">Joelson Lopes Representações</p>
-      </div>
+      </footer>
     </div>
   );
 }

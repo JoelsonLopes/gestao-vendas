@@ -1,8 +1,18 @@
+import 'dotenv/config'; 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import compression from 'compression';
+
 
 const app = express();
+
+// Usar compressão para melhorar o desempenho
+app.use(compression({
+  level: 6, // Nível de compressão ótimo entre velocidade e tamanho
+  threshold: 1024, // Mínimo de tamanho em bytes para aplicar compressão
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
@@ -47,19 +57,21 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Setup do Vite (somente em desenvolvimento)
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // Correção feita aqui: escutando em 127.0.0.1
-  const port = parseInt(process.env.PORT ?? "", 10) || 5000;
-  const host = process.env.HOST || "0.0.0.0"; 
-
-
-  server.listen(port, host, () => {
-    log(`🚀 Servidor rodando em http://${host}:${port}`);
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = 5000;
+  server.listen(port, () => {
+    log(`serving on http://localhost:${port}`);
   });
+  ;
 })();
