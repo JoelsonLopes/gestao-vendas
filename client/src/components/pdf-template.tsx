@@ -1,588 +1,735 @@
-import { useRef, useEffect } from "react";
-import { jsPDF } from "jspdf";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { FileDown, Printer } from "lucide-react";
-import { PrintOrderTemplate } from "./print-order-template";
+"use client"
 
+import { useRef, useEffect } from "react"
+import { jsPDF } from "jspdf"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { FileDown, Printer } from "lucide-react"
+import { PrintOrderTemplate } from "./print-order-template"
+
+// Interfaces bem definidas para melhor tipagem
 interface PdfItem {
-  id: number;
-  name: string;
-  code: string;
-  clientRef?: string | null;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  subtotal: number;
-  brand?: string | null;
-  discountName?: string | null;
-  commission?: number;
+  id: number
+  name: string
+  code: string
+  clientRef?: string | null
+  quantity: number
+  unitPrice: number
+  discount: number
+  subtotal: number
+  brand?: string | null
+  discountName?: string | null
+  commission?: number
+}
+
+interface PdfOrder {
+  id: number
+  clientId?: number
+  clientName: string
+  clientCnpj: string
+  date: string
+  status: string
+  paymentTerms: string
+  subtotal: number
+  discount: number
+  taxes: number
+  total: number
+  representative: string
+  totalCommission?: number
+  notes?: string
 }
 
 interface PdfTemplateProps {
-  order: {
-    id: number;
-    clientId?: number;
-    clientName: string;
-    clientCnpj: string;
-    date: string;
-    status: string;
-    paymentTerms: string;
-    subtotal: number;
-    discount: number;
-    taxes: number;
-    total: number;
-    representative: string;
-    totalCommission?: number;
-    notes?: string;
-  };
-  items: PdfItem[];
-  onClose?: () => void;
+  order: PdfOrder
+  items: PdfItem[]
+  onClose?: () => void
 }
 
 export function PdfTemplate({ order, items, onClose }: PdfTemplateProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // Adicionar log para depuração
+  // Adicionar estilos para impressão limpa
   useEffect(() => {
-    console.log("PdfTemplate recebeu order:", order);
-    console.log("PdfTemplate recebeu items:", items);
-    console.log("PdfTemplate totalCommission do order:", order.totalCommission);
-  }, [order, items]);
+    const style = document.createElement("style")
+    style.innerHTML = `
+    @media print {
+      .print-clean * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      
+      .print-clean {
+        overflow: hidden !important;
+        position: relative !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      /* Remover TODAS as linhas verticais indesejadas */
+      .print-clean::before,
+      .print-clean::after,
+      .print-clean *::before,
+      .print-clean *::after,
+      body::before,
+      body::after,
+      html::before,
+      html::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        background: none !important;
+      }
+      
+      /* Garantir que não haja quebras de página indesejadas */
+      .print-document {
+        page-break-inside: avoid;
+      }
+      
+      /* Remover todas as bordas verticais */
+      table, tr, td, th {
+        border-left: none !important;
+        border-right: none !important;
+      }
+      
+      /* Remover qualquer linha vertical no documento */
+      * {
+        box-shadow: none !important;
+      }
+    }
+  `
+    document.head.appendChild(style)
 
-  // Usar o valor de comissão que já foi calculado pela página que chamou este componente
-  // Mas se não for fornecido, calcular aqui
-  const totalCommission =
-    order.totalCommission ??
-    (order.status === "confirmado"
-      ? items.reduce((total, item) => {
-          // Converter strings para números para garantir que a operação é feita corretamente
-          const quantity =
-            typeof item.quantity === "string"
-              ? Number(item.quantity)
-              : item.quantity || 0;
-          const unitPrice =
-            typeof item.unitPrice === "string"
-              ? Number(item.unitPrice)
-              : item.unitPrice || 0;
-          const discount =
-            typeof item.discount === "string"
-              ? Number(item.discount)
-              : item.discount || 0;
-          const commission =
-            typeof item.commission === "string"
-              ? Number(item.commission)
-              : item.commission || 0;
+    // Adicionar uma classe ao body para controle adicional
+    document.body.classList.add("printing-document")
 
-          // Calcular preço com desconto
-          const discountedPrice = unitPrice * (1 - discount / 100);
+    return () => {
+      document.head.removeChild(style)
+      document.body.classList.remove("printing-document")
+    }
+  }, [])
 
-          // Calcular comissão sobre o preço COM desconto
-          return total + (quantity * discountedPrice * commission) / 100;
-        }, 0)
-      : 0);
+  // Funções auxiliares para cálculos
+  const converterParaNumero = (valor: string | number | undefined): number => {
+    if (valor === undefined) return 0
+    return typeof valor === "string" ? Number(valor) : valor
+  }
+
+  const calcularTotalComissao = (): number => {
+    if (order.totalCommission !== undefined) return order.totalCommission
+
+    if (order.status !== "confirmado") return 0
+
+    return items.reduce((total, item) => {
+      const quantidade = converterParaNumero(item.quantity)
+      const precoUnitario = converterParaNumero(item.unitPrice)
+      const desconto = converterParaNumero(item.discount)
+      const comissao = converterParaNumero(item.commission)
+
+      const precoComDesconto = precoUnitario * (1 - desconto / 100)
+      return total + (quantidade * precoComDesconto * comissao) / 100
+    }, 0)
+  }
+
+  // Valor calculado da comissão total
+  const totalComissao = calcularTotalComissao()
+
+  // Registrar dados para depuração (mantido conforme solicitado)
+  useEffect(() => {
+    console.log("PdfTemplate recebeu order:", order)
+    console.log("PdfTemplate recebeu items:", items)
+    console.log("PdfTemplate totalCommission do order:", order.totalCommission)
+  }, [order, items])
 
   // Função para criar um documento PDF com design moderno
-  const createPdfDocument = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+  const criarDocumentoPdf = (): jsPDF => {
+    const doc = new jsPDF()
 
-    // Cores para um design mais moderno
-    const primaryColor = "#3b82f6"; // azul
-    const secondaryColor = "#f0f9ff"; // azul claro
-    const accentGreen = "#10b981"; // verde
-    const accentAmber = "#f59e0b"; // amarelo
-    const darkGray = "#374151";
-    const lightGray = "#f3f4f6";
+    // Configurações de página
+    const larguraPagina = doc.internal.pageSize.getWidth()
+    const alturaPagina = doc.internal.pageSize.getHeight()
 
+    // Definição de cores
+    const cores = {
+      primaria: "#3b82f6", // azul
+      secundaria: "#f0f9ff", // azul claro
+      verde: "#10b981", // verde para status confirmado
+      ambar: "#f59e0b", // amarelo para cotação
+      cinzaEscuro: "#374151", // texto principal
+      cinzaClaro: "#f3f4f6", // fundo de seções
+      azulClaro: "#e0f2fe", // fundo para observações
+    }
+
+    // Renderizar cabeçalho
+    renderizarCabecalho(doc, larguraPagina, cores)
+
+    // Renderizar informações do documento
+    renderizarInfoDocumento(doc, larguraPagina, cores)
+
+    // Renderizar seções de cliente, data, representante e pagamento
+    renderizarSecoesPrincipais(doc, larguraPagina, cores)
+
+    // Renderizar observações (se houver)
+    const alturaAposObservacoes = renderizarObservacoes(doc, larguraPagina, cores)
+
+    // Renderizar tabela de itens
+    const alturaAposTabela = renderizarTabelaItens(doc, alturaAposObservacoes, larguraPagina, alturaPagina, cores)
+
+    // Renderizar resumos financeiros e de peças
+    const alturaAposResumos = renderizarResumos(doc, alturaAposTabela, larguraPagina, cores)
+
+    // Renderizar área para assinaturas (apenas para pedidos confirmados)
+    if (order.status === "confirmado") {
+      renderizarAssinaturas(doc, alturaAposResumos, larguraPagina, cores)
+    }
+
+    // Renderizar rodapé
+    renderizarRodape(doc, alturaPagina, larguraPagina, cores)
+
+    return doc
+  }
+
+  // Funções de renderização do PDF
+  const renderizarCabecalho = (doc: jsPDF, larguraPagina: number, cores: any): void => {
     // Cabeçalho superior
-    doc.setFillColor(primaryColor);
-    doc.rect(0, 0, pageWidth, 18, "F");
+    doc.setFillColor(cores.primaria)
+    doc.rect(0, 0, larguraPagina, 18, "F")
 
     // Logotipo e nome da empresa
-    doc.setTextColor(255, 255, 255);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(15, 5, 8, 8, 1, 1, "F");
-    
-    doc.setFillColor(primaryColor);
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("JL", 16, 11);
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.text("Joelson Lopes", 30, 10);
-    doc.setFontSize(8);
-    doc.text("Representações Comerciais", 30, 14);
+    doc.setTextColor(255, 255, 255)
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(15, 5, 8, 8, 1, 1, "F")
 
+    doc.setFillColor(cores.primaria)
+    doc.setTextColor(cores.primaria)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(12)
+    doc.text("JL", 16, 11)
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(14)
+    doc.text("Joelson Lopes", 30, 10)
+    doc.setFontSize(8)
+    doc.text("Representações Comerciais", 30, 14)
+  }
+
+  const renderizarInfoDocumento = (doc: jsPDF, larguraPagina: number, cores: any): void => {
     // Informações do documento
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(pageWidth - 80, 22, 65, 35, 3, 3, "F");
-    doc.setTextColor(primaryColor);
-    doc.setFontSize(12);
-    doc.text(`PEDIDO #${order.id}`, pageWidth - 45, 30, { align: "center" });
-    
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(larguraPagina - 80, 22, 65, 35, 3, 3, "F")
+    doc.setTextColor(cores.primaria)
+    doc.setFontSize(12)
+    doc.text(`PEDIDO #${order.id}`, larguraPagina - 45, 30, { align: "center" })
+
     // Badge de status moderno
     if (order.status === "confirmado") {
-      doc.setFillColor(accentGreen);
+      doc.setFillColor(cores.verde)
     } else {
-      doc.setFillColor(accentAmber);
+      doc.setFillColor(cores.ambar)
     }
-    
-    const statusText = order.status === "confirmado" ? "PEDIDO CONFIRMADO" : "COTAÇÃO";
-    doc.roundedRect(pageWidth - 68, 35, 40, 8, 2, 2, "F");
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(statusText, pageWidth - 48, 40, { align: "center" });
-    
-    // Data do pedido
-    doc.setTextColor(darkGray);
-    doc.setFontSize(9);
-    doc.text(`Data: ${formatDate(order.date)}`, pageWidth - 48, 50, { align: "center" });
 
+    const statusText = order.status === "confirmado" ? "PEDIDO CONFIRMADO" : "COTAÇÃO"
+    doc.roundedRect(larguraPagina - 68, 35, 40, 8, 2, 2, "F")
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(8)
+    doc.text(statusText, larguraPagina - 48, 40, { align: "center" })
+
+    // Data do pedido
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(9)
+    doc.text(`Data: ${formatDate(order.date)}`, larguraPagina - 48, 50, { align: "center" })
+  }
+
+  const renderizarSecoesPrincipais = (doc: jsPDF, larguraPagina: number, cores: any): void => {
     // Seção Cliente e Data (na mesma linha)
-    // Cliente
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("CLIENTE", 15, 35);
-    
-    doc.setDrawColor(primaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(15, 37, 50, 37);
-    
-    // Data (na mesma linha que Cliente)
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("DATA", 115, 35);
-    
-    doc.setDrawColor(primaryColor);
-    doc.line(115, 37, 150, 37);
-    
-    // Caixas para Cliente e Data (na mesma linha)
-    doc.setFillColor(lightGray);
-    doc.roundedRect(15, 40, 85, 25, 2, 2, "F");
-    doc.roundedRect(115, 40, 80, 25, 2, 2, "F");
-    
+    renderizarSecao(doc, "CLIENTE", 15, 35, 15, 37, 50, 37, cores)
+    renderizarSecao(doc, "DATA", 115, 35, 115, 37, 150, 37, cores)
+
+    // Caixas para Cliente e Data
+    doc.setFillColor(cores.cinzaClaro)
+    doc.roundedRect(15, 40, 85, 25, 2, 2, "F")
+    doc.roundedRect(115, 40, 80, 25, 2, 2, "F")
+
     // Conteúdo do Cliente
-    doc.setTextColor(darkGray);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${order.clientName} (Cód: ${order.clientId})`, 20, 48);
-    
-    doc.setFont("helvetica", "normal");
-    doc.text("CNPJ:", 20, 55);
-    doc.setFont("helvetica", "bold");
-    doc.text(order.clientCnpj, 45, 55);
-    
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "bold")
+    doc.text(`${order.clientName} (Cód: ${order.clientId})`, 20, 48)
+
+    doc.setFont("helvetica", "normal")
+    doc.text("CNPJ:", 20, 55)
+    doc.setFont("helvetica", "bold")
+    doc.text(order.clientCnpj, 45, 55)
+
     // Conteúdo da Data
-    doc.setTextColor(darkGray);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatDate(order.date), 120, 48);
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "bold")
+    doc.text(formatDate(order.date), 120, 48)
 
     // Representante e Pagamento (na mesma linha)
-    // Representante
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("REPRESENTANTE", 15, 75);
-    
-    doc.setDrawColor(primaryColor);
-    doc.line(15, 77, 85, 77);
-    
-    // Condições de pagamento (na mesma linha que Representante)
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("PAGAMENTO", 115, 75);
-    
-    doc.setDrawColor(primaryColor);
-    doc.line(115, 77, 170, 77);
-    
-    // Caixas para Representante e Pagamento (na mesma linha)
-    doc.setFillColor(lightGray);
-    doc.roundedRect(15, 80, 85, 15, 2, 2, "F");
-    doc.roundedRect(115, 80, 80, 15, 2, 2, "F");
-    
+    renderizarSecao(doc, "REPRESENTANTE", 15, 75, 15, 77, 85, 77, cores)
+    renderizarSecao(doc, "PAGAMENTO", 115, 75, 115, 77, 170, 77, cores)
+
+    // Caixas para Representante e Pagamento
+    doc.setFillColor(cores.cinzaClaro)
+    doc.roundedRect(15, 80, 85, 15, 2, 2, "F")
+    doc.roundedRect(115, 80, 80, 15, 2, 2, "F")
+
     // Conteúdo do Representante
-    doc.setTextColor(darkGray);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(order.representative, 20, 90);
-    
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.text(order.representative, 20, 90)
+
     // Conteúdo do Pagamento
-    doc.setTextColor(darkGray);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(order.paymentTerms, 120, 90);
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.text(order.paymentTerms, 120, 90)
+  }
 
-    // Observações (se houver)
-    if (order.notes) {
-      doc.setTextColor(primaryColor);
-      doc.setFontSize(10);
-      doc.text("OBSERVAÇÕES", 15, 105);
-      
-      doc.setDrawColor(primaryColor);
-      doc.line(15, 107, 70, 107);
-      
-      doc.setFillColor("#e0f2fe"); // Azul bem claro
-      doc.roundedRect(15, 110, 180, 15, 2, 2, "F");
-      
-      doc.setTextColor(darkGray);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(order.notes, 20, 120);
-    }
+  const renderizarSecao = (
+    doc: jsPDF,
+    titulo: string,
+    x: number,
+    y: number,
+    linhaX1: number,
+    linhaY: number,
+    linhaX2: number,
+    linhaY2: number,
+    cores: any,
+  ): void => {
+    doc.setTextColor(cores.primaria)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
+    doc.text(titulo, x, y)
 
-    // Cabeçalho da tabela de itens
-    const tableY = order.notes ? 135 : 110;
-    
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("ITENS DO PEDIDO", 15, tableY - 5);
-    
-    doc.setDrawColor(primaryColor);
-    doc.line(15, tableY - 3, 70, tableY - 3);
+    doc.setDrawColor(cores.primaria)
+    doc.setLineWidth(0.5)
+    doc.line(linhaX1, linhaY, linhaX2, linhaY2)
+  }
+
+  const renderizarObservacoes = (doc: jsPDF, larguraPagina: number, cores: any): number => {
+    if (!order.notes) return 110
+
+    doc.setTextColor(cores.primaria)
+    doc.setFontSize(10)
+    doc.text("OBSERVAÇÕES", 15, 105)
+
+    doc.setDrawColor(cores.primaria)
+    doc.line(15, 107, 70, 107)
+
+    doc.setFillColor(cores.azulClaro)
+    doc.roundedRect(15, 110, 180, 15, 2, 2, "F")
+
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.text(order.notes, 20, 120)
+
+    return 135
+  }
+
+  const renderizarTabelaItens = (
+    doc: jsPDF,
+    alturaInicial: number,
+    larguraPagina: number,
+    alturaPagina: number,
+    cores: any,
+  ): number => {
+    // Importante: preservar a ordem original dos itens sem qualquer ordenação adicional
+    const tabelaY = alturaInicial
+    const tabelaX = 15
+
+    doc.setTextColor(cores.primaria)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
+    doc.text("ITENS DO PEDIDO", 15, tabelaY - 5)
+
+    doc.setDrawColor(cores.primaria)
+    doc.line(15, tabelaY - 3, 70, tabelaY - 3)
 
     // Fundo do cabeçalho da tabela
-    const tableX = 15;
-    doc.setFillColor(primaryColor);
-    doc.rect(tableX, tableY, 180, 8, "F");
+    doc.setFillColor(cores.primaria)
+    doc.rect(tabelaX, tabelaY, 180, 8, "F")
 
     // Textos do cabeçalho
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text("Ref. Cliente", tableX + 5, tableY + 5);
-    doc.text("Produto", tableX + 35, tableY + 5);
-    doc.text("Qtd", tableX + 100, tableY + 5);
-    doc.text("Desconto", tableX + 120, tableY + 5);
-    doc.text("Preço c/ Desc.", tableX + 145, tableY + 5);
-    doc.text("Total", tableX + 175, tableY + 5);
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(8)
+    doc.text("Ref. Cliente", tabelaX + 5, tabelaY + 5)
+    doc.text("Produto", tabelaX + 35, tabelaY + 5)
+    doc.text("Qtd", tabelaX + 100, tabelaY + 5)
+    doc.text("Desconto", tabelaX + 120, tabelaY + 5)
+    doc.text("Preço c/ Desc.", tabelaX + 145, tabelaY + 5)
+    doc.text("Total", tabelaX + 175, tabelaY + 5)
 
     // Linhas da tabela
-    let currentY = tableY + 8;
-    doc.setFontSize(8);
-    
+    let alturaAtual = tabelaY + 8
+    doc.setFontSize(8)
+
+    // Importante: preservar a ordem original dos itens sem qualquer ordenação adicional
     items.forEach((item, index) => {
       // Nova página se necessário
-      if (currentY > pageHeight - 60) {
-        doc.addPage();
-        currentY = 20;
-        
+      if (alturaAtual > alturaPagina - 60) {
+        doc.addPage()
+        alturaAtual = 20
+
         // Adicionar cabeçalho na nova página
-        doc.setFillColor(primaryColor);
-        doc.rect(tableX, currentY, 180, 8, "F");
-        
-        doc.setTextColor(255, 255, 255);
-        doc.text("Ref. Cliente", tableX + 5, currentY + 5);
-        doc.text("Produto", tableX + 35, currentY + 5);
-        doc.text("Qtd", tableX + 100, currentY + 5);
-        doc.text("Desconto", tableX + 120, currentY + 5);
-        doc.text("Preço c/ Desc.", tableX + 145, currentY + 5);
-        doc.text("Total", tableX + 175, currentY + 5);
-        
-        currentY += 8;
+        doc.setFillColor(cores.primaria)
+        doc.rect(tabelaX, alturaAtual, 180, 8, "F")
+
+        doc.setTextColor(255, 255, 255)
+        doc.text("Ref. Cliente", tabelaX + 5, alturaAtual + 5)
+        doc.text("Produto", tabelaX + 35, alturaAtual + 5)
+        doc.text("Qtd", tabelaX + 100, alturaAtual + 5)
+        doc.text("Desconto", tabelaX + 120, alturaAtual + 5)
+        doc.text("Preço c/ Desc.", tabelaX + 145, alturaAtual + 5)
+        doc.text("Total", tabelaX + 175, alturaAtual + 5)
+
+        alturaAtual += 8
       }
 
       // Zebra striping para melhor legibilidade
       if (index % 2 === 0) {
-        doc.setFillColor(lightGray);
-        doc.rect(tableX, currentY, 180, 8, "F");
+        doc.setFillColor(cores.cinzaClaro)
+        doc.rect(tabelaX, alturaAtual, 180, 8, "F")
       }
 
       // Reset de cores
-      doc.setTextColor(darkGray);
-      doc.setFont("helvetica", "normal");
+      doc.setTextColor(cores.cinzaEscuro)
+      doc.setFont("helvetica", "normal")
 
       // Conversão de valores para números
-      const discount = typeof item.discount === "string" ? Number(item.discount) : (item.discount || 0);
-      const unitPrice = typeof item.unitPrice === "string" ? Number(item.unitPrice) : (item.unitPrice || 0);
-      const quantity = typeof item.quantity === "string" ? Number(item.quantity) : (item.quantity || 0);
-      const priceWithDiscount = discount > 0 ? unitPrice * (1 - discount / 100) : unitPrice;
+      const desconto = converterParaNumero(item.discount)
+      const precoUnitario = converterParaNumero(item.unitPrice)
+      const quantidade = converterParaNumero(item.quantity)
+      const precoComDesconto = desconto > 0 ? precoUnitario * (1 - desconto / 100) : precoUnitario
 
       // Destaque para referência do cliente
       if (item.clientRef) {
-        doc.setFillColor(primaryColor);
-        doc.setTextColor(255, 255, 255);
-        doc.roundedRect(tableX + 3, currentY + 1.5, 22, 5, 1, 1, "F");
-        doc.text(item.clientRef, tableX + 5, currentY + 5);
+        doc.setFillColor(cores.primaria)
+        doc.setTextColor(255, 255, 255)
+        doc.roundedRect(tabelaX + 3, alturaAtual + 1.5, 22, 5, 1, 1, "F")
+        doc.text(item.clientRef, tabelaX + 5, alturaAtual + 5)
       } else {
-        doc.setTextColor(darkGray);
-        doc.text("-", tableX + 5, currentY + 5);
+        doc.setTextColor(cores.cinzaEscuro)
+        doc.text("-", tabelaX + 5, alturaAtual + 5)
       }
 
       // Dados do item
-      doc.setTextColor(darkGray);
-      const displayName = item.name.length > 40 ? item.name.substring(0, 40) + "..." : item.name;
-      doc.text(displayName, tableX + 35, currentY + 5);
-      doc.text(quantity.toString(), tableX + 100, currentY + 5);
+      doc.setTextColor(cores.cinzaEscuro)
+      const nomeExibido = item.name.length > 40 ? item.name.substring(0, 40) + "..." : item.name
+      doc.text(nomeExibido, tabelaX + 35, alturaAtual + 5)
+      doc.text(quantidade.toString(), tabelaX + 100, alturaAtual + 5)
 
       // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
-      if (discount > 0) {
+      if (desconto > 0) {
         if (order.status === "confirmado" && item.discountName) {
           // Destacar o nome do desconto para pedidos confirmados
-          doc.setFillColor(204, 229, 255); // Azul claro
-          doc.roundedRect(tableX + 115, currentY + 1.5, 15, 5, 1, 1, "F");
-          doc.setTextColor(0, 51, 153); // Azul escuro
-          doc.text(item.discountName, tableX + 120, currentY + 5);
+          doc.setFillColor(204, 229, 255) // Azul claro
+          doc.roundedRect(tabelaX + 115, alturaAtual + 1.5, 15, 5, 1, 1, "F")
+          doc.setTextColor(0, 51, 153) // Azul escuro
+          doc.text(item.discountName, tabelaX + 120, alturaAtual + 5)
         } else {
-          doc.setTextColor(darkGray);
-          doc.text(`${discount}%`, tableX + 120, currentY + 5);
+          doc.setTextColor(cores.cinzaEscuro)
+          doc.text(`${desconto}%`, tabelaX + 120, alturaAtual + 5)
         }
       } else {
-        doc.text("-", tableX + 120, currentY + 5);
+        doc.text("-", tabelaX + 120, alturaAtual + 5)
       }
 
       // Preço com desconto e subtotal
-      doc.setTextColor(darkGray);
-      doc.text(formatCurrency(priceWithDiscount), tableX + 145, currentY + 5);
-      doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(item.subtotal), tableX + 175, currentY + 5);
+      doc.setTextColor(cores.cinzaEscuro)
+      doc.text(formatCurrency(precoComDesconto), tabelaX + 145, alturaAtual + 5)
+      doc.setFont("helvetica", "bold")
+      doc.text(formatCurrency(item.subtotal), tabelaX + 175, alturaAtual + 5)
 
-      currentY += 8;
-    });
+      alturaAtual += 8
+    })
 
-    // Resumo financeiro com layout moderno
-    const summaryY = currentY + 15;
-    
+    return alturaAtual + 15
+  }
+
+  const renderizarResumos = (doc: jsPDF, alturaInicial: number, larguraPagina: number, cores: any): number => {
+    const resumoY = alturaInicial
+
     // Total peças e itens
-    const totalPieces = items.reduce((total, item) => {
-      const quantity = typeof item.quantity === "string" ? Number(item.quantity) : (item.quantity || 0);
-      return total + quantity;
-    }, 0);
-    
+    const totalPecas = items.reduce((total, item) => {
+      const quantidade = converterParaNumero(item.quantity)
+      return total + quantidade
+    }, 0)
+
     // Grid para resumo de peças - lado esquerdo
-    doc.setFillColor("#f8fafc"); // Cinza claro
-    doc.roundedRect(15, summaryY, 85, 40, 3, 3, "F");
-    
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("RESUMO DE PEÇAS", 57.5, summaryY + 8, { align: "center" });
-    
+    doc.setFillColor("#f8fafc") // Cinza claro
+    doc.roundedRect(15, resumoY, 85, 40, 3, 3, "F")
+
+    doc.setTextColor(cores.primaria)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("RESUMO DE PEÇAS", 57.5, resumoY + 8, { align: "center" })
+
     // Card para total de peças
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(25, summaryY + 15, 30, 18, 2, 2, "F");
-    
-    doc.setTextColor(darkGray);
-    doc.setFontSize(8);
-    doc.text("Total de Peças", 40, summaryY + 20, { align: "center" });
-    
-    doc.setTextColor(primaryColor);
-    doc.setFontSize(14);
-    doc.text(totalPieces.toString(), 40, summaryY + 28, { align: "center" });
-    
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(25, resumoY + 15, 30, 18, 2, 2, "F")
+
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(8)
+    doc.text("Total de Peças", 40, resumoY + 20, { align: "center" })
+
+    doc.setTextColor(cores.primaria)
+    doc.setFontSize(14)
+    doc.text(totalPecas.toString(), 40, resumoY + 28, { align: "center" })
+
     // Card para quantidade de itens
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(60, summaryY + 15, 30, 18, 2, 2, "F");
-    
-    doc.setTextColor(darkGray);
-    doc.setFontSize(8);
-    doc.text("Qtd. Itens", 75, summaryY + 20, { align: "center" });
-    
-    doc.setTextColor(primaryColor);
-    doc.setFontSize(14);
-    doc.text(items.length.toString(), 75, summaryY + 28, { align: "center" });
-    
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(60, resumoY + 15, 30, 18, 2, 2, "F")
+
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(8)
+    doc.text("Qtd. Itens", 75, resumoY + 20, { align: "center" })
+
+    doc.setTextColor(cores.primaria)
+    doc.setFontSize(14)
+    doc.text(items.length.toString(), 75, resumoY + 28, { align: "center" })
+
     // Resumo financeiro - lado direito
-    doc.setFillColor("#f8fafc");
-    doc.roundedRect(110, summaryY, 85, 45, 3, 3, "F");
-    
-    doc.setTextColor(primaryColor);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("RESUMO FINANCEIRO", 152.5, summaryY + 8, { align: "center" });
-    
-    doc.setTextColor(darkGray);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    
+    doc.setFillColor("#f8fafc")
+    doc.roundedRect(110, resumoY, 85, 45, 3, 3, "F")
+
+    doc.setTextColor(cores.primaria)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("RESUMO FINANCEIRO", 152.5, resumoY + 8, { align: "center" })
+
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(8)
+    doc.setFont("helvetica", "normal")
+
     // Valores financeiros
-    doc.text("Subtotal:", 120, summaryY + 18);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(order.subtotal), 185, summaryY + 18, { align: "right" });
-    
-    doc.setFont("helvetica", "normal");
-    doc.text("Taxa de Frete:", 120, summaryY + 25);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(order.taxes), 185, summaryY + 25, { align: "right" });
-    
+    doc.text("Subtotal:", 120, resumoY + 18)
+    doc.setFont("helvetica", "bold")
+    doc.text(formatCurrency(order.subtotal), 185, resumoY + 18, { align: "right" })
+
+    doc.setFont("helvetica", "normal")
+    doc.text("Taxa de Frete:", 120, resumoY + 25)
+    doc.setFont("helvetica", "bold")
+    doc.text(formatCurrency(order.taxes), 185, resumoY + 25, { align: "right" })
+
     // Linha separadora
-    doc.setDrawColor(primaryColor);
-    doc.line(120, summaryY + 30, 185, summaryY + 30);
-    
+    doc.setDrawColor(cores.primaria)
+    doc.line(120, resumoY + 30, 185, resumoY + 30)
+
     // Total em destaque
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Total:", 120, summaryY + 37);
-    doc.setTextColor(primaryColor);
-    doc.setFontSize(12);
-    doc.text(formatCurrency(order.total), 185, summaryY + 37, { align: "right" });
-    
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(10)
+    doc.text("Total:", 120, resumoY + 37)
+    doc.setTextColor(cores.primaria)
+    doc.setFontSize(12)
+    doc.text(formatCurrency(order.total), 185, resumoY + 37, { align: "right" })
+
     // Mostrar comissão se o pedido estiver confirmado
     if (order.status === "confirmado") {
-      doc.setFillColor("#dbeafe"); // Azul bem claro
-      doc.roundedRect(120, summaryY + 40, 65, 10, 2, 2, "F");
-      
-      doc.setTextColor(primaryColor);
-      doc.setFontSize(8);
-      doc.text("Total Comissão:", 125, summaryY + 46);
-      doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(totalCommission), 180, summaryY + 46, { align: "right" });
+      doc.setFillColor("#dbeafe") // Azul bem claro
+      doc.roundedRect(120, resumoY + 40, 65, 10, 2, 2, "F")
+
+      doc.setTextColor(cores.primaria)
+      doc.setFontSize(8)
+      doc.text("Total Comissão:", 125, resumoY + 46)
+      doc.setFont("helvetica", "bold")
+      doc.text(formatCurrency(totalComissao), 180, resumoY + 46, { align: "right" })
     }
-    
-    // Área para assinaturas (apenas para pedidos confirmados)
-    if (order.status === "confirmado") {
-      const signatureY = summaryY + 60;
-      
-      doc.setDrawColor(darkGray);
-      doc.setLineWidth(0.2);
-      
-      // Assinatura cliente
-      doc.line(25, signatureY, 85, signatureY);
-      doc.setTextColor(darkGray);
-      doc.setFontSize(7);
-      doc.text("Assinatura do Cliente", 55, signatureY + 5, { align: "center" });
-      
-      // Assinatura representante
-      doc.line(125, signatureY, 185, signatureY);
-      doc.text("Assinatura do Representante", 155, signatureY + 5, { align: "center" });
-    }
-    
-    // Rodapé
-    const footerY = pageHeight - 10;
-    
-    doc.setDrawColor(darkGray);
-    doc.setLineWidth(0.2);
-    doc.line(15, footerY - 8, pageWidth - 15, footerY - 8);
-    
-    doc.setTextColor(darkGray);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    
-    doc.text("Este documento não possui valor fiscal.", pageWidth / 2, footerY - 5, { align: "center" });
-    doc.text(`Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, pageWidth / 2, footerY, { align: "center" });
-    
-    return doc;
-  };
+
+    return resumoY + 60
+  }
+
+  const renderizarAssinaturas = (doc: jsPDF, alturaInicial: number, larguraPagina: number, cores: any): void => {
+    const assinaturaY = alturaInicial
+
+    doc.setDrawColor(cores.cinzaEscuro)
+    doc.setLineWidth(0.2)
+
+    // Assinatura cliente
+    doc.line(25, assinaturaY, 85, assinaturaY)
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(7)
+    doc.text("Assinatura do Cliente", 55, assinaturaY + 5, { align: "center" })
+
+    // Assinatura representante
+    doc.line(125, assinaturaY, 185, assinaturaY)
+    doc.text("Assinatura do Representante", 155, assinaturaY + 5, { align: "center" })
+  }
+
+  const renderizarRodape = (doc: jsPDF, alturaPagina: number, larguraPagina: number, cores: any): void => {
+    const rodapeY = alturaPagina - 10
+
+    doc.setDrawColor(cores.cinzaEscuro)
+    doc.setLineWidth(0.2)
+    doc.line(15, rodapeY - 8, larguraPagina - 15, rodapeY - 8)
+
+    doc.setTextColor(cores.cinzaEscuro)
+    doc.setFontSize(7)
+    doc.setFont("helvetica", "normal")
+
+    doc.text("Este documento não possui valor fiscal.", larguraPagina / 2, rodapeY - 5, { align: "center" })
+    doc.text(
+      `Gerado em ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`,
+      larguraPagina / 2,
+      rodapeY,
+      { align: "center" },
+    )
+  }
 
   // Função para baixar o PDF
-  const downloadPdf = () => {
-    const doc = createPdfDocument();
-    doc.save(`pedido_${order.id}.pdf`);
-  };
+  const baixarPdf = (): void => {
+    const doc = criarDocumentoPdf()
+    doc.save(`pedido_${order.id}.pdf`)
+  }
 
   // Função para imprimir usando a API nativa do navegador
-  const printPdf = () => {
-    // Imprimir diretamente usando a API nativa do navegador
-    window.print();
-  };
+  const imprimirPdf = (): void => {
+    // Adicionar uma classe temporária ao body para controle adicional durante a impressão
+    document.body.classList.add("printing-active")
 
-  // Preview content in canvas (simplified preview)
+    // Criar e adicionar um estilo específico para remover linhas verticais
+    const styleTemp = document.createElement("style")
+    styleTemp.innerHTML = `
+    @media print {
+      /* Remover qualquer elemento que possa estar causando a linha vertical */
+      body.printing-active::before,
+      body.printing-active::after,
+      body.printing-active *::before,
+      body.printing-active *::after {
+        display: none !important;
+        content: none !important;
+        border: none !important;
+        background: none !important;
+        position: static !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+      
+      /* Forçar o conteúdo a ser estático */
+      .print-document {
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        margin: 0 !important;
+        padding: 15mm !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+      
+      /* Remover qualquer elemento posicionado fixo ou absoluto */
+      body.printing-active * {
+        position: static !important;
+      }
+    }
+  `
+    document.head.appendChild(styleTemp)
+
+    // Chamar a impressão
+    window.print()
+
+    // Limpar após a impressão
+    setTimeout(() => {
+      document.head.removeChild(styleTemp)
+      document.body.classList.remove("printing-active")
+    }, 1000)
+  }
+
+  // Renderizar preview no canvas
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) return
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
+    renderizarPreviewCanvas(ctx, canvas)
+  }, [order, items])
+
+  // Função para renderizar o preview no canvas
+  const renderizarPreviewCanvas = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void => {
     // Limpar canvas
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff"
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Preview simplificado
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillRect(0, 0, canvas.width, 40);
+    // Cabeçalho
+    ctx.fillStyle = "#3b82f6"
+    ctx.fillRect(0, 0, canvas.width, 40)
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText(`PEDIDO #${order.id}`, 20, 25);
+    ctx.fillStyle = "#ffffff"
+    ctx.font = "bold 16px Arial"
+    ctx.fillText(`PEDIDO #${order.id}`, 20, 25)
 
-    ctx.fillStyle = "#000000";
-    ctx.font = "14px Arial";
-    ctx.fillText("Cliente: " + order.clientName, 20, 70);
-    ctx.fillText("CNPJ: " + order.clientCnpj, 20, 90);
-    ctx.fillText("Data: " + formatDate(order.date), 20, 110);
-    ctx.fillText("Status: " + order.status.toUpperCase(), 20, 130);
+    // Informações principais
+    ctx.fillStyle = "#000000"
+    ctx.font = "14px Arial"
+    ctx.fillText("Cliente: " + order.clientName, 20, 70)
+    ctx.fillText("CNPJ: " + order.clientCnpj, 20, 90)
+    ctx.fillText("Data: " + formatDate(order.date), 20, 110)
+    ctx.fillText("Status: " + order.status.toUpperCase(), 20, 130)
 
-    ctx.fillStyle = "#3b82f6";
-    ctx.fillRect(20, 150, canvas.width - 40, 2);
+    // Separador
+    ctx.fillStyle = "#3b82f6"
+    ctx.fillRect(20, 150, canvas.width - 40, 2)
 
-    ctx.fillStyle = "#000000";
-    ctx.font = "bold 14px Arial";
-    ctx.fillText("Itens: " + items.length, 20, 180);
+    // Resumo de itens
+    ctx.fillStyle = "#000000"
+    ctx.font = "bold 14px Arial"
+    ctx.fillText("Itens: " + items.length, 20, 180)
 
-    // Mini tabela
-    ctx.font = "12px Arial";
-    let y = 210;
+    // Mini tabela de itens
+    ctx.font = "12px Arial"
+    let y = 210
     items.slice(0, 4).forEach((item) => {
-      ctx.fillText(
-        `${item.name} (${item.quantity}x) - ${formatCurrency(item.subtotal)}`,
-        30,
-        y,
-      );
-      y += 25;
-    });
+      ctx.fillText(`${item.name} (${item.quantity}x) - ${formatCurrency(item.subtotal)}`, 30, y)
+      y += 25
+    })
 
     if (items.length > 4) {
-      ctx.fillText("...", 30, y);
+      ctx.fillText("...", 30, y)
     }
 
-    ctx.font = "bold 14px Arial";
-    ctx.fillText(
-      "Total: " + formatCurrency(order.total),
-      canvas.width - 150,
-      y + 40,
-    );
-  }, [order, items]);
+    // Total
+    ctx.font = "bold 14px Arial"
+    ctx.fillText("Total: " + formatCurrency(order.total), canvas.width - 150, y + 40)
+  }
 
   return (
-    <div className="flex flex-col space-y-6 p-6">
+    <div className="flex flex-col space-y-6 p-6 print-clean">
       <div>
-        <h2 className="text-2xl font-bold mb-4">
-          Visualizar Pedido #{order.id}
-        </h2>
-        <p className="text-gray-500 mb-2">
-          Utilize os botões abaixo para baixar o PDF ou imprimir o pedido.
-        </p>
+        <h2 className="text-2xl font-bold mb-4">Visualizar Pedido #{order.id}</h2>
+        <p className="text-gray-500 mb-2">Utilize os botões abaixo para baixar o PDF ou imprimir o pedido.</p>
 
         {/* Preview canvas - visível apenas na tela */}
-        <canvas
-          ref={canvasRef}
-          width={600}
-          height={520}
-          className="mx-auto border"
-        ></canvas>
+        <canvas ref={canvasRef} width={600} height={520} className="mx-auto border"></canvas>
 
         {/* Conteúdo otimizado para impressão - só aparece na impressão */}
         <div className="hidden print:block print-document">
-          <PrintOrderTemplate order={{...order, totalCommission}} items={items} />
+          <PrintOrderTemplate order={{ ...order, totalCommission: totalComissao }} items={items} />
         </div>
       </div>
 
-      {/* Não precisamos mais do iframe com a nova abordagem de impressão */}
-
+      {/* Botões de ação */}
       <div className="flex justify-end space-x-4 print:hidden">
         {onClose && (
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
         )}
-        <Button variant="outline" onClick={downloadPdf}>
+        <Button variant="outline" onClick={baixarPdf}>
           <FileDown className="mr-2 h-4 w-4" />
           Baixar PDF
         </Button>
-        <Button onClick={printPdf}>
+        <Button onClick={imprimirPdf}>
           <Printer className="mr-2 h-4 w-4" />
           Imprimir
         </Button>
       </div>
     </div>
-  );
+  )
 }
