@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         results.map(client => 
           storage.addClientHistory({
             clientId: client!.id,
-            userId: req.user.id,
+            userId: req.user?.id ?? 0, // Default to 0 or handle undefined appropriately
             action: 'assigned_representative',
             details: { 
               representativeId,
@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Registrar no histórico
               await storage.addClientHistory({
                 clientId: updatedClient.id,
-                userId: req.user.id,
+                userId: req.user?.id ?? 0,
                 action: 'updated_via_import',
                 details: { 
                   representativeId,
@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Registrar no histórico
             await storage.addClientHistory({
               clientId: newClient.id,
-              userId: req.user.id,
+              userId: req.user?.id ?? 0,
               action: 'created_via_import',
               details: { 
                 representativeId,
@@ -546,7 +546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const representativeId = parseInt(req.params.id);
       
       // Verificar se é admin ou se é o próprio representante acessando seus clientes
-      if (req.user.role !== 'admin' && req.user.id !== representativeId) {
+      if (!req.user || (req.user.role !== 'admin' && req.user.id !== representativeId)) {
         return res.status(403).json({ message: "Não autorizado a ver clientes de outro representante" });
       }
       
@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let clients;
       // If rep, show only their clients
-      if (req.user.role === 'representative') {
+      if (req.user?.role === 'representative') {
         clients = await storage.listClientsByRepresentative(req.user.id);
       } else {
         clients = await storage.listClients();
@@ -584,8 +584,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let clients = await storage.searchClients(q);
       
       // If representative, filter only their clients
-      if (req.user.role === 'representative') {
-        clients = clients.filter(client => client.representativeId === req.user.id);
+      if (req.user?.role === 'representative') {
+        clients = clients.filter(client => req.user && client.representativeId === req.user.id);
       }
       
       res.json(clients);
@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && client.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to view this client" });
       }
       
@@ -626,7 +626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add to history
       await storage.addClientHistory({
         clientId: client.id,
-        userId: req.user.id,
+        userId: req.user?.id ?? 0,
         action: 'created',
         details: { client }
       });
@@ -658,14 +658,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && client.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to update this client" });
       }
       
       const validatedData = insertClientSchema.partial().parse(req.body);
       
       // If rep trying to change representativeId, prevent it
-      if (req.user.role === 'representative' && 
+      if (req.user?.role === 'representative' && 
           validatedData.representativeId && 
           validatedData.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to change representative" });
@@ -676,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add to history
       await storage.addClientHistory({
         clientId: id,
-        userId: req.user.id,
+        userId: req.user?.id ?? 0,
         action: 'updated',
         details: { 
           before: client,
@@ -707,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && client.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to view this client's history" });
       }
       
@@ -1099,7 +1099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this order
-      if (req.user.role === 'representative' && orderData.order.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && orderData.order.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to view this order" });
       }
       
@@ -1121,7 +1121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this order
-      if (req.user.role === 'representative' && orderData.order.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && orderData.order.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to view this order" });
       }
       
@@ -1143,8 +1143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se o usuário tem permissão para excluir o pedido
-      if (req.user?.role !== 'admin' && order.representativeId !== req.user?.id) {
-        return res.status(403).json({ message: "Não autorizado a excluir este pedido" });
+      if (!req.user || (req.user.role !== 'admin' && order.representativeId !== req.user.id)) {
+        return res.status(403).json({ message: "Not authorized to delete this order" });
       }
       
       const success = await storage.deleteOrder(id);
@@ -1180,7 +1180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if user has permission
-      if (req.user.role === 'representative' && existingOrder.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && existingOrder.representativeId !== req.user.id) {
         return res.status(403).json({ message: "Not authorized to update this order" });
       }
       
@@ -1188,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validatedOrder = insertOrderSchema.parse(order);
       
       // If representative, ensure they can't change the representative ID
-      if (req.user.role === 'representative') {
+      if (req.user?.role === 'representative') {
         validatedOrder = { 
           ...validatedOrder, 
           representativeId: req.user.id 
@@ -1196,7 +1196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative') {
+      if (req.user?.role === 'representative') {
         const client = await storage.getClient(validatedOrder.clientId);
         if (!client || client.representativeId !== req.user.id) {
           return res.status(403).json({ message: "Not authorized to create order for this client" });
@@ -1271,7 +1271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative' && client.representativeId !== req.user.id) {
+      if (req.user?.role === 'representative' && client.representativeId !== req.user?.id) {
         return res.status(403).json({ message: "Not authorized to view this client's orders" });
       }
       
@@ -1295,12 +1295,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validatedOrder = insertOrderSchema.parse(order);
       
       // If representative, force their ID as representative
-      if (req.user.role === 'representative') {
+      if (req.user?.role === 'representative') {
         validatedOrder = { ...validatedOrder, representativeId: req.user.id };
       }
       
       // Check if rep has access to this client
-      if (req.user.role === 'representative') {
+      if (req.user?.role === 'representative') {
         const client = await storage.getClient(validatedOrder.clientId);
         if (!client || client.representativeId !== req.user.id) {
           return res.status(403).json({ message: "Not authorized to create order for this client" });
@@ -1373,8 +1373,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if rep has access to this order
-      if (req.user.role === 'representative' && order.representativeId !== req.user.id) {
-        return res.status(403).json({ message: "Not authorized to update this order" });
+      if (req.user?.role === 'representative' && order.representativeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this order status" });
       }
       
       const updatedOrder = await storage.updateOrderStatus(id, status);
@@ -1390,8 +1390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stats/dashboard", isAuthenticated, async (req, res) => {
     try {
       // Filtrar estatísticas por usuário logado se não for admin
-      const userId = req.user.id;
-      const isAdmin = req.user.role === 'admin';
+      const userId = req.user?.id ?? 0;
+      const isAdmin = req.user?.role === 'admin';
       
       const orderStats = await storage.getOrderStats(isAdmin ? null : userId);
       const productStats = await storage.getProductStats();
@@ -1410,8 +1410,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales by representative
   app.get("/api/stats/sales-by-representative", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
-      const isAdmin = req.user.role === 'admin';
+      const userId = req.user?.id ?? 0;
+      const isAdmin = req.user?.role === 'admin';
       
       // Se for admin, mostra de todos, caso contrário apenas do usuário logado
       const salesByRep = await storage.getSalesByRepresentative(isAdmin ? null : userId);
@@ -1424,8 +1424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get sales by brand
   app.get("/api/stats/sales-by-brand", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
-      const isAdmin = req.user.role === 'admin';
+      const userId = req.user?.id ?? 0;
+      const isAdmin = req.user?.role === 'admin';
       
       // Se for admin, mostra de todos, caso contrário apenas do usuário logado
       const salesByBrand = await storage.getSalesByBrand(isAdmin ? null : userId);
@@ -1438,8 +1438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get top selling products
   app.get("/api/stats/top-selling-products", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.id;
-      const isAdmin = req.user.role === 'admin';
+      const userId = req.user?.id ?? 0;
+      const isAdmin = req.user?.role === 'admin';
       
       // O limite padrão é 20, mas pode ser alterado via query parameter
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
