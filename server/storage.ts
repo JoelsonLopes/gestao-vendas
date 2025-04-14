@@ -242,7 +242,7 @@ export class DatabaseStorage implements IStorage {
     console.log(`Buscando clientes com termo: "${searchTerm}"`);
     
     // Verifica exatamente o código do cliente
-    if (/^\d+$/.test(searchTerm)) {
+    if (/^\d+$/.test(searchTerm)) { 
       console.log(`Detectada busca por código exato: ${searchTerm}`);
       
       // Primeiro tenta buscar pelo código exato
@@ -386,7 +386,7 @@ export class DatabaseStorage implements IStorage {
           active,
           conversion,
           conversionBrand,
-          equivalentBrands
+          equivalentBrands: Array.isArray(equivalentBrands) ? equivalentBrands as string[] : null
         })
         .returning();
       
@@ -526,7 +526,7 @@ export class DatabaseStorage implements IStorage {
         const searchTerm = exactMatches[0].name;
         const productsWithConversion = await db.select(selectAllProductColumns())
           .from(products)
-          .where(eq(products.name, exactMatches[0].conversion))
+          .where(eq(products.name, exactMatches[0].conversion || ""))
           .limit(10);
         
         if (productsWithConversion.length > 0) {
@@ -700,13 +700,18 @@ export class DatabaseStorage implements IStorage {
         active: product.active !== false,
         conversion: product.conversion,
         conversionBrand: product.conversionBrand,
-        equivalentBrands: product.equivalentBrands
+        equivalentBrands: Array.isArray(product.equivalentBrands) ? product.equivalentBrands : null
       });
     }
     
     try {
       console.log(`Preparando para inserir ${productsToInsert.length} produtos no banco de dados`);
-      const result = await db.insert(products).values(productsToInsert).returning();
+      const result = await db.insert(products).values(
+        productsToInsert.map(product => ({
+          ...product,
+          equivalentBrands: Array.isArray(product.equivalentBrands) ? [...product.equivalentBrands] : null
+        }))
+      ).returning();
       console.log(`${result.length} produtos inseridos com sucesso`);
       return result.length;
     } catch (error) {
@@ -774,18 +779,16 @@ export class DatabaseStorage implements IStorage {
       console.log(`Excluindo pedido ${id}`);
       
       // Excluir os itens do pedido primeiro
-      const deleteItemsQuery = `DELETE FROM order_items WHERE order_id = $1`;
-      await pool.query(deleteItemsQuery, [id]);
+      await db.delete(orderItems).where(eq(orderItems.orderId, id));
       console.log(`Itens do pedido ${id} excluídos com sucesso`);
       
       // Depois excluir o pedido principal
-      const deleteOrderQuery = `DELETE FROM orders WHERE id = $1`;
-      await pool.query(deleteOrderQuery, [id]);
+      const result = await db.delete(orders).where(eq(orders.id, id));
+      console.log(`Pedido ${id} excluído com sucesso`);
       
-      console.log(`Pedido ${id} excluído com sucesso via SQL direto`);
-      return true;
+      return result.rowCount !== null && result.rowCount > 0; // Corrigido para verificar se rowCount não é nulo
     } catch (error) {
-      console.error(`Erro ao excluir pedido ${id} via SQL direto:`, error);
+      console.error(`Erro ao excluir pedido ${id}:`, error);
       throw error;
     }
   }
@@ -874,7 +877,7 @@ export class DatabaseStorage implements IStorage {
         discountPercentage: row.discount_percentage,
         commission: row.commission,
         subtotal: row.subtotal,
-        clientRef: null // Campo opcional que pode não existir na tabela
+        // Campo opcional que pode não existir na tabela foi removido
       };
       
       console.log("Item de pedido criado com sucesso:", newItem);
@@ -882,7 +885,11 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Erro ao criar item de pedido:", error);
       console.error("Dados que causaram o erro:", JSON.stringify(orderItem));
-      console.error("Stack trace:", error.stack);
+      if (error instanceof Error) {
+        console.error("Stack trace:", error.stack);
+      } else {
+        console.error("Stack trace: Unknown error type");
+      }
       throw error;
     }
   }
@@ -977,7 +984,7 @@ export class DatabaseStorage implements IStorage {
               discountPercentage: row.discount_percentage,
               commission: row.commission,
               subtotal: row.subtotal,
-              clientRef: null // Campo opcional que pode não existir na tabela
+              // Removed clientRef as it is not part of the expected type
             };
             newItems.push(newItem);
             console.log(`Item ${newItem.id} adicionado com sucesso ao pedido ${orderId}`);
@@ -985,7 +992,11 @@ export class DatabaseStorage implements IStorage {
         } catch (itemError) {
           console.error(`Erro ao criar item para o pedido ${orderId}:`, itemError);
           console.error(`Dados do item:`, JSON.stringify(item));
-          console.error(`Stack trace:`, itemError.stack);
+          if (itemError instanceof Error) {
+            console.error(`Stack trace:`, itemError.stack);
+          } else {
+            console.error(`Stack trace: Unknown error type`);
+          }
           // Continuar com o próximo item
         }
       }
@@ -994,7 +1005,11 @@ export class DatabaseStorage implements IStorage {
       return newItems;
     } catch (error) {
       console.error(`Erro ao atualizar itens do pedido ${orderId}:`, error);
-      console.error(`Stack trace:`, error.stack);
+      if (error instanceof Error) {
+        console.error(`Stack trace:`, error.stack);
+      } else {
+        console.error(`Stack trace: Unknown error type`);
+      }
       throw error;
     }
   }
@@ -1002,58 +1017,26 @@ export class DatabaseStorage implements IStorage {
   async deleteOrderItems(orderId: number): Promise<boolean> {
     try {
       console.log(`Excluindo todos os itens do pedido ${orderId}`);
-      const result = await db
-        .delete(orderItems)
-        .where(eq(orderItems.orderId, orderId))
-        .returning();
-      console.log(`${result.length} itens excluídos do pedido ${orderId}`);
-      return result.length > 0;
+      const result = await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+      console.log(`${result.rowCount} itens excluídos do pedido ${orderId}`);
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error(`Erro ao excluir itens do pedido ${orderId}:`, error);
-      
-      // Se o erro estiver relacionado à coluna clientRef, podemos simplesmente ignorar
-      // e considerar a operação bem-sucedida, já que provavelmente significa que
-      // não há itens para excluir
-      if (String(error).includes("client_ref")) {
-        console.log("Ignorando erro de coluna client_ref inexistente");
-        return true;
-      }
-      
       throw error;
     }
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
     try {
-      console.log(`Buscando itens do pedido ${orderId} com SQL direto`);
+      console.log(`Buscando itens do pedido ${orderId}`);
       
-      // Usar SQL direto para evitar problemas com a coluna client_ref
-      const query = `
-        SELECT 
-          id, order_id, product_id, quantity, 
-          unit_price, discount_id, discount_percentage, 
-          commission, subtotal
-        FROM order_items 
-        WHERE order_id = $1
-      `;
+      const items = await db
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.orderId, orderId));
       
-      const result = await pool.query(query, [orderId]);
-      console.log(`Encontrados ${result.rows.length} itens para o pedido ${orderId}`);
-      
-      // Converter os nomes das colunas snake_case para camelCase
-      return result.rows.map(row => ({
-        id: row.id,
-        orderId: row.order_id,
-        productId: row.product_id,
-        quantity: row.quantity,
-        unitPrice: row.unit_price,
-        discountId: row.discount_id,
-        discountPercentage: row.discount_percentage,
-        commission: row.commission,
-        subtotal: row.subtotal,
-        // Campos opcionais que podem não existir na tabela
-        clientRef: null
-      }));
+      console.log(`Encontrados ${items.length} itens para o pedido ${orderId}`);
+      return items;
     } catch (error) {
       console.error(`Erro ao obter itens do pedido ${orderId}:`, error);
       throw error;
@@ -1301,7 +1284,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(users)
       .where(eq(users.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 

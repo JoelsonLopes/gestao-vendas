@@ -44,7 +44,7 @@ export function UserNav() {
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
-            <div className="text-xs mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+            <div className="text-xs mt-1 inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
               {user.role === 'admin' ? 'Administrador' : 'Representante'}
             </div>
           </div>
