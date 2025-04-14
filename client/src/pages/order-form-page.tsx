@@ -27,15 +27,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  Select, 
-  SelectContent, 
+import {
+  Select,
+  SelectContent,
   SelectGroup,
-  SelectItem, 
+  SelectItem,
   SelectLabel,
   SelectSeparator,
-  SelectTrigger, 
-  SelectValue 
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,13 +52,13 @@ export default function OrderFormPage() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   // Usar useRoute para capturar parâmetros de rota
   const [match, params] = useRoute("/orders/:id");
   const [id, setId] = useState<string | undefined>(params?.id);
   const [isEditMode, setIsEditMode] = useState<boolean>(!!params?.id);
   const isNewOrder = id === "new";
-  
+
   // Estado para mostrar o painel de atalhos
   const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
 
@@ -66,13 +66,13 @@ export default function OrderFormPage() {
   console.log("OrderFormPage - ID do pedido:", id);
   console.log("OrderFormPage - É modo de edição?", isEditMode);
   console.log("OrderFormPage - É pedido novo?", isNewOrder);
-  
+
   // Order form state
   const [clientId, setClientId] = useState<number | null>(null);
   const [status, setStatus] = useState<"cotacao" | "confirmado">("cotacao");
   const [paymentTerms, setPaymentTerms] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
-  
+
   // Order items state
   const [orderItems, setOrderItems] = useState<Array<{
     id?: number;
@@ -86,7 +86,7 @@ export default function OrderFormPage() {
     product?: Product;
     clientRef?: string | null;
   }>>([]);
-  
+
   // UI state
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
@@ -100,7 +100,7 @@ export default function OrderFormPage() {
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const [showClientRefs, setShowClientRefs] = useState(true); // Estado para controlar a exibição das referências do cliente na tabela
   const [showClientRefsInPdf, setShowClientRefsInPdf] = useState(true); // Estado para controlar a exibição das referências do cliente no PDF
-  
+
   // Estado para a modal de nova condição de pagamento
   const [addPaymentTermModalOpen, setAddPaymentTermModalOpen] = useState(false);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
@@ -114,56 +114,56 @@ export default function OrderFormPage() {
     taxes: 0,
     total: 0,
   });
-  
+
   // Get clients
   const clientsQuery = useQuery<Client[]>({
     queryKey: ["/api/clients"],
   });
-  
+
   const clients = clientsQuery.data || [];
   const isLoadingClients = clientsQuery.isLoading;
-  
+
   // Get representatives (para permitir que o admin selecione o representante)
   const { data: representatives, isLoading: isLoadingRepresentatives } = useQuery<any[]>({
     queryKey: ["/api/representatives"],
     enabled: user?.role === "admin", // Somente carrega se o usuário for admin
   });
-  
+
   // Estado para armazenar o representante selecionado
   const [representativeId, setRepresentativeId] = useState<number | null>(user?.id || null);
-  
+
   // Logger para debug - executado apenas uma vez quando os dados carregarem
   useEffect(() => {
     if (clients && clients.length > 0) {
       console.log(`Clientes carregados: ${clients.length}`);
-      
+
       // Log de alguns clientes para verificação
       console.log("Exemplos de clientes:", clients.slice(0, 5).map(client => ({
         id: client.id,
         name: client.name,
         code: client.code
       })));
-      
+
       // Verificar se temos cliente com código específico
       const cliente8028 = clients.find(client => client.code === "8028");
       if (cliente8028) {
         console.log("Cliente 8028 encontrado:", cliente8028);
       } else {
         console.log("Cliente 8028 NÃO encontrado nos dados carregados");
-        
+
         // Listar alguns códigos de clientes para verificação
         const sampleCodes = clients.slice(0, 20).map(c => c.code);
         console.log("Alguns códigos de clientes disponíveis:", sampleCodes);
       }
     }
   }, [clients.length]);
-  
+
   // Get products
   // Get discounts
   const { data: discounts, isLoading: isLoadingDiscounts } = useQuery<any[]>({
     queryKey: ["/api/discounts"],
   });
-  
+
   // Get order details if in edit mode (mas não para pedidos novos com id="new")
   const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
     queryKey: ["orders", id],
@@ -187,7 +187,7 @@ export default function OrderFormPage() {
       console.log("Itens do pedido carregados:", orderItemsData);
     }
   }, [order, orderItemsData]);
-  
+
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (data: { order: InsertOrder; items: Omit<InsertOrderItem, "orderId">[] }) => {
@@ -197,24 +197,24 @@ export default function OrderFormPage() {
     onSuccess: (data) => {
       // Invalidar o cache de pedidos
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      
+
       // Se recebemos um ID do pedido, atualizamos a URL sem redirecionar
       if (data && data.order && data.order.id) {
         // Atualizar a URL para o pedido criado sem recarregar a página
         window.history.replaceState(null, '', `/orders/${data.order.id}`);
-        
+
         // Atualizar state para refletir que estamos agora em modo de edição
         setIsEditMode(true);
-        
+
         // Definir o ID do pedido para o novo pedido criado
         setId(String(data.order.id));
       }
-      
+
       toast({
         title: "Pedido criado",
         description: "Pedido foi criado com sucesso. Você pode continuar adicionando itens.",
       });
-      
+
       // Redefinir o estado isSubmitting
       setIsSubmitting(false);
     },
@@ -227,7 +227,7 @@ export default function OrderFormPage() {
       setIsSubmitting(false);
     },
   });
-  
+
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: "cotacao" | "confirmado" }) => {
@@ -249,20 +249,20 @@ export default function OrderFormPage() {
       });
     },
   });
-  
+
   // Load order data if in edit mode
   useEffect(() => {
     if (isEditMode && order) {
       console.log("Carregando dados do pedido:", order);
       console.log("Observações do pedido:", order.notes);
-      
+
       setClientId(order.clientId);
       setStatus(order.status as "cotacao" | "confirmado");
       setPaymentTerms(order.paymentTerms || "");
       setNotes(order.notes || "");
     }
   }, [isEditMode, order]);
-  
+
   // Função para buscar um produto por ID
   const fetchProductById = async (productId: number): Promise<Product | null> => {
     try {
@@ -281,17 +281,17 @@ export default function OrderFormPage() {
   // Load order items if order is loaded
   useEffect(() => {
     const loadOrderItemsWithProducts = async () => {
-      if (isEditMode && orderItemsData && Array.isArray(orderItemsData)) {      
+      if (isEditMode && orderItemsData && Array.isArray(orderItemsData)) {
         console.log("Processando itens do pedido:", orderItemsData);
-        
+
         // Carregar produtos para cada item
         const itemsWithProductsPromises = orderItemsData.map(async (item: any) => {
           // Buscar o produto para este item
           const product = await fetchProductById(item.productId);
-          
+
           // Log detalhado para cada item
           console.log("Processando item:", item, "Produto encontrado:", product);
-          
+
           return {
             id: item.id,
             productId: item.productId,
@@ -306,10 +306,10 @@ export default function OrderFormPage() {
             clientRef: item.clientRef || product?.conversion || null,
           };
         });
-        
+
         // Esperar que todos os produtos sejam carregados
         const mappedItems = await Promise.all(itemsWithProductsPromises);
-        
+
         console.log("Itens mapeados:", mappedItems);
         setOrderItems(mappedItems);
       } else {
@@ -320,34 +320,34 @@ export default function OrderFormPage() {
         });
       }
     };
-    
+
     loadOrderItemsWithProducts();
   }, [isEditMode, orderItemsData]);
-  
+
   // Calculate order totals and update the state
   useEffect(() => {
     // O subtotal é a soma dos subtotais de cada item (que já incluem o desconto)
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    
+
     // Não precisamos calcular desconto separadamente, pois já está incluído no preço unitário
     // O total é simplesmente o subtotal + taxa de frete
     const taxes = isEditMode && order ? parseFloat(order.taxes || "0") : 0; // Taxa de frete editável pelo usuário
     const total = subtotal + taxes;
-    
+
     console.log(`
       Resumo do pedido:
       - Subtotal (com desconto): ${formatCurrency(subtotal)}
       - Taxa de Frete: ${formatCurrency(taxes)}
       - Total: ${formatCurrency(total)}
     `);
-    
+
     setTotals({
       subtotal: Number(subtotal.toFixed(2)),
       taxes: Number(taxes.toFixed(2)),
       total: Number(total.toFixed(2)),
     });
   }, [orderItems, isEditMode, order]);
-  
+
   // Function to handle adding a new payment term
   const handleAddPaymentTerm = () => {
     if (!newPaymentTerm || newPaymentTerm.trim() === "") {
@@ -358,20 +358,20 @@ export default function OrderFormPage() {
       });
       return;
     }
-    
+
     // Fechar o modal
     setAddPaymentTermModalOpen(false);
-    
+
     // Selecionar a nova condição de pagamento
     setPaymentTerms(newPaymentTerm);
-    
+
     // Salvar automaticamente quando o usuário adicionar uma nova condição (se houver cliente e itens)
     if (clientId && orderItems.length > 0) {
       setTimeout(() => {
         handleSaveOrder();
       }, 100);
     }
-    
+
     toast({
       title: "Condição adicionada",
       description: `A condição "${newPaymentTerm}" foi adicionada com sucesso.`,
@@ -381,7 +381,7 @@ export default function OrderFormPage() {
   // Function to open calculator with a product
   const openCalculator = async (productId: number | null) => {
     if (!productId) return;
-    
+
     try {
       const product = await fetchProductById(productId);
       if (product) {
@@ -403,10 +403,10 @@ export default function OrderFormPage() {
       });
     }
   };
-  
+
   // Referência para o botão "Adicionar Produto"
   const addProductButtonRef = useRef<HTMLButtonElement>(null);
-  
+
   // Hook de atalhos de teclado
   const useKeyboardShortcuts = useCallback(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -417,22 +417,22 @@ export default function OrderFormPage() {
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.tagName === 'SELECT'
       );
-      
+
       // Ignorar atalhos em inputs de texto, exceto Escape
       if (isInputFocused && e.key !== 'Escape') return;
-      
+
       // Atalhos que funcionam em qualquer situação
       if (e.key === '?' && e.shiftKey) {
         e.preventDefault();
         setShowShortcutsHelp(prev => !prev);
         return;
       }
-      
+
       // Ignorar se um modal estiver aberto, exceto ESC para fechar
       if (addProductModalOpen || calculatorOpen || showPdfPreview) {
         if (e.key === 'Escape') {
           e.preventDefault();
-          
+
           if (showPdfPreview) {
             setShowPdfPreview(false);
           } else if (calculatorOpen) {
@@ -443,7 +443,7 @@ export default function OrderFormPage() {
         }
         return;
       }
-      
+
       // Atalhos ativos só quando nenhum modal estiver aberto
       switch (e.key) {
         case 'a':
@@ -452,14 +452,14 @@ export default function OrderFormPage() {
             e.preventDefault();
             // Abre a modal
             setAddProductModalOpen(true);
-            
+
             // Limpa os campos
             setSelectedProductId(null);
             setClientRef("");
             setProductQuantity(1);
             setSelectedDiscountId(null);
             setShouldSaveConversion(false);
-            
+
             // Dá tempo para o componente carregar antes de focar no campo de referência do cliente
             setTimeout(() => {
               const clientRefInput = document.getElementById('clientRefSearchInput');
@@ -469,7 +469,7 @@ export default function OrderFormPage() {
             }, 100);
           }
           break;
-          
+
         case 's':
           // Atalho para salvar pedido
           if (!e.ctrlKey && !e.metaKey) {
@@ -481,7 +481,7 @@ export default function OrderFormPage() {
             handleSaveOrder();
           }
           break;
-          
+
         case 'p':
           // Atalho para imprimir/visualizar PDF
           if (!e.ctrlKey && !e.metaKey) {
@@ -489,13 +489,13 @@ export default function OrderFormPage() {
             setShowPdfPreview(true);
           }
           break;
-          
+
         case 'Escape':
           // Atalho para voltar para a lista de pedidos
           e.preventDefault();
           navigate('/orders');
           break;
-          
+
         case 'c':
           // Atalho para abrir calculadora (se não for input)
           if (!isInputFocused) {
@@ -508,42 +508,42 @@ export default function OrderFormPage() {
           break;
       }
     };
-    
+
     // Adicionar event listener global
     window.addEventListener('keydown', handleKeyDown);
-    
+
     // Limpar event listener ao desmontar
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [addProductModalOpen, calculatorOpen, showPdfPreview, orderItems, navigate]);
-  
+
   // Ativar atalhos de teclado
   useEffect(() => {
     const cleanup = useKeyboardShortcuts();
     return cleanup;
   }, [useKeyboardShortcuts]);
-  
+
   // Add product to order
   // Função completamente reescrita para evitar problemas de sincronização
   const addProductToOrder = async () => {
     // Logging para diagnóstico
     console.log("===== INICIANDO ADIÇÃO DE PRODUTO =====");
-    console.log("Estado inicial:", { 
-      selectedProductId, 
-      productQuantity, 
-      clientId, 
-      clientRef, 
+    console.log("Estado inicial:", {
+      selectedProductId,
+      productQuantity,
+      clientId,
+      clientRef,
       shouldSaveConversion,
       selectedDiscountId
     });
-    
+
     // Validações iniciais
     if (!selectedProductId || productQuantity <= 0) {
       console.log("ERRO: Produto não selecionado ou quantidade inválida.");
       return;
     }
-    
+
     if (!clientId) {
       toast({
         title: "Cliente não selecionado",
@@ -553,15 +553,15 @@ export default function OrderFormPage() {
       console.log("ERRO: Cliente não selecionado");
       return;
     }
-    
+
     try {
       // 1. Preparar o estado de UI preventivamente para feedback imediato do usuário
       setIsSubmitting(true);
-      
+
       // 2. Buscar o produto
       console.log(`Buscando produto ${selectedProductId}`);
       const product = await fetchProductById(selectedProductId);
-      
+
       if (!product) {
         console.error(`ERRO: Produto ${selectedProductId} não encontrado`);
         toast({
@@ -572,34 +572,34 @@ export default function OrderFormPage() {
         setIsSubmitting(false);
         return;
       }
-      
+
       console.log(`Produto encontrado:`, product);
-      
+
       // 3. Definir a referência final do cliente
-      const finalClientRef = clientRef && clientRef.trim() !== "" 
-        ? clientRef.trim() 
+      const finalClientRef = clientRef && clientRef.trim() !== ""
+        ? clientRef.trim()
         : (product.conversion || null);
-      
+
       console.log(`Referência do cliente definida:`, finalClientRef);
-      
+
       // 4. Se necessário, salvar a conversão no servidor
       if (clientRef && clientRef.trim() !== "" && shouldSaveConversion) {
         try {
           console.log(`Salvando conversão para o produto ${selectedProductId}`);
-          
+
           const response = await fetch(`/api/products/${selectedProductId}/save-conversion`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ clientRef }),
           });
-          
+
           if (response.ok) {
             console.log("Conversão salva com sucesso");
             toast({
               title: "Referência salva",
               description: "Referência do cliente vinculada ao produto com sucesso."
             });
-            
+
             // Atualizar a lista de produtos
             queryClient.invalidateQueries({ queryKey: ["/api/products"] });
           } else {
@@ -614,12 +614,12 @@ export default function OrderFormPage() {
           });
         }
       }
-      
+
       // 5. Calcular preços e descontos
       const unitPrice = Number(product.price);
       let discountPercentage = 0;
       let commission = 0;
-      
+
       if (selectedDiscountId !== null && discounts) {
         const discount = discounts.find(d => d.id === selectedDiscountId);
         if (discount) {
@@ -630,13 +630,13 @@ export default function OrderFormPage() {
           console.log(`Desconto com ID ${selectedDiscountId} não encontrado na lista`);
         }
       }
-      
+
       // Cálculo do preço com desconto
       const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
-      
+
       // Subtotal baseado no preço unitário já com desconto
       const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
-      
+
       console.log(`
         Adicionando produto:
         - Produto: ${product.name} (${product.code})
@@ -648,7 +648,7 @@ export default function OrderFormPage() {
         ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
         ${selectedDiscountId ? `- Comissão: ${commission}%` : ''}
       `);
-      
+
       // 6. Criar um novo item independente do estado existente
       const newItem = {
         productId: selectedProductId,
@@ -658,22 +658,22 @@ export default function OrderFormPage() {
         discountPercentage: discountPercentage,
         commission: commission,
         subtotal: subtotal,
-        product: {...product}, // Criar cópia do produto para evitar referências compartilhadas
+        product: { ...product }, // Criar cópia do produto para evitar referências compartilhadas
         clientRef: finalClientRef, // Usar a referência já definida
       };
-      
+
       console.log("Novo item criado para adicionar ao pedido:", newItem);
-      
+
       // 7. Crucial: Cópia completa do estado atual + novo item de forma atômica
       const currentItems = [...orderItems];
       const updatedItems = [...currentItems, newItem];
-      
+
       console.log("Lista atualizada de itens:", updatedItems);
-      
+
       // 8. Preparar dados completos do pedido para envio ao servidor
       const orderTotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0);
       const grandTotal = orderTotal + totals.taxes;
-      
+
       const orderData = {
         clientId,
         representativeId: representativeId || user!.id,
@@ -685,7 +685,7 @@ export default function OrderFormPage() {
         total: grandTotal.toString(),
         notes,
       };
-      
+
       const itemsData = updatedItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -696,9 +696,9 @@ export default function OrderFormPage() {
         subtotal: item.subtotal.toString(),
         clientRef: item.clientRef,
       }));
-      
+
       console.log("Dados preparados para envio:", { orderData, itemsData });
-      
+
       // 9. Fecha a modal e limpa os campos imediatamente para melhorar a experiência do usuário
       setAddProductModalOpen(false);
       setSelectedProductId(null);
@@ -707,15 +707,15 @@ export default function OrderFormPage() {
       setClientRef("");
       setIsSearchingByClientRef(false);
       setShouldSaveConversion(false);
-      
+
       // 10. Enviar diretamente ao servidor
       try {
         let savedOrder;
-        
+
         if (isEditMode && id && id !== "new") {
           const orderId = parseInt(id);
           console.log(`Atualizando pedido existente #${orderId}`);
-          
+
           savedOrder = await updateOrderMutation.mutateAsync({
             id: orderId,
             order: orderData,
@@ -728,19 +728,19 @@ export default function OrderFormPage() {
             items: itemsData
           });
         }
-        
+
         console.log("Resposta do servidor:", savedOrder);
-        
+
         // 11. Somente APÓS confirmação do servidor, atualizar o estado local
         setOrderItems(updatedItems);
-        
+
         // 12. Focar no botão de adicionar produto
         setTimeout(() => {
           if (addProductButtonRef.current) {
             addProductButtonRef.current.focus();
           }
         }, 100);
-        
+
         console.log("===== PRODUTO ADICIONADO COM SUCESSO =====");
       } catch (error) {
         console.error("ERRO ao salvar no servidor:", error);
@@ -762,18 +762,18 @@ export default function OrderFormPage() {
       setIsSubmitting(false);
     }
   };
-  
+
   // Remove product from order
   const removeOrderItem = (index: number, autoSave = false) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
     const actualIndex = orderItems.length - 1 - index;
-    
+
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems(prevItems => {
       const newItems = [...prevItems];
       newItems.splice(actualIndex, 1);
       console.log(`Removendo item na posição ${actualIndex}. Novos itens:`, newItems);
-      
+
       // Salvar automaticamente apenas se solicitado explicitamente
       if (autoSave) {
         // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
@@ -785,27 +785,27 @@ export default function OrderFormPage() {
           }
         }, 0);
       }
-      
+
       return newItems;
     });
   };
-  
+
   // Update item discount
   const updateItemDiscount = (index: number, discountId: number | null, discountPercentage: number, commission: number) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
     const actualIndex = orderItems.length - 1 - index;
-    
+
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems(prevItems => {
       const newItems = [...prevItems];
       const item = newItems[actualIndex];
-      
+
       // Calcular o preço unitário com desconto primeiro
       const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
-      
+
       // Calcular o subtotal com base no preço unitário já com desconto
       const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2));
-      
+
       console.log(`
         Aplicando desconto:
         - Produto: ${item.product?.name} (${item.product?.code})
@@ -816,7 +816,7 @@ export default function OrderFormPage() {
         - Subtotal: ${formatCurrency(discountedSubtotal)}
         - Comissão: ${commission}%
       `);
-      
+
       newItems[actualIndex] = {
         ...item,
         discountId,
@@ -824,7 +824,7 @@ export default function OrderFormPage() {
         commission,
         subtotal: discountedSubtotal,
       };
-      
+
       // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
       // antes de tentar salvar o pedido
       setTimeout(() => {
@@ -833,29 +833,29 @@ export default function OrderFormPage() {
           handleSaveOrder();
         }
       }, 0);
-      
+
       return newItems;
     });
   };
-  
+
   // Update item quantity
   const updateItemQuantity = (index: number, quantity: number) => {
     if (quantity <= 0) return;
-    
+
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
     const actualIndex = orderItems.length - 1 - index;
-    
+
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems(prevItems => {
       const newItems = [...prevItems];
       const item = newItems[actualIndex];
-      
+
       // Pegar o preço unitário com desconto
       const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
-      
+
       // Recalcular subtotal com base no preço unitário já com desconto
       const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2));
-      
+
       console.log(`
         Atualizando quantidade:
         - Produto: ${item.product?.name} (${item.product?.code})
@@ -865,13 +865,13 @@ export default function OrderFormPage() {
         - Nova quantidade: ${quantity}
         - Novo subtotal: ${formatCurrency(discountedSubtotal)}
       `);
-      
+
       newItems[actualIndex] = {
         ...item,
         quantity,
         subtotal: discountedSubtotal,
       };
-      
+
       // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
       // antes de tentar salvar o pedido
       setTimeout(() => {
@@ -880,11 +880,11 @@ export default function OrderFormPage() {
           handleSaveOrder();
         }
       }, 0);
-      
+
       return newItems;
     });
   };
-  
+
   // Mutation para atualizar pedido existente
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, order, items }: { id: number, order: InsertOrder, items: any[] }) => {
@@ -897,31 +897,31 @@ export default function OrderFormPage() {
     onSuccess: (data, variables) => {
       const orderId = variables.id;
       console.log(`Sucesso na atualização do pedido ${orderId}`, data);
-      
+
       // Invalidar todos os caches relacionados a este pedido específico
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}/items`] });
-      
+
       // Também atualizar diretamente o cache para certeza
       queryClient.setQueryData([`/api/orders/${orderId}`], data.order);
       queryClient.setQueryData([`/api/orders/${orderId}/items`], data.items);
-      
+
       // Forçar atualização explícita do React Query
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ["/api/orders"] });
         queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}`] });
         queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}/items`] });
       }, 100);
-      
+
       toast({
         title: "Pedido atualizado",
         description: "O pedido foi atualizado com sucesso.",
       });
-      
+
       // Redefinir o estado isSubmitting
       setIsSubmitting(false);
-      
+
       // Não redirecionamos automaticamente, só quando o usuário clicar no botão "Concluir"
     },
     onError: (error: Error) => {
@@ -933,7 +933,7 @@ export default function OrderFormPage() {
       setIsSubmitting(false);
     },
   });
-  
+
   // Salvar pedido
   const handleSaveOrder = async () => {
     // Verificar se temos pelo menos um cliente selecionado
@@ -945,7 +945,7 @@ export default function OrderFormPage() {
       });
       return;
     }
-    
+
     // Alerta informativo se não há produtos, mas permitir salvar mesmo assim
     if (orderItems.length === 0) {
       toast({
@@ -954,9 +954,9 @@ export default function OrderFormPage() {
       });
       // Continuamos com o salvamento
     }
-    
+
     setIsSubmitting(true);
-    
+
     const orderData: InsertOrder = {
       clientId,
       representativeId: representativeId || user!.id, // Usa o representante selecionado (para admin) ou o próprio usuário
@@ -968,7 +968,7 @@ export default function OrderFormPage() {
       total: totals.total.toString(), // Convertido para string conforme esperado pelo InsertOrder
       notes,
     };
-    
+
     const itemsData = orderItems.map(item => {
       const itemData = {
         productId: item.productId,
@@ -983,15 +983,15 @@ export default function OrderFormPage() {
       console.log("Preparando item para envio:", itemData);
       return itemData;
     });
-    
+
     if (isEditMode && id && id !== "new") {
       // Atualizar pedido existente
       const orderId = parseInt(id);
       if (!isNaN(orderId)) {
-        updateOrderMutation.mutate({ 
-          id: orderId, 
-          order: orderData, 
-          items: itemsData 
+        updateOrderMutation.mutate({
+          id: orderId,
+          order: orderData,
+          items: itemsData
         });
       } else {
         toast({
@@ -1006,11 +1006,11 @@ export default function OrderFormPage() {
       createOrderMutation.mutate({ order: orderData, items: itemsData });
     }
   };
-  
+
   // Update order status
   const updateOrderStatus = (newStatus: "cotacao" | "confirmado") => {
     if (!isEditMode || !id || id === "new") return;
-    
+
     const orderId = parseInt(id);
     if (isNaN(orderId)) {
       toast({
@@ -1020,26 +1020,26 @@ export default function OrderFormPage() {
       });
       return;
     }
-    
+
     updateOrderStatusMutation.mutate({
       id: orderId,
       status: newStatus,
     });
   };
-  
+
   // Prepare data for PDF preview
   const preparePdfData = () => {
     const client = clients?.find(c => c.id === clientId);
-    
+
     // Preparar os itens do pedido para o PDF com descontos
     const pdfItems = orderItems.map(item => {
       const discountData = discounts?.find(d => d.id === item.discountId);
-      
+
       // Calcular preço com desconto
-      const priceWithDiscount = item.discountPercentage > 0 
-        ? item.unitPrice * (1 - item.discountPercentage / 100) 
+      const priceWithDiscount = item.discountPercentage > 0
+        ? item.unitPrice * (1 - item.discountPercentage / 100)
         : item.unitPrice;
-      
+
       return {
         id: item.product?.id || item.productId,
         name: item.product?.name || `Produto #${item.productId}`,
@@ -1049,35 +1049,36 @@ export default function OrderFormPage() {
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discountPercentage,
-        discountName: discountData?.name || null,  
+        discountName: discountData?.name || null,
         subtotal: priceWithDiscount * item.quantity,
         commission: item.commission
       };
     });
-    
+
     // Log dos itens com suas referências
-    console.log("Preparando dados para PDF, itens do pedido:", 
+    console.log("Preparando dados para PDF, itens do pedido:",
       orderItems.map(item => ({
         id: item.productId,
         name: item.product?.name,
         clientRef: item.product?.conversion
       }))
     );
-    
+
     // Calcular o total da comissão se o pedido for confirmado
-    const totalCommission = status === 'confirmado' 
+    const totalCommission = status === 'confirmado'
       ? orderItems.reduce((sum, item) => {
-          const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
-          return sum + (totalItem * (item.commission / 100));
-        }, 0)
+        const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
+        return sum + (totalItem * (item.commission / 100));
+      }, 0)
       : 0;
-    
+
     return {
       order: {
         id: isEditMode ? parseInt(id!) : 0,
         clientId: clientId || undefined,
         clientName: client?.name || "Cliente não selecionado",
         clientCnpj: client?.cnpj || "",
+        clientCode: client?.code || "",
         date: new Date().toISOString(),
         status: status,
         paymentTerms: paymentTerms || "À vista",
@@ -1086,12 +1087,13 @@ export default function OrderFormPage() {
         taxes: totals.taxes,
         total: totals.total,
         representative: user?.name || "",
-        totalCommission: totalCommission
+        totalCommission: totalCommission,
+        notes: notes
       },
       items: pdfItems,
     };
   };
-  
+
   // Loading state
   const isLoading = isLoadingClients || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems));
 
@@ -1109,14 +1111,14 @@ export default function OrderFormPage() {
               {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
             </h1>
           </div>
-          
+
           {/* Botões de ação responsivos */}
           <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
             <Button variant="outline" size="sm" onClick={() => window.print()} className="md:px-3">
               <Printer className="h-4 w-4 md:mr-2" />
               <span className="hidden md:inline">Imprimir</span>
             </Button>
-            
+
             {isEditMode ? (
               <>
                 <Button size="sm" onClick={handleSaveOrder} disabled={isSubmitting} className="md:px-3">
@@ -1128,8 +1130,8 @@ export default function OrderFormPage() {
                   <span className="hidden md:inline">Salvar Alterações</span>
                   <span className="inline md:hidden">Salvar</span>
                 </Button>
-                
-                <Button 
+
+                <Button
                   size="sm"
                   onClick={() => {
                     // Salvar alterações e então redirecionar para a lista de pedidos
@@ -1141,7 +1143,7 @@ export default function OrderFormPage() {
                     } else {
                       navigate("/orders");
                     }
-                  }} 
+                  }}
                   variant="default"
                   className="md:px-3"
                 >
@@ -1161,8 +1163,8 @@ export default function OrderFormPage() {
                   <span className="hidden md:inline">Salvar Pedido</span>
                   <span className="inline md:hidden">Salvar</span>
                 </Button>
-                
-                <Button 
+
+                <Button
                   size="sm"
                   onClick={() => {
                     // Salvar pedido e então redirecionar para a lista de pedidos
@@ -1174,7 +1176,7 @@ export default function OrderFormPage() {
                     } else {
                       navigate("/orders");
                     }
-                  }} 
+                  }}
                   variant="default"
                   className="md:px-3"
                 >
@@ -1186,13 +1188,13 @@ export default function OrderFormPage() {
             )}
           </div>
         </div>
-        
+
         {/* Versão para impressão - visível apenas durante a impressão */}
         <div className="hidden print:block print-document">
-          <PdfTemplate 
+          <PdfTemplate
             order={preparePdfData().order}
             items={preparePdfData().items}
-            onClose={() => {}}
+            onClose={() => { }}
             showClientRefs={showClientRefsInPdf}
           />
         </div>
@@ -1208,7 +1210,7 @@ export default function OrderFormPage() {
                 <TabsTrigger value="details">Detalhes do Pedido</TabsTrigger>
                 <TabsTrigger value="products">Produtos</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="details" className="space-y-4 pt-4">
                 <Card>
                   <CardHeader>
@@ -1225,11 +1227,11 @@ export default function OrderFormPage() {
                           disabled={false} // Permitir edição do cliente mesmo em pedidos existentes
                         />
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="status">Status</Label>
-                        <Select 
-                          value={status} 
+                        <Select
+                          value={status}
                           onValueChange={(value) => setStatus(value as "cotacao" | "confirmado")}
                           disabled={false}
                         >
@@ -1242,13 +1244,13 @@ export default function OrderFormPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div>
                         <div className="flex justify-between items-center mb-2">
                           <Label htmlFor="paymentTerms">Condição de Pagamento</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={() => setAddPaymentTermModalOpen(true)}
                           >
@@ -1256,11 +1258,11 @@ export default function OrderFormPage() {
                             <span className="hidden sm:inline">Nova</span>
                           </Button>
                         </div>
-                        <Select 
-                          value={paymentTerms} 
+                        <Select
+                          value={paymentTerms}
                           onValueChange={(value) => {
                             setPaymentTerms(value);
-                            
+
                             // Salvar automaticamente quando o usuário alterar a condição de pagamento
                             if (clientId && orderItems.length > 0) {
                               // Pequeno atraso para garantir que o estado foi atualizado
@@ -1280,32 +1282,33 @@ export default function OrderFormPage() {
                               <SelectItem value="à vista">À Vista</SelectItem>
                               <SelectItem value="pix">Pix</SelectItem>
                             </SelectGroup>
-                            
+
                             <SelectSeparator />
-                            
+
                             <SelectGroup>
                               <SelectLabel>Boletos</SelectLabel>
-                              <SelectItem value="boleto_7d">Boleto Doc 7D</SelectItem>
-                              <SelectItem value="boleto_14d">Boleto Doc 14D</SelectItem>
-                              <SelectItem value="boleto_14_28d">Boleto Doc 14/28D</SelectItem>
-                              <SelectItem value="boleto_28d">Boleto Doc 28D</SelectItem>
-                              <SelectItem value="boleto_28_35d">Boleto Doc 28/35D</SelectItem>
-                              <SelectItem value="boleto_28_35_42d">Boleto Doc 28/35/42D</SelectItem>
-                              <SelectItem value="boleto_28_42_56d">Boleto Doc 28/42/56D</SelectItem>
-                              <SelectItem value="boleto_28_56_84d">Boleto Doc 28/56/84D</SelectItem>
-                              <SelectItem value="boleto_30d">Boleto Doc 30D</SelectItem>
-                              <SelectItem value="boleto_30_45d">Boleto Doc 30/45D</SelectItem>
-                              <SelectItem value="boleto_30_45_60d">Boleto Doc 30/45/60D</SelectItem>
-                              <SelectItem value="boleto_30_45_60_75d">Boleto Doc 30/45/60/75D</SelectItem>
-                              <SelectItem value="boleto_30_45_60_75_90d">Boleto Doc 30/45/60/75/90D</SelectItem>
-                              <SelectItem value="boleto_30_60d">Boleto Doc 30/60D</SelectItem>
-                              <SelectItem value="boleto_30_60_90d">Boleto Doc 30/60/90D</SelectItem>
-                              <SelectItem value="boleto_35d">Boleto Doc 35D</SelectItem>
-                              <SelectItem value="boleto_28_35_42_49d">Boleto Doc 28/35/42/49D</SelectItem>
-                              <SelectItem value="boleto_28_42_56_70d">Boleto Doc 28/42/56/70D</SelectItem>
-                              <SelectItem value="boleto_28_42d">Boleto Doc 28/42</SelectItem>
-                              <SelectItem value="boleto_30_60_90_120d">Boleto Doc 30/60/90/120D</SelectItem>
-                              
+                              <SelectItem value="BOLETO 7D">Boleto Doc 7D</SelectItem>
+                              <SelectItem value="BOLETO 14D">Boleto Doc 14D</SelectItem>
+                              <SelectItem value="BOLETO 14/28D">Boleto Doc 14/28D</SelectItem>
+                              <SelectItem value="BOLETO 28D">Boleto Doc 28D</SelectItem>
+                              <SelectItem value="BOLETO 28/35D">Boleto Doc 28/35D</SelectItem>
+                              <SelectItem value="BOLETO 28/35/42D">Boleto Doc 28/35/42D</SelectItem>
+                              <SelectItem value="BOLETO 28/42/56D">Boleto Doc 28/42/56D</SelectItem>
+                              <SelectItem value="BOLETO 28/56/84D">Boleto Doc 28/56/84D</SelectItem>
+                              <SelectItem value="BOLETO 30D">Boleto Doc 30D</SelectItem>
+                              <SelectItem value="BOLETO 30/45D">Boleto Doc 30/45D</SelectItem>
+                              <SelectItem value="BOLETO 30/45/60D">Boleto Doc 30/45/60D</SelectItem>
+                              <SelectItem value="BOLETO 30/45/60/75D">Boleto Doc 30/45/60/75D</SelectItem>
+                              <SelectItem value="BOLETO 30/45/60/75/90D">Boleto Doc 30/45/60/75/90D</SelectItem>
+                              <SelectItem value="BOLETO 30/60D">Boleto Doc 30/60D</SelectItem>
+                              <SelectItem value="BOLETO 30/60/90D">Boleto Doc 30/60/90D</SelectItem>
+                              <SelectItem value="BOLETO 35D">Boleto Doc 35D</SelectItem>
+                              <SelectItem value="BOLETO 28/35/42/49D">Boleto Doc 28/35/42/49D</SelectItem>
+                              <SelectItem value="BOLETO 28/42/56/70D">Boleto Doc 28/42/56/70D</SelectItem>
+                              <SelectItem value="BOLETO 28/42">Boleto Doc 28/42</SelectItem>
+                              <SelectItem value="BOLETO 30/60/90/120D">Boleto Doc 30/60/90/120D</SelectItem>
+
+
                               {newPaymentTerm && (
                                 <SelectItem value={newPaymentTerm}>{newPaymentTerm}</SelectItem>
                               )}
@@ -1313,12 +1316,12 @@ export default function OrderFormPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="sm:col-span-2">
                         <Label htmlFor="notes">Observações</Label>
-                        <Textarea 
-                          placeholder="Observações do pedido" 
-                          value={notes} 
+                        <Textarea
+                          placeholder="Observações do pedido"
+                          value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           onBlur={() => {
                             // Salvar automaticamente quando o usuário terminar de editar as observações
@@ -1336,7 +1339,7 @@ export default function OrderFormPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="products" className="space-y-4 pt-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1356,19 +1359,19 @@ export default function OrderFormPage() {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button 
+                      <Button
                         ref={addProductButtonRef}
                         onClick={() => {
                           // Abre a modal
                           setAddProductModalOpen(true);
-                          
+
                           // Limpa os campos
                           setSelectedProductId(null);
                           setClientRef("");
                           setProductQuantity(1);
                           setSelectedDiscountId(null);
                           setShouldSaveConversion(false);
-                          
+
                           // Dá tempo para o componente carregar antes de focar no campo de referência do cliente
                           setTimeout(() => {
                             const clientRefInput = document.getElementById('clientRefSearchInput');
@@ -1376,7 +1379,7 @@ export default function OrderFormPage() {
                               (clientRefInput as HTMLElement).focus();
                             }
                           }, 100);
-                        }} 
+                        }}
                         disabled={false}
                         size="sm"
                         className="md:h-10"
@@ -1419,7 +1422,7 @@ export default function OrderFormPage() {
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
                                     <span className="md:hidden font-bold">Ref. Cliente:</span>
                                     {item.clientRef || item.product?.conversion ? (
-                                      <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
+                                      <span className="px-2 py-1  rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
                                         {item.clientRef || item.product?.conversion}
                                       </span>
                                     ) : (
@@ -1427,7 +1430,7 @@ export default function OrderFormPage() {
                                     )}
                                   </TableCell>
                                 )}
-                                
+
                                 {/* Nome do Produto */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Produto:</span>
@@ -1436,71 +1439,71 @@ export default function OrderFormPage() {
                                     <p className="text-xs text-gray-500">{item.product?.code}</p>
                                   </div>
                                 </TableCell>
-                                
+
                                 {/* Quantidade */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Quantidade:</span>
-                                  <Input 
-                                    type="number" 
-                                    min="1" 
+                                  <Input
+                                    type="number"
+                                    min="1"
                                     value={item.quantity}
                                     onChange={(e) => updateItemQuantity(index, parseInt(e.target.value))}
                                     className="w-20 h-8"
                                     disabled={false}
                                   />
                                 </TableCell>
-                                
+
                                 {/* Preço Tabela - Escondido em Mobile */}
                                 <TableCell className="hidden md:table-cell">
                                   {formatCurrency(item.unitPrice)}
                                 </TableCell>
-                                
+
                                 {/* Desconto */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Desconto:</span>
                                   <DiscountSelect
                                     value={item.discountId}
-                                    onChange={(discountId, discountPercentage, commission) => 
+                                    onChange={(discountId, discountPercentage, commission) =>
                                       updateItemDiscount(index, discountId, discountPercentage, commission)
                                     }
                                     label=""
                                     className="w-full md:w-32"
                                   />
                                 </TableCell>
-                                
+
                                 {/* Preço com Desconto */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Preço c/ Desc.:</span>
                                   {formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}
                                 </TableCell>
-                                
+
                                 {/* Comissão - Escondido em Mobile */}
                                 <TableCell className="hidden md:table-cell">
                                   {item.commission}%
                                 </TableCell>
-                                
+
                                 {/* Subtotal */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
                                   <span className="md:hidden font-bold">Subtotal:</span>
                                   {formatCurrency(item.subtotal)}
                                 </TableCell>
-                                
+
                                 {/* Ações */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block text-center md:text-right">
                                   <span className="md:hidden font-bold">Ações:</span>
                                   <div className="flex justify-center md:justify-end space-x-1">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => openCalculator(item.productId)}
                                       className="text-blue-500 hover:text-blue-700"
                                       title="Calculadora de preço"
                                     >
                                       <Calculator className="h-4 w-4" />
                                     </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => {
                                         // Predefinir os valores para edição
                                         setSelectedProductId(item.productId);
@@ -1508,14 +1511,14 @@ export default function OrderFormPage() {
                                         setSelectedDiscountId(item.discountId || null);
                                         setClientRef(item.product?.conversion || item.clientRef || '');
                                         setShouldSaveConversion(true);
-                                        
+
                                         // Remover o item atual para ser substituído
                                         // Com a ordenação invertida na exibição, precisamos ajustar o índice
                                         const actualIndex = orderItems.length - 1 - index;
                                         const updatedItems = [...orderItems];
                                         updatedItems.splice(actualIndex, 1);
                                         setOrderItems(updatedItems);
-                                        
+
                                         // Abrir o modal para edição
                                         setAddProductModalOpen(true);
                                       }}
@@ -1524,9 +1527,9 @@ export default function OrderFormPage() {
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => removeOrderItem(index, false)}
                                       className="text-red-500 hover:text-red-700"
                                       title="Excluir item"
@@ -1541,7 +1544,7 @@ export default function OrderFormPage() {
                         </TableBody>
                       </Table>
                     </div>
-                    
+
                     {/* Order Summary */}
                     {orderItems.length > 0 && (
                       <div className="mt-8 flex justify-end">
@@ -1557,8 +1560,8 @@ export default function OrderFormPage() {
                             <div className="flex justify-between items-center">
                               <dt className="text-sm text-gray-500 dark:text-gray-400">Taxa de Frete</dt>
                               <dd className="text-sm font-medium text-gray-900 dark:text-white">
-                                <Input 
-                                  type="text" 
+                                <Input
+                                  type="text"
                                   value={totals.taxes}
                                   onChange={(e) => {
                                     // Permitir apenas números e ponto decimal
@@ -1604,14 +1607,14 @@ export default function OrderFormPage() {
                 </Card>
               </TabsContent>
             </Tabs>
-            
+
             {/* Add Product Modal */}
             <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Adicionar Produto</DialogTitle>
                 </DialogHeader>
-                
+
                 <div className="space-y-4 py-4">
                   <Tabs defaultValue="code" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
@@ -1621,7 +1624,7 @@ export default function OrderFormPage() {
                     <TabsContent value="code" className="space-y-4 pt-4">
                       <div className="space-y-2">
                         <Label htmlFor="product">Produto</Label>
-                        <ProductSearch 
+                        <ProductSearch
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
                           autoFocus={true}
@@ -1657,7 +1660,7 @@ export default function OrderFormPage() {
                                           description: `Não encontramos um produto com a referência "${clientRef}".`,
                                           variant: "destructive",
                                         });
-                                        
+
                                         setIsSearchingByClientRef(false);
                                         return null;
                                       }
@@ -1670,22 +1673,22 @@ export default function OrderFormPage() {
                                       if (!product.conversion) {
                                         product.conversion = clientRef;
                                       }
-                                      
+
                                       setSelectedProductId(product.id);
-                                      
+
                                       fetch(`/api/products/${product.id}/save-conversion`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ clientRef })
                                       })
-                                      .then(res => res.json())
-                                      .then(updatedProduct => {
-                                        console.log("Conversão salva com sucesso:", updatedProduct);
-                                      })
-                                      .catch(error => {
-                                        console.error("Erro ao salvar conversão:", error);
-                                      });
-                                      
+                                        .then(res => res.json())
+                                        .then(updatedProduct => {
+                                          console.log("Conversão salva com sucesso:", updatedProduct);
+                                        })
+                                        .catch(error => {
+                                          console.error("Erro ao salvar conversão:", error);
+                                        });
+
                                       toast({
                                         title: "Produto encontrado",
                                         description: `${product.name} (${product.code}) foi selecionado.`,
@@ -1706,7 +1709,7 @@ export default function OrderFormPage() {
                             }}
                             autoFocus
                           />
-                          <Button 
+                          <Button
                             onClick={() => {
                               setIsSearchingByClientRef(true);
                               fetch(`/api/products/by-client-reference/${encodeURIComponent(clientRef)}`)
@@ -1719,7 +1722,7 @@ export default function OrderFormPage() {
                                         description: `Não encontramos um produto com a referência "${clientRef}".`,
                                         variant: "destructive",
                                       });
-                                      
+
                                       setIsSearchingByClientRef(false);
                                       return null;
                                     }
@@ -1733,28 +1736,28 @@ export default function OrderFormPage() {
                                     if (!product.conversion) {
                                       product.conversion = clientRef;
                                     }
-                                    console.log("Produto encontrado com referência do cliente:", { 
-                                      produto: product.name, 
-                                      id: product.id, 
-                                      referencia: clientRef 
+                                    console.log("Produto encontrado com referência do cliente:", {
+                                      produto: product.name,
+                                      id: product.id,
+                                      referencia: clientRef
                                     });
-                                    
+
                                     setSelectedProductId(product.id);
-                                    
+
                                     // Salvar a conversão no servidor imediatamente
                                     fetch(`/api/products/${product.id}/save-conversion`, {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({ clientRef })
                                     })
-                                    .then(res => res.json())
-                                    .then(updatedProduct => {
-                                      console.log("Conversão salva com sucesso:", updatedProduct);
-                                    })
-                                    .catch(error => {
-                                      console.error("Erro ao salvar conversão:", error);
-                                    });
-                                    
+                                      .then(res => res.json())
+                                      .then(updatedProduct => {
+                                        console.log("Conversão salva com sucesso:", updatedProduct);
+                                      })
+                                      .catch(error => {
+                                        console.error("Erro ao salvar conversão:", error);
+                                      });
+
                                     toast({
                                       title: "Produto encontrado",
                                       description: `${product.name} (${product.code}) foi selecionado.`,
@@ -1780,8 +1783,8 @@ export default function OrderFormPage() {
                       </div>
                     </TabsContent>
                   </Tabs>
-                  
-                  {selectedProductId && (
+
+                  {/* {selectedProductId && (
                     <div className="space-y-4 pt-2">
                       <div className="flex items-center space-x-2">
                         <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
@@ -1808,14 +1811,14 @@ export default function OrderFormPage() {
                         </Label>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="quantity">Quantidade</Label>
-                      <Input 
-                        type="number" 
-                        min="1" 
+                      <Input
+                        type="number"
+                        min="1"
                         value={productQuantity}
                         onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
                         onKeyDown={(e) => {
@@ -1839,28 +1842,28 @@ export default function OrderFormPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button 
+                  <Button
                     onClick={addProductToOrder}
                     disabled={!selectedProductId || productQuantity <= 0}
                   >
                     Adicionar
                   </Button>
+                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
+                    Cancelar
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            
+
             {/* PDF Preview Modal */}
             <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle>Visualização do Pedido em PDF</DialogTitle>
                 </DialogHeader>
-                
+
                 <div className="flex items-center mb-4 space-x-2">
                   <input
                     type="checkbox"
@@ -1873,8 +1876,8 @@ export default function OrderFormPage() {
                     Exibir Referências do Cliente no PDF
                   </Label>
                 </div>
-                
-                <PdfTemplate 
+
+                <PdfTemplate
                   order={preparePdfData().order}
                   items={preparePdfData().items}
                   onClose={() => setShowPdfPreview(false)}
@@ -1892,10 +1895,10 @@ export default function OrderFormPage() {
           </div>
         )}
       </div>
-      
+
       {/* Componente de ajuda com atalhos de teclado */}
       {showShortcutsHelp && <KeyboardShortcutsHelp />}
-      
+
       {/* Modal para adicionar condição de pagamento personalizada */}
       <Dialog open={addPaymentTermModalOpen} onOpenChange={setAddPaymentTermModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1916,11 +1919,11 @@ export default function OrderFormPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setAddPaymentTermModalOpen(false)}>
-              Cancelar
-            </Button>
             <Button type="button" onClick={handleAddPaymentTerm}>
               Adicionar
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setAddPaymentTermModalOpen(false)}>
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>

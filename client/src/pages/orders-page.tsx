@@ -158,6 +158,7 @@ export default function OrdersPage() {
           id: selectedOrder.id,
           clientName: client.name,
           clientCnpj: client.cnpj || "-",
+          clientCode: client.code || "",
           date: formatDate(selectedOrder.createdAt || ""),
           status: selectedOrder.status,
           paymentTerms: selectedOrder.paymentTerms || "À vista",
@@ -165,7 +166,8 @@ export default function OrdersPage() {
           discount: Number(selectedOrder.discount || 0),
           taxes: Number(selectedOrder.taxes || 0),
           total: Number(selectedOrder.total || 0),
-          representative: "Representante", // Este valor seria melhor obtido do usuário atual
+          representative: "Representante",
+          notes: selectedOrder.notes || "", // Este valor seria melhor obtido do usuário atual
           totalCommission: selectedOrder.status === 'confirmado' ? 
             // Calcular o total de comissão baseado nos itens do pedido
             selectedOrderItems?.reduce((total, item) => {
