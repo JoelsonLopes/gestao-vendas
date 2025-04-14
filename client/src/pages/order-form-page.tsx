@@ -83,7 +83,7 @@ export default function OrderFormPage() {
     discountPercentage: number;
     commission: number;
     subtotal: number;
-    product?: Product | null;
+    product?: Product;
     clientRef?: string | null;
   }>>([]);
   
@@ -98,6 +98,8 @@ export default function OrderFormPage() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [showClientRefs, setShowClientRefs] = useState(true); // Estado para controlar a exibição das referências do cliente na tabela
+  const [showClientRefsInPdf, setShowClientRefsInPdf] = useState(true); // Estado para controlar a exibição das referências do cliente no PDF
   
   // Estado para a modal de nova condição de pagamento
   const [addPaymentTermModalOpen, setAddPaymentTermModalOpen] = useState(false);
@@ -300,7 +302,7 @@ export default function OrderFormPage() {
             commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
             subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
             discountId: item.discountId,
-            product,
+            product: product || undefined,
             clientRef: item.clientRef || product?.conversion || null,
           };
         });
@@ -1187,148 +1189,12 @@ export default function OrderFormPage() {
         
         {/* Versão para impressão - visível apenas durante a impressão */}
         <div className="hidden print:block print-document">
-          <div className="print-header">
-            <div className="flex justify-between items-center border-b border-gray-300 pb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">PEDIDO #{id || 'Novo'}</h1>
-                <p className="text-sm text-gray-500">Data: {new Date().toLocaleDateString()}</p>
-              </div>
-              
-              <div className="inline-flex items-center px-3 py-1 rounded">
-                <span className="text-sm font-medium">{status === 'confirmado' ? 'CONFIRMADO' : 'COTAÇÃO'}</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6 mt-6">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Cliente</h2>
-                <div className="text-gray-800">
-                  <p className="font-medium text-base">
-                    {clients?.find(c => c.id === clientId)?.name || 'Não selecionado'} (Cód: 
-                    {clients?.find(c => c.id === clientId)?.code || '-'})
-                  </p>
-                  <p className="text-sm text-gray-600">CNPJ: {clients?.find(c => c.id === clientId)?.cnpj || ''}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Data</h2>
-                  <p className="text-gray-800">{new Date().toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Pagamento</h2>
-                  <p className="text-gray-800">{paymentTerms}</p>
-                </div>
-                <div className="col-span-2">
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Representante</h2>
-                  <p className="text-gray-800">{user?.name || ''}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {notes && (
-            <div className="mt-6 mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase mb-2">Observações</h2>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{notes}</p>
-            </div>
-          )}
-          
-          <div className="mt-8 print-items">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase mb-4">Itens do Pedido</h2>
-            
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Cliente</th>
-                  <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Desconto</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Preço c/ Desconto</th>
-                  <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orderItems.map((item, index) => {
-                  // Cálculo do preço com desconto
-                  const priceWithDiscount = item.discountPercentage > 0 
-                    ? item.unitPrice * (1 - item.discountPercentage / 100) 
-                    : item.unitPrice;
-                    
-                  // Cálculo do total do item (preço com desconto * quantidade)
-                  const totalItem = priceWithDiscount * item.quantity;
-                  
-                  // Obter informações sobre o desconto aplicado
-                  const discountInfo = item.discountId ? 
-                    discounts?.find(d => d.id === item.discountId) : null;
-                    
-                  return (
-                    <tr key={index} className="border-b border-gray-200">
-                      <td className="py-3 align-middle text-sm">
-                        {item.clientRef || item.product?.conversion || '-'}
-                      </td>
-                      <td className="py-3 align-middle text-sm">{item.product?.name}</td>
-                      <td className="py-3 align-middle text-sm text-right">{item.quantity}</td>
-                      <td className="py-3 align-middle text-sm text-right">
-                        {item.discountPercentage > 0 ? (
-                          <span className={status === 'confirmado' ? 'bg-blue-100 px-2 py-1 rounded text-blue-800' : ''}>
-                            {discountInfo?.name || `${item.discountPercentage}%`}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="py-3 align-middle text-sm text-right">{formatCurrency(priceWithDiscount)}</td>
-                      <td className="py-3 align-middle text-sm text-right font-medium">{formatCurrency(totalItem)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="mt-6 flex justify-end print-footer">
-            <div className="w-1/3">
-              <div className="border-t border-gray-300 pt-4">
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Subtotal:</span>
-                  <span className="text-sm text-gray-800">{formatCurrency(totals.subtotal)}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-sm text-gray-600">Taxa de Frete:</span>
-                  <span className="text-sm text-gray-800">{formatCurrency(totals.taxes)}</span>
-                </div>
-                <div className="flex justify-between py-1 total-pecas-print">
-                  <span className="text-sm text-gray-600 font-bold">Total de Peças:</span>
-                  <span className="text-sm text-gray-800 font-bold">
-                    {orderItems.reduce((sum, item) => sum + item.quantity, 0)}
-                  </span>
-                </div>
-                <div className="border-t border-gray-300 my-2"></div>
-                <div className="flex justify-between py-1">
-                  <span className="text-base font-medium text-gray-800">Total:</span>
-                  <span className="text-base font-medium text-gray-800">{formatCurrency(totals.total)}</span>
-                </div>
-                
-                {/* Mostrar total da comissão se o pedido for confirmado */}
-                {status === 'confirmado' && (
-                  <div className="flex justify-between py-1 mt-2">
-                    <span className="text-sm text-gray-600">Total Comissão:</span>
-                    <span className="text-sm text-gray-800">
-                      {formatCurrency(orderItems.reduce((sum, item) => {
-                        const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
-                        return sum + (totalItem * (item.commission / 100));
-                      }, 0))}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 text-xs text-center text-gray-500">
-            <p>Este documento não possui valor fiscal.</p>
-            <p>Impresso em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}</p>
-          </div>
+          <PdfTemplate 
+            order={preparePdfData().order}
+            items={preparePdfData().items}
+            onClose={() => {}}
+            showClientRefs={showClientRefsInPdf}
+          />
         </div>
 
         {isLoading ? (
@@ -1474,7 +1340,21 @@ export default function OrderFormPage() {
               <TabsContent value="products" className="space-y-4 pt-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle>Produtos do Pedido</CardTitle>
+                    <div className="flex items-center space-x-4">
+                      <CardTitle>Produtos do Pedido</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="showClientRefs"
+                          checked={showClientRefs}
+                          onChange={(e) => setShowClientRefs(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="showClientRefs" className="text-sm font-normal">
+                          Exibir Ref. Cliente
+                        </Label>
+                      </div>
+                    </div>
                     <div className="flex space-x-2">
                       <Button 
                         ref={addProductButtonRef}
@@ -1512,7 +1392,7 @@ export default function OrderFormPage() {
                       <Table>
                         <TableHeader className="hidden md:table-header-group">
                           <TableRow>
-                            <TableHead>Ref. Cliente</TableHead>
+                            {showClientRefs && <TableHead>Ref. Cliente</TableHead>}
                             <TableHead>Produto</TableHead>
                             <TableHead>Qtde</TableHead>
                             <TableHead>Preço Tabela</TableHead>
@@ -1534,17 +1414,19 @@ export default function OrderFormPage() {
                             // Invertemos a ordem para mostrar os mais recentes primeiro
                             [...orderItems].reverse().map((item, index) => (
                               <TableRow key={index} className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none">
-                                {/* Referência do Cliente */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Ref. Cliente:</span>
-                                  {item.clientRef || item.product?.conversion ? (
-                                    <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
-                                      {item.clientRef || item.product?.conversion}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
+                                {/* Referência do Cliente - Visibilidade controlada pelo checkbox */}
+                                {showClientRefs && (
+                                  <TableCell className="md:table-cell p-4 md:p-2 block">
+                                    <span className="md:hidden font-bold">Ref. Cliente:</span>
+                                    {item.clientRef || item.product?.conversion ? (
+                                      <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
+                                        {item.clientRef || item.product?.conversion}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                )}
                                 
                                 {/* Nome do Produto */}
                                 <TableCell className="md:table-cell p-4 md:p-2 block">
@@ -1742,7 +1624,7 @@ export default function OrderFormPage() {
                         <ProductSearch 
                           selectedProductId={selectedProductId}
                           onProductSelect={setSelectedProductId}
-                          
+                          autoFocus={true}
                           onEnterKeyPressed={() => {
                             // Se um produto foi selecionado e tudo está OK, adicionar o produto
                             if (selectedProductId && productQuantity > 0) {
@@ -1822,7 +1704,7 @@ export default function OrderFormPage() {
                                   });
                               }
                             }}
-                            
+                            autoFocus
                           />
                           <Button 
                             onClick={() => {
@@ -1899,7 +1781,7 @@ export default function OrderFormPage() {
                     </TabsContent>
                   </Tabs>
                   
-                  {/* {selectedProductId && (
+                  {selectedProductId && (
                     <div className="space-y-4 pt-2">
                       <div className="flex items-center space-x-2">
                         <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
@@ -1926,7 +1808,7 @@ export default function OrderFormPage() {
                         </Label>
                       </div>
                     </div>
-                  )} */}
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1959,16 +1841,15 @@ export default function OrderFormPage() {
                 </div>
                 
                 <DialogFooter>
-                <Button 
+                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button 
                     onClick={addProductToOrder}
                     disabled={!selectedProductId || productQuantity <= 0}
                   >
                     Adicionar
                   </Button>
-                  <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
-                    Cancelar
-                  </Button>
-                  
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -1980,10 +1861,24 @@ export default function OrderFormPage() {
                   <DialogTitle>Visualização do Pedido em PDF</DialogTitle>
                 </DialogHeader>
                 
+                <div className="flex items-center mb-4 space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showClientRefsInPdf"
+                    checked={showClientRefsInPdf}
+                    onChange={(e) => setShowClientRefsInPdf(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="showClientRefsInPdf" className="text-sm font-normal">
+                    Exibir Referências do Cliente no PDF
+                  </Label>
+                </div>
+                
                 <PdfTemplate 
                   order={preparePdfData().order}
                   items={preparePdfData().items}
                   onClose={() => setShowPdfPreview(false)}
+                  showClientRefs={showClientRefsInPdf}
                 />
               </DialogContent>
             </Dialog>
