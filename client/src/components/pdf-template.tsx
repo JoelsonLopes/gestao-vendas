@@ -390,8 +390,8 @@ export function PdfTemplate({
 
       // Exibir nome do desconto para pedidos confirmados, ou apenas a porcentagem para cotações
       if (discount > 0) {
-        if (order.status === "confirmado" && item.discountName) {
-          // Destacar o nome do desconto para pedidos confirmados
+        if (item.discountName) {  // Removida a condição de status === "confirmado"
+          // Destacar o nome do desconto
           doc.setFillColor(204, 229, 255); // Azul claro
           doc.roundedRect(tableX + 115, currentY + 1.5, 15, 5, 1, 1, "F");
           doc.setTextColor(0, 51, 153); // Azul escuro

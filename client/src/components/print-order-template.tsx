@@ -263,7 +263,7 @@ export function PrintOrderTemplate({
                     </td>
                     <td className="p-2 align-middle text-sm text-right">
                       {itemDiscount > 0 ? (
-                        order.status === "confirmado" && item.discountName ? (
+                        item.discountName ? ( 
                           <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded-md">
                             {item.discountName}
                           </span>
@@ -274,6 +274,7 @@ export function PrintOrderTemplate({
                         "-"
                       )}
                     </td>
+
                     <td className="p-2 align-middle text-sm text-right font-medium">
                       {formatCurrency(priceWithDiscount)}
                     </td>
@@ -308,8 +309,7 @@ export function PrintOrderTemplate({
             </div>
           </div>
 
-          {/* Produtos por marca (opcional) */}
-          {order.status === "confirmado" && (
+          {/* Produtos por marca (opcional) */}          
             <div className="mt-2 pt-2 border-t border-gray-200">
               <p className="text-xs text-gray-600 mb-1">Produtos por marca:</p>
               {Object.entries(
@@ -327,8 +327,7 @@ export function PrintOrderTemplate({
                   <span>{count} itens</span>
                 </div>
               ))}
-            </div>
-          )}
+            </div>        
         </div>
 
         {/* Resumo Financeiro */}
@@ -373,8 +372,7 @@ export function PrintOrderTemplate({
         </div>
       </section>
 
-      {/* Área para Assinaturas */}
-      {order.status === "confirmado" && (
+      {/* Área para Assinaturas */}      
         <section className="mt-8 mb-6">
           <div className="w-[50%] mx-auto">
             <div className="border-t border-gray-300 pt-2">
@@ -387,10 +385,6 @@ export function PrintOrderTemplate({
             </div>
           </div>
         </section>
-      )}
-
-
-
     </div>
   );
 }
