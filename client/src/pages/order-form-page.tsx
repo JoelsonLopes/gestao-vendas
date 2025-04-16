@@ -1,32 +1,19 @@
-import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
-import { useState, useEffect, useRef, useCallback, KeyboardEvent } from "react";
-import { DashboardLayout } from "@/layouts/dashboard-layout";
-import { useLocation, useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { ClientSearch } from "@/components/client-search";
-import { ProductSearch } from "@/components/product-search";
-import {
-  Loader2,
-  Save,
-  Check,
-  CheckCircle,
-  FileDown,
-  ArrowLeft,
-  PlusCircle,
-  Trash,
-  Search,
-  Printer,
-  Calculator,
-  Pencil,
-  Keyboard
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+"use client"
+
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { DashboardLayout } from "@/layouts/dashboard-layout"
+import { useLocation, useRoute } from "wouter"
+import { useQuery, useMutation } from "@tanstack/react-query"
+import { queryClient, apiRequest } from "@/lib/queryClient"
+import { ClientSearch } from "@/components/client-search"
+import { ProductSearch } from "@/components/product-search"
+import { Loader2, Save, CheckCircle, ArrowLeft, PlusCircle, Trash, Printer, Calculator, Pencil } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import {
   Select,
   SelectContent,
@@ -35,318 +22,359 @@ import {
   SelectLabel,
   SelectSeparator,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/components/ui/dialog";
-import { DiscountSelect } from "@/components/discount-select";
-import { PdfTemplate } from "@/components/pdf-template";
-import { PriceCalculatorModal } from "@/components/price-calculator-modal";
-import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils";
-import { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema";
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "@/components/ui/dialog"
+import { DiscountSelect } from "@/components/discount-select"
+import { PdfTemplate } from "@/components/pdf-template"
+import { PriceCalculatorModal } from "@/components/price-calculator-modal"
+import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils"
+import type { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema"
 
 export default function OrderFormPage() {
-  const [location, navigate] = useLocation();
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const [location, navigate] = useLocation()
+  const { toast } = useToast()
+  const { user } = useAuth()
 
   // Usar useRoute para capturar parâmetros de rota
-  const [match, params] = useRoute("/orders/:id");
-  const [id, setId] = useState<string | undefined>(params?.id);
-  const [isEditMode, setIsEditMode] = useState<boolean>(!!params?.id);
-  const isNewOrder = id === "new";
+  const [match, params] = useRoute("/orders/:id")
+  const [id, setId] = useState<string | undefined>(params?.id)
+  const [isEditMode, setIsEditMode] = useState<boolean>(!!params?.id)
+  const isNewOrder = id === "new"
 
   // Estado para mostrar o painel de atalhos
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false)
 
-  console.log("OrderFormPage - URL atual:", location);
-  console.log("OrderFormPage - ID do pedido:", id);
-  console.log("OrderFormPage - É modo de edição?", isEditMode);
-  console.log("OrderFormPage - É pedido novo?", isNewOrder);
+  // Estado para controlar se há alterações não salvas
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
+
+  console.log("OrderFormPage - URL atual:", location)
+  console.log("OrderFormPage - ID do pedido:", id)
+  console.log("OrderFormPage - É modo de edição?", isEditMode)
+  console.log("OrderFormPage - É pedido novo?", isNewOrder)
 
   // Order form state
-  const [clientId, setClientId] = useState<number | null>(null);
-  const [status, setStatus] = useState<"cotacao" | "confirmado">("cotacao");
-  const [paymentTerms, setPaymentTerms] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
+  const [clientId, setClientId] = useState<number | null>(null)
+  const [status, setStatus] = useState<"cotacao" | "confirmado">("cotacao")
+  const [paymentTerms, setPaymentTerms] = useState<string>("")
+  const [notes, setNotes] = useState<string>("")
 
   // Order items state
-  const [orderItems, setOrderItems] = useState<Array<{
-    id?: number;
-    productId: number;
-    quantity: number;
-    unitPrice: number;
-    discountId: number | null;
-    discountPercentage: number;
-    commission: number;
-    subtotal: number;
-    product?: Product;
-    clientRef?: string | null;
-  }>>([]);
+  const [orderItems, setOrderItems] = useState<
+    Array<{
+      id?: number
+      productId: number
+      quantity: number
+      unitPrice: number
+      discountId: number | null
+      discountPercentage: number
+      commission: number
+      subtotal: number
+      product?: Product
+      clientRef?: string | null
+    }>
+  >([])
 
   // UI state
-  const [addProductModalOpen, setAddProductModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null);
-  const [productQuantity, setProductQuantity] = useState(1);
-  const [clientRef, setClientRef] = useState("");
-  const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false);
-  const [shouldSaveConversion, setShouldSaveConversion] = useState(false);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [calculatorOpen, setCalculatorOpen] = useState(false);
-  const [showClientRefs, setShowClientRefs] = useState(true); // Estado para controlar a exibição das referências do cliente na tabela
-  const [showClientRefsInPdf, setShowClientRefsInPdf] = useState(true); // Estado para controlar a exibição das referências do cliente no PDF
+  const [addProductModalOpen, setAddProductModalOpen] = useState(false)
+  const [productsModalOpen, setProductsModalOpen] = useState(false)
+  const [tempOrderItems, setTempOrderItems] = useState<
+    Array<{
+      id?: number
+      productId: number
+      quantity: number
+      unitPrice: number
+      discountId: number | null
+      discountPercentage: number
+      commission: number
+      subtotal: number
+      product?: Product
+      clientRef?: string | null
+    }>
+  >([])
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
+  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null)
+  const [productQuantity, setProductQuantity] = useState(1)
+  const [clientRef, setClientRef] = useState("")
+  const [isSearchingByClientRef, setIsSearchingByClientRef] = useState(false)
+  const [shouldSaveConversion, setShouldSaveConversion] = useState(false)
+  const [showPdfPreview, setShowPdfPreview] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [calculatorOpen, setCalculatorOpen] = useState(false)
+  const [showClientRefsInPdf, setShowClientRefsInPdf] = useState(true) // Estado para controlar a exibição das referências do cliente no PDF
+  const [showClientRefsInPrint, setShowClientRefsInPrint] = useState<boolean>(true) // Estado para controlar a exibição das referências do cliente na impressão
+
+  // Adicionar o estado temporário para os produtos na modal
+  // Adicionar logo após os estados UI existentes
+  // Adicionar estado para controlar a modal de produtos
 
   // Estado para a modal de nova condição de pagamento
-  const [addPaymentTermModalOpen, setAddPaymentTermModalOpen] = useState(false);
-  const [newPaymentTerm, setNewPaymentTerm] = useState("");
-  const [calculatorProduct, setCalculatorProduct] = useState<Product | null>(null);
+  const [addPaymentTermModalOpen, setAddPaymentTermModalOpen] = useState(false)
+  const [newPaymentTerm, setNewPaymentTerm] = useState("")
+  const [calculatorProduct, setCalculatorProduct] = useState<Product | null>(null)
   const [totals, setTotals] = useState<{
-    subtotal: number;
-    taxes: number;
-    total: number;
+    subtotal: number
+    taxes: number
+    total: number
   }>({
     subtotal: 0,
     taxes: 0,
     total: 0,
-  });
+  })
 
   // Get clients
   const clientsQuery = useQuery<Client[]>({
     queryKey: ["/api/clients"],
-  });
+  })
 
-  const clients = clientsQuery.data || [];
-  const isLoadingClients = clientsQuery.isLoading;
+  const clients = clientsQuery.data || []
+  const isLoadingClients = clientsQuery.isLoading
 
   // Get representatives (para permitir que o admin selecione o representante)
   const { data: representatives, isLoading: isLoadingRepresentatives } = useQuery<any[]>({
     queryKey: ["/api/representatives"],
     enabled: user?.role === "admin", // Somente carrega se o usuário for admin
-  });
+  })
 
   // Estado para armazenar o representante selecionado
-  const [representativeId, setRepresentativeId] = useState<number | null>(user?.id || null);
+  const [representativeId, setRepresentativeId] = useState<number | null>(user?.id || null)
 
   // Logger para debug - executado apenas uma vez quando os dados carregarem
   useEffect(() => {
     if (clients && clients.length > 0) {
-      console.log(`Clientes carregados: ${clients.length}`);
+      console.log(`Clientes carregados: ${clients.length}`)
 
       // Log de alguns clientes para verificação
-      console.log("Exemplos de clientes:", clients.slice(0, 5).map(client => ({
-        id: client.id,
-        name: client.name,
-        code: client.code
-      })));
+      console.log(
+        "Exemplos de clientes:",
+        clients.slice(0, 5).map((client) => ({
+          id: client.id,
+          name: client.name,
+          code: client.code,
+        })),
+      )
 
       // Verificar se temos cliente com código específico
-      const cliente8028 = clients.find(client => client.code === "8028");
+      const cliente8028 = clients.find((client) => client.code === "8028")
       if (cliente8028) {
-        console.log("Cliente 8028 encontrado:", cliente8028);
+        console.log("Cliente 8028 encontrado:", cliente8028)
       } else {
-        console.log("Cliente 8028 NÃO encontrado nos dados carregados");
+        console.log("Cliente 8028 NÃO encontrado nos dados carregados")
 
         // Listar alguns códigos de clientes para verificação
-        const sampleCodes = clients.slice(0, 20).map(c => c.code);
-        console.log("Alguns códigos de clientes disponíveis:", sampleCodes);
+        const sampleCodes = clients.slice(0, 20).map((c) => c.code)
+        console.log("Alguns códigos de clientes disponíveis:", sampleCodes)
       }
     }
-  }, [clients.length]);
+  }, [clients])
 
   // Get products
   // Get discounts
   const { data: discounts, isLoading: isLoadingDiscounts } = useQuery<any[]>({
     queryKey: ["/api/discounts"],
-  });
+  })
 
   // Get order details if in edit mode (mas não para pedidos novos com id="new")
   const { data: order, isLoading: isLoadingOrder } = useQuery<Order>({
     queryKey: ["orders", id],
     enabled: isEditMode && id !== "new",
     refetchOnWindowFocus: false,
-  });
+  })
 
   // Buscar itens do pedido se estivermos em modo de edição, o pedido foi carregado, e não é um pedido novo
   const { data: orderItemsData, isLoading: isLoadingOrderItems } = useQuery<OrderItem[]>({
     queryKey: ["orders", id, "items"],
     enabled: isEditMode && id !== "new" && !!order,
     refetchOnWindowFocus: false,
-  });
+  })
 
   // Log para depuração
   useEffect(() => {
     if (order) {
-      console.log("Detalhes do pedido carregados:", order);
+      console.log("Detalhes do pedido carregados:", order)
     }
     if (orderItemsData) {
-      console.log("Itens do pedido carregados:", orderItemsData);
+      console.log("Itens do pedido carregados:", orderItemsData)
     }
-  }, [order, orderItemsData]);
+  }, [order, orderItemsData])
 
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (data: { order: InsertOrder; items: Omit<InsertOrderItem, "orderId">[] }) => {
-      const response = await apiRequest("POST", "/api/orders", data);
-      return response.json();
+      const response = await apiRequest("POST", "/api/orders", data)
+      return response.json()
     },
     onSuccess: (data) => {
       // Invalidar o cache de pedidos
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] })
 
       // Se recebemos um ID do pedido, atualizamos a URL sem redirecionar
       if (data && data.order && data.order.id) {
         // Atualizar a URL para o pedido criado sem recarregar a página
-        window.history.replaceState(null, '', `/orders/${data.order.id}`);
+        window.history.replaceState(null, "", `/orders/${data.order.id}`)
 
         // Atualizar state para refletir que estamos agora em modo de edição
-        setIsEditMode(true);
+        setIsEditMode(true)
 
         // Definir o ID do pedido para o novo pedido criado
-        setId(String(data.order.id));
+        setId(String(data.order.id))
+
+        // Recarregar os dados do pedido
+        queryClient.invalidateQueries({ queryKey: ["orders", String(data.order.id)] })
+        queryClient.invalidateQueries({ queryKey: ["orders", String(data.order.id), "items"] })
+
+        toast({
+          title: "Pedido criado",
+          description: "Pedido foi criado com sucesso. A página será atualizada com os dados mais recentes.",
+        })
+
+        // Forçar uma atualização da página após um atraso para garantir que o salvamento foi concluído
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
       }
 
-      toast({
-        title: "Pedido criado",
-        description: "Pedido foi criado com sucesso. Você pode continuar adicionando itens.",
-      });
-
-      // Redefinir o estado isSubmitting
-      setIsSubmitting(false);
+      // Redefinir o estado isSubmitting e hasUnsavedChanges
+      setIsSubmitting(false)
+      setHasUnsavedChanges(false)
     },
     onError: (error) => {
       toast({
         title: "Erro",
         description: `Falha ao criar pedido: ${error.message}`,
         variant: "destructive",
-      });
-      setIsSubmitting(false);
+      })
+      setIsSubmitting(false)
     },
-  });
+  })
 
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: "cotacao" | "confirmado" }) => {
-      const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status });
-      return response.json();
+      const response = await apiRequest("PUT", `/api/orders/${id}/status`, { status })
+      return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["orders", id] })
       toast({
         title: "Status atualizado",
         description: "Status do pedido foi atualizado com sucesso",
-      });
+      })
+      setHasUnsavedChanges(false)
     },
     onError: (error) => {
       toast({
         title: "Erro",
         description: `Falha ao atualizar status: ${error.message}`,
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   // Load order data if in edit mode
   useEffect(() => {
     if (isEditMode && order) {
-      console.log("Carregando dados do pedido:", order);
-      console.log("Observações do pedido:", order.notes);
+      console.log("Carregando dados do pedido:", order)
+      console.log("Observações do pedido:", order.notes)
 
-      setClientId(order.clientId);
-      setStatus(order.status as "cotacao" | "confirmado");
-      setPaymentTerms(order.paymentTerms || "");
-      setNotes(order.notes || "");
+      setClientId(order.clientId)
+      setStatus(order.status as "cotacao" | "confirmado")
+      setPaymentTerms(order.paymentTerms || "")
+      setNotes(order.notes || "")
     }
-  }, [isEditMode, order]);
+  }, [isEditMode, order])
 
   // Função para buscar um produto por ID
   const fetchProductById = async (productId: number): Promise<Product | null> => {
     try {
-      const response = await fetch(`/api/products/${productId}`);
+      const response = await fetch(`/api/products/${productId}`)
       if (!response.ok) {
-        console.error(`Erro ao buscar o produto ${productId}:`, response.statusText);
-        return null;
+        console.error(`Erro ao buscar o produto ${productId}:`, response.statusText)
+        return null
       }
-      return await response.json();
+      return await response.json()
     } catch (error) {
-      console.error(`Erro ao buscar o produto ${productId}:`, error);
-      return null;
+      console.error(`Erro ao buscar o produto ${productId}:`, error)
+      return null
     }
-  };
+  }
 
   // Load order items if order is loaded
   useEffect(() => {
     const loadOrderItemsWithProducts = async () => {
       if (isEditMode && orderItemsData && Array.isArray(orderItemsData)) {
-        console.log("Processando itens do pedido:", orderItemsData);
+        console.log("Processando itens do pedido:", orderItemsData)
 
         // Carregar produtos para cada item
         const itemsWithProductsPromises = orderItemsData.map(async (item: any) => {
           // Buscar o produto para este item
-          const product = await fetchProductById(item.productId);
+          const product = await fetchProductById(item.productId)
 
           // Log detalhado para cada item
-          console.log("Processando item:", item, "Produto encontrado:", product);
+          console.log("Processando item:", item, "Produto encontrado:", product)
 
           return {
             id: item.id,
             productId: item.productId,
             // Converter strings para números com valores padrão para evitar nulos
-            unitPrice: typeof item.unitPrice === 'string' ? Number(item.unitPrice) : (item.unitPrice || 0),
-            quantity: typeof item.quantity === 'string' ? Number(item.quantity) : (item.quantity || 0),
-            discountPercentage: typeof item.discountPercentage === 'string' ? Number(item.discountPercentage) : (item.discountPercentage || 0),
-            commission: typeof item.commission === 'string' ? Number(item.commission) : (item.commission || 0),
-            subtotal: typeof item.subtotal === 'string' ? Number(item.subtotal) : (item.subtotal || 0),
+            unitPrice: typeof item.unitPrice === "string" ? Number(item.unitPrice) : item.unitPrice || 0,
+            quantity: typeof item.quantity === "string" ? Number(item.quantity) : item.quantity || 0,
+            discountPercentage:
+              typeof item.discountPercentage === "string"
+                ? Number(item.discountPercentage)
+                : item.discountPercentage || 0,
+            commission: typeof item.commission === "string" ? Number(item.commission) : item.commission || 0,
+            subtotal: typeof item.subtotal === "string" ? Number(item.subtotal) : item.subtotal || 0,
             discountId: item.discountId,
             product: product || undefined,
             clientRef: item.clientRef || product?.conversion || null,
-          };
-        });
+          }
+        })
 
         // Esperar que todos os produtos sejam carregados
-        const mappedItems = await Promise.all(itemsWithProductsPromises);
+        const mappedItems = await Promise.all(itemsWithProductsPromises)
 
-        console.log("Itens mapeados:", mappedItems);
-        setOrderItems(mappedItems);
+        console.log("Itens mapeados:", mappedItems)
+        setOrderItems(mappedItems)
       } else {
         console.log("Não foi possível processar itens do pedido:", {
           isEditMode,
           orderItemsData,
-          isArray: Array.isArray(orderItemsData)
-        });
+          isArray: Array.isArray(orderItemsData),
+        })
       }
-    };
+    }
 
-    loadOrderItemsWithProducts();
-  }, [isEditMode, orderItemsData]);
+    loadOrderItemsWithProducts()
+  }, [isEditMode, orderItemsData])
 
   // Calculate order totals and update the state
   useEffect(() => {
     // O subtotal é a soma dos subtotais de cada item (que já incluem o desconto)
-    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0)
 
     // Não precisamos calcular desconto separadamente, pois já está incluído no preço unitário
     // O total é simplesmente o subtotal + taxa de frete
-    const taxes = isEditMode && order ? parseFloat(order.taxes || "0") : 0; // Taxa de frete editável pelo usuário
-    const total = subtotal + taxes;
+    const taxes = isEditMode && order ? Number.parseFloat(order.taxes || "0") : 0 // Taxa de frete editável pelo usuário
+    const total = subtotal + taxes
 
     console.log(`
       Resumo do pedido:
       - Subtotal (com desconto): ${formatCurrency(subtotal)}
       - Taxa de Frete: ${formatCurrency(taxes)}
       - Total: ${formatCurrency(total)}
-    `);
+    `)
 
     setTotals({
       subtotal: Number(subtotal.toFixed(2)),
       taxes: Number(taxes.toFixed(2)),
       total: Number(total.toFixed(2)),
-    });
-  }, [orderItems, isEditMode, order]);
+    })
+  }, [orderItems, isEditMode, order])
 
   // Function to handle adding a new payment term
   const handleAddPaymentTerm = () => {
@@ -355,301 +383,288 @@ export default function OrderFormPage() {
         title: "Erro",
         description: "Por favor, digite uma condição de pagamento válida.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     // Fechar o modal
-    setAddPaymentTermModalOpen(false);
+    setAddPaymentTermModalOpen(false)
 
     // Selecionar a nova condição de pagamento
-    setPaymentTerms(newPaymentTerm);
+    setPaymentTerms(newPaymentTerm)
 
-    // Salvar automaticamente quando o usuário adicionar uma nova condição (se houver cliente e itens)
-    if (clientId && orderItems.length > 0) {
-      setTimeout(() => {
-        handleSaveOrder();
-      }, 100);
-    }
+    // Marcar que há alterações não salvas
+    setHasUnsavedChanges(true)
 
     toast({
       title: "Condição adicionada",
       description: `A condição "${newPaymentTerm}" foi adicionada com sucesso.`,
-    });
-  };
+    })
+  }
 
   // Function to open calculator with a product
   const openCalculator = async (productId: number | null) => {
-    if (!productId) return;
+    if (!productId) return
 
     try {
-      const product = await fetchProductById(productId);
+      const product = await fetchProductById(productId)
       if (product) {
-        setCalculatorProduct(product);
-        setCalculatorOpen(true);
+        setCalculatorProduct(product)
+        setCalculatorOpen(true)
       } else {
         toast({
           title: "Erro",
           description: "Produto não encontrado.",
           variant: "destructive",
-        });
+        })
       }
     } catch (error) {
-      console.error("Erro ao buscar produto para calculadora:", error);
+      console.error("Erro ao buscar produto para calculadora:", error)
       toast({
         title: "Erro",
         description: "Não foi possível carregar as informações do produto.",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   // Referência para o botão "Adicionar Produto"
-  const addProductButtonRef = useRef<HTMLButtonElement>(null);
+  const addProductButtonRef = useRef<HTMLButtonElement>(null)
 
   // Hook de atalhos de teclado
   const useKeyboardShortcuts = useCallback(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       // Ignorar atalhos quando um input estiver com foco
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.tagName === 'SELECT'
-      );
+      const activeElement = document.activeElement
+      const isInputFocused =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.tagName === "SELECT")
 
       // Ignorar atalhos em inputs de texto, exceto Escape
-      if (isInputFocused && e.key !== 'Escape') return;
+      if (isInputFocused && e.key !== "Escape") return
 
       // Atalhos que funcionam em qualquer situação
-      if (e.key === '?' && e.shiftKey) {
-        e.preventDefault();
-        setShowShortcutsHelp(prev => !prev);
-        return;
+      if (e.key === "?" && e.shiftKey) {
+        e.preventDefault()
+        setShowShortcutsHelp((prev) => !prev)
+        return
       }
 
       // Ignorar se um modal estiver aberto, exceto ESC para fechar
       if (addProductModalOpen || calculatorOpen || showPdfPreview) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
+        if (e.key === "Escape") {
+          e.preventDefault()
 
           if (showPdfPreview) {
-            setShowPdfPreview(false);
+            setShowPdfPreview(false)
           } else if (calculatorOpen) {
-            setCalculatorOpen(false);
+            setCalculatorOpen(false)
           } else if (addProductModalOpen) {
-            setAddProductModalOpen(false);
+            setAddProductModalOpen(false)
           }
         }
-        return;
+        return
       }
 
       // Atalhos ativos só quando nenhum modal estiver aberto
       switch (e.key) {
-        case 'a':
+        case "a":
           // Atalho para adicionar novo produto
           if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
+            e.preventDefault()
             // Abre a modal
-            setAddProductModalOpen(true);
+            setAddProductModalOpen(true)
 
             // Limpa os campos
-            setSelectedProductId(null);
-            setClientRef("");
-            setProductQuantity(1);
-            setSelectedDiscountId(null);
-            setShouldSaveConversion(false);
+            setSelectedProductId(null)
+            setClientRef("")
+            setProductQuantity(1)
+            setSelectedDiscountId(null)
+            setShouldSaveConversion(false)
 
             // Dá tempo para o componente carregar antes de focar no campo de referência do cliente
             setTimeout(() => {
-              const clientRefInput = document.getElementById('clientRefSearchInput');
+              const clientRefInput = document.getElementById("clientRefSearchInput")
               if (clientRefInput) {
-                (clientRefInput as HTMLElement).focus();
+                ;(clientRefInput as HTMLElement).focus()
               }
-            }, 100);
+            }, 100)
           }
-          break;
+          break
 
-        case 's':
+        case "s":
           // Atalho para salvar pedido
           if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            handleSaveOrder();
+            e.preventDefault()
+            handleSaveOrder()
           } else if (e.ctrlKey || e.metaKey) {
             // Captura o Ctrl+S ou Cmd+S padrão
-            e.preventDefault();
-            handleSaveOrder();
+            e.preventDefault()
+            handleSaveOrder()
           }
-          break;
+          break
 
-        case 'p':
+        case "p":
           // Atalho para imprimir/visualizar PDF
           if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            setShowPdfPreview(true);
+            e.preventDefault()
+            setShowPdfPreview(true)
           }
-          break;
+          break
 
-        case 'Escape':
+        case "Escape":
           // Atalho para voltar para a lista de pedidos
-          e.preventDefault();
-          navigate('/orders');
-          break;
+          e.preventDefault()
+          navigate("/orders")
+          break
 
-        case 'c':
+        case "c":
           // Atalho para abrir calculadora (se não for input)
           if (!isInputFocused) {
-            e.preventDefault();
-            const firstProductId = orderItems[0]?.productId;
+            e.preventDefault()
+            const firstProductId = orderItems[0]?.productId
             if (firstProductId) {
-              openCalculator(firstProductId);
+              openCalculator(firstProductId)
             }
           }
-          break;
+          break
       }
-    };
+    }
 
     // Adicionar event listener global
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown)
 
     // Limpar event listener ao desmontar
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [addProductModalOpen, calculatorOpen, showPdfPreview, orderItems, navigate]);
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [addProductModalOpen, calculatorOpen, showPdfPreview, orderItems, navigate])
 
   // Ativar atalhos de teclado
   useEffect(() => {
-    const cleanup = useKeyboardShortcuts();
-    return cleanup;
-  }, [useKeyboardShortcuts]);
+    const cleanup = useKeyboardShortcuts()
+    return cleanup
+  }, [useKeyboardShortcuts])
 
   // Add product to order
   // Função completamente reescrita para evitar problemas de sincronização
+  // Add product to order
+  // Funçã -> This hook is being called from a nested function, but all hooks must be called unconditionally from the top-level component.
+  // Função completamente reescrita para adicionar na lista temporária
   const addProductToOrder = async () => {
     // Logging para diagnóstico
-    console.log("===== INICIANDO ADIÇÃO DE PRODUTO =====");
+    console.log("===== INICIANDO ADIÇÃO DE PRODUTO TEMPORÁRIO =====")
     console.log("Estado inicial:", {
       selectedProductId,
       productQuantity,
       clientId,
       clientRef,
       shouldSaveConversion,
-      selectedDiscountId
-    });
+      selectedDiscountId,
+    })
 
     // Validações iniciais
     if (!selectedProductId || productQuantity <= 0) {
-      console.log("ERRO: Produto não selecionado ou quantidade inválida.");
-      return;
-    }
-
-    if (!clientId) {
-      toast({
-        title: "Cliente não selecionado",
-        description: "Por favor, selecione um cliente antes de adicionar produtos.",
-        variant: "destructive",
-      });
-      console.log("ERRO: Cliente não selecionado");
-      return;
+      console.log("ERRO: Produto não selecionado ou quantidade inválida.")
+      return
     }
 
     try {
       // 1. Preparar o estado de UI preventivamente para feedback imediato do usuário
-      setIsSubmitting(true);
+      setIsSubmitting(true)
 
       // 2. Buscar o produto
-      console.log(`Buscando produto ${selectedProductId}`);
-      const product = await fetchProductById(selectedProductId);
+      console.log(`Buscando produto ${selectedProductId}`)
+      const product = await fetchProductById(selectedProductId)
 
       if (!product) {
-        console.error(`ERRO: Produto ${selectedProductId} não encontrado`);
+        console.error(`ERRO: Produto ${selectedProductId} não encontrado`)
         toast({
           title: "Erro",
           description: "Produto não encontrado.",
           variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
+        })
+        setIsSubmitting(false)
+        return
       }
 
-      console.log(`Produto encontrado:`, product);
+      console.log(`Produto encontrado:`, product)
 
       // 3. Definir a referência final do cliente
-      const finalClientRef = clientRef && clientRef.trim() !== ""
-        ? clientRef.trim()
-        : (product.conversion || null);
+      const finalClientRef = clientRef && clientRef.trim() !== "" ? clientRef.trim() : product.conversion || null
 
-      console.log(`Referência do cliente definida:`, finalClientRef);
+      console.log(`Referência do cliente definida:`, finalClientRef)
 
       // 4. Se necessário, salvar a conversão no servidor
       if (clientRef && clientRef.trim() !== "" && shouldSaveConversion) {
         try {
-          console.log(`Salvando conversão para o produto ${selectedProductId}`);
+          console.log(`Salvando conversão para o produto ${selectedProductId}`)
 
           const response = await fetch(`/api/products/${selectedProductId}/save-conversion`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ clientRef }),
-          });
+          })
 
           if (response.ok) {
-            console.log("Conversão salva com sucesso");
+            console.log("Conversão salva com sucesso")
             toast({
               title: "Referência salva",
-              description: "Referência do cliente vinculada ao produto com sucesso."
-            });
+              description: "Referência do cliente vinculada ao produto com sucesso.",
+            })
 
             // Atualizar a lista de produtos
-            queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/products"] })
           } else {
-            throw new Error("Erro na resposta do servidor");
+            throw new Error("Erro na resposta do servidor")
           }
         } catch (error) {
-          console.error("ERRO ao salvar conversão:", error);
+          console.error("ERRO ao salvar conversão:", error)
           toast({
             title: "Aviso",
             description: "O produto foi adicionado, mas não foi possível salvar a referência.",
             variant: "destructive",
-          });
+          })
         }
       }
 
       // 5. Calcular preços e descontos
-      const unitPrice = Number(product.price);
-      let discountPercentage = 0;
-      let commission = 0;
+      const unitPrice = Number(product.price)
+      let discountPercentage = 0
+      let commission = 0
 
       if (selectedDiscountId !== null && discounts) {
-        const discount = discounts.find(d => d.id === selectedDiscountId);
+        const discount = discounts.find((d) => d.id === selectedDiscountId)
         if (discount) {
-          discountPercentage = parseFloat(discount.percentage);
-          commission = parseFloat(discount.commission);
-          console.log(`Desconto encontrado: ${discount.name} (${discountPercentage}%)`);
+          discountPercentage = Number.parseFloat(discount.percentage)
+          commission = Number.parseFloat(discount.commission)
+          console.log(`Desconto encontrado: ${discount.name} (${discountPercentage}%)`)
         } else {
-          console.log(`Desconto com ID ${selectedDiscountId} não encontrado na lista`);
+          console.log(`Desconto com ID ${selectedDiscountId} não encontrado na lista`)
         }
       }
 
       // Cálculo do preço com desconto
-      const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage);
+      const discountedUnitPrice = calculateDiscountedPrice(unitPrice, discountPercentage)
 
       // Subtotal baseado no preço unitário já com desconto
-      const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2));
+      const subtotal = Number((productQuantity * discountedUnitPrice).toFixed(2))
 
       console.log(`
-        Adicionando produto:
-        - Produto: ${product.name} (${product.code})
-        - Preço original: ${formatCurrency(unitPrice)}
-        - Desconto: ${discountPercentage}%
-        - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
-        - Quantidade: ${productQuantity}
-        - Subtotal: ${formatCurrency(subtotal)}
-        ${clientRef ? `- Referência do Cliente: ${clientRef}` : ''}
-        ${selectedDiscountId ? `- Comissão: ${commission}%` : ''}
-      `);
+      Adicionando produto temporário:
+      - Produto: ${product.name} (${product.code})
+      - Preço original: ${formatCurrency(unitPrice)}
+      - Desconto: ${discountPercentage}%
+      - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
+      - Quantidade: ${productQuantity}
+      - Subtotal: ${formatCurrency(subtotal)}
+      ${clientRef ? `- Referência do Cliente: ${clientRef}` : ""}
+      ${selectedDiscountId ? `- Comissão: ${commission}%` : ""}
+    `)
 
-      // 6. Criar um novo item independente do estado existente
+      // 6. Criar um novo item temporário
       const newItem = {
         productId: selectedProductId,
         quantity: productQuantity,
@@ -660,151 +675,73 @@ export default function OrderFormPage() {
         subtotal: subtotal,
         product: { ...product }, // Criar cópia do produto para evitar referências compartilhadas
         clientRef: finalClientRef, // Usar a referência já definida
-      };
-
-      console.log("Novo item criado para adicionar ao pedido:", newItem);
-
-      // 7. Crucial: Cópia completa do estado atual + novo item de forma atômica
-      const currentItems = [...orderItems];
-      const updatedItems = [...currentItems, newItem];
-
-      console.log("Lista atualizada de itens:", updatedItems);
-
-      // 8. Preparar dados completos do pedido para envio ao servidor
-      const orderTotal = updatedItems.reduce((sum, item) => sum + item.subtotal, 0);
-      const grandTotal = orderTotal + totals.taxes;
-
-      const orderData = {
-        clientId,
-        representativeId: representativeId || user!.id,
-        status,
-        paymentTerms,
-        subtotal: orderTotal.toString(),
-        discount: "0",
-        taxes: totals.taxes.toString(),
-        total: grandTotal.toString(),
-        notes,
-      };
-
-      const itemsData = updatedItems.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice.toString(),
-        discountId: item.discountId,
-        discountPercentage: item.discountPercentage.toString(),
-        commission: item.commission.toString(),
-        subtotal: item.subtotal.toString(),
-        clientRef: item.clientRef,
-      }));
-
-      console.log("Dados preparados para envio:", { orderData, itemsData });
-
-      // 9. Fecha a modal e limpa os campos imediatamente para melhorar a experiência do usuário
-      setAddProductModalOpen(false);
-      setSelectedProductId(null);
-      setSelectedDiscountId(null);
-      setProductQuantity(1);
-      setClientRef("");
-      setIsSearchingByClientRef(false);
-      setShouldSaveConversion(false);
-
-      // 10. Enviar diretamente ao servidor
-      try {
-        let savedOrder;
-
-        if (isEditMode && id && id !== "new") {
-          const orderId = parseInt(id);
-          console.log(`Atualizando pedido existente #${orderId}`);
-
-          savedOrder = await updateOrderMutation.mutateAsync({
-            id: orderId,
-            order: orderData,
-            items: itemsData
-          });
-        } else {
-          console.log("Criando novo pedido");
-          savedOrder = await createOrderMutation.mutateAsync({
-            order: orderData,
-            items: itemsData
-          });
-        }
-
-        console.log("Resposta do servidor:", savedOrder);
-
-        // 11. Somente APÓS confirmação do servidor, atualizar o estado local
-        setOrderItems(updatedItems);
-
-        // 12. Focar no botão de adicionar produto
-        setTimeout(() => {
-          if (addProductButtonRef.current) {
-            addProductButtonRef.current.focus();
-          }
-        }, 100);
-
-        console.log("===== PRODUTO ADICIONADO COM SUCESSO =====");
-      } catch (error) {
-        console.error("ERRO ao salvar no servidor:", error);
-        toast({
-          title: "Erro ao adicionar produto",
-          description: "O produto foi preparado, mas ocorreu um erro ao salvar o pedido no servidor. Tente novamente.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSubmitting(false);
       }
+
+      // 7. Adicionar à lista temporária
+      setTempOrderItems((prev) => [...prev, newItem])
+
+      // 8. Fechar modal de produto e limpar os campos
+      setAddProductModalOpen(false)
+      setSelectedProductId(null)
+      setSelectedDiscountId(null)
+      setProductQuantity(1)
+      setClientRef("")
+      setIsSearchingByClientRef(false)
+      setShouldSaveConversion(false)
+      setIsSubmitting(false)
+
+      console.log("===== PRODUTO ADICIONADO À LISTA TEMPORÁRIA COM SUCESSO =====")
     } catch (error) {
-      console.error("ERRO CRÍTICO:", error);
+      console.error("ERRO CRÍTICO:", error)
       toast({
         title: "Erro ao adicionar produto",
         description: "Ocorreu um erro ao adicionar o produto. Tente novamente.",
         variant: "destructive",
-      });
-      setIsSubmitting(false);
+      })
+      setIsSubmitting(false)
     }
-  };
+  }
 
   // Remove product from order
-  const removeOrderItem = (index: number, autoSave = false) => {
+  const removeOrderItem = (index: number) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
-    const actualIndex = orderItems.length - 1 - index;
+    const actualIndex = orderItems.length - 1 - index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
-    setOrderItems(prevItems => {
-      const newItems = [...prevItems];
-      newItems.splice(actualIndex, 1);
-      console.log(`Removendo item na posição ${actualIndex}. Novos itens:`, newItems);
+    setOrderItems((prevItems) => {
+      const newItems = [...prevItems]
+      newItems.splice(actualIndex, 1)
+      console.log(`Removendo item na posição ${actualIndex}. Novos itens:`, newItems)
 
-      // Salvar automaticamente apenas se solicitado explicitamente
-      if (autoSave) {
-        // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
-        // antes de tentar salvar o pedido
-        setTimeout(() => {
-          if (clientId && newItems.length > 0) {
-            console.log("Salvando pedido automaticamente após remoção");
-            handleSaveOrder();
-          }
-        }, 0);
-      }
+      // Marcar que há alterações não salvas
+      setHasUnsavedChanges(true)
 
-      return newItems;
-    });
-  };
+      return newItems
+    })
+  }
 
   // Update item discount
-  const updateItemDiscount = (index: number, discountId: number | null, discountPercentage: number, commission: number) => {
+  const updateItemDiscount = (
+    index: number,
+    discountId: number | null,
+    discountPercentage: number,
+    commission: number,
+  ) => {
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
-    const actualIndex = orderItems.length - 1 - index;
+    const actualIndex = orderItems.length - 1 - index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
-    setOrderItems(prevItems => {
-      const newItems = [...prevItems];
-      const item = newItems[actualIndex];
+    setOrderItems((prevItems) => {
+      const newItems = [...prevItems]
+      const item = newItems[actualIndex]
 
       // Calcular o preço unitário com desconto primeiro
-      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage);
+      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage)
+
+      // Calcular o subtotal com base no  discountPercentage)
 
       // Calcular o subtotal com base no preço unitário já com desconto
-      const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2));
+      const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2))
 
       console.log(`
         Aplicando desconto:
@@ -815,7 +752,7 @@ export default function OrderFormPage() {
         - Quantidade: ${item.quantity}
         - Subtotal: ${formatCurrency(discountedSubtotal)}
         - Comissão: ${commission}%
-      `);
+      `)
 
       newItems[actualIndex] = {
         ...item,
@@ -823,38 +760,32 @@ export default function OrderFormPage() {
         discountPercentage,
         commission,
         subtotal: discountedSubtotal,
-      };
+      }
 
-      // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
-      // antes de tentar salvar o pedido
-      setTimeout(() => {
-        if (clientId) {
-          console.log("Salvando pedido automaticamente após atualizar desconto");
-          handleSaveOrder();
-        }
-      }, 0);
+      // Marcar que há alterações não salvas
+      setHasUnsavedChanges(true)
 
-      return newItems;
-    });
-  };
+      return newItems
+    })
+  }
 
   // Update item quantity
   const updateItemQuantity = (index: number, quantity: number) => {
-    if (quantity <= 0) return;
+    if (quantity <= 0) return
 
     // Com a ordenação invertida na exibição, precisamos ajustar o índice
-    const actualIndex = orderItems.length - 1 - index;
+    const actualIndex = orderItems.length - 1 - index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
-    setOrderItems(prevItems => {
-      const newItems = [...prevItems];
-      const item = newItems[actualIndex];
+    setOrderItems((prevItems) => {
+      const newItems = [...prevItems]
+      const item = newItems[actualIndex]
 
       // Pegar o preço unitário com desconto
-      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage);
+      const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, item.discountPercentage)
 
       // Recalcular subtotal com base no preço unitário já com desconto
-      const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2));
+      const discountedSubtotal = Number((quantity * discountedUnitPrice).toFixed(2))
 
       console.log(`
         Atualizando quantidade:
@@ -864,75 +795,66 @@ export default function OrderFormPage() {
         - Preço com desconto: ${formatCurrency(discountedUnitPrice)}
         - Nova quantidade: ${quantity}
         - Novo subtotal: ${formatCurrency(discountedSubtotal)}
-      `);
+      `)
 
       newItems[actualIndex] = {
         ...item,
         quantity,
         subtotal: discountedSubtotal,
-      };
+      }
 
-      // Usa um timeout de 0ms para garantir que o estado foi realmente atualizado
-      // antes de tentar salvar o pedido
-      setTimeout(() => {
-        if (clientId) {
-          console.log("Salvando pedido automaticamente após atualizar quantidade");
-          handleSaveOrder();
-        }
-      }, 0);
+      // Marcar que há alterações não salvas
+      setHasUnsavedChanges(true)
 
-      return newItems;
-    });
-  };
+      return newItems
+    })
+  }
 
   // Mutation para atualizar pedido existente
   const updateOrderMutation = useMutation({
-    mutationFn: async ({ id, order, items }: { id: number, order: InsertOrder, items: any[] }) => {
-      console.log(`Enviando requisição para atualizar pedido ${id}:`, { order, items });
-      const res = await apiRequest("PUT", `/api/orders/${id}`, { order, items });
-      const data = await res.json();
-      console.log(`Resposta da atualização do pedido ${id}:`, data);
-      return data;
+    mutationFn: async ({ id, order, items }: { id: number; order: InsertOrder; items: any[] }) => {
+      console.log(`Enviando requisição para atualizar pedido ${id}:`, { order, items })
+      const res = await apiRequest("PUT", `/api/orders/${id}`, { order, items })
+      const data = await res.json()
+      console.log(`Resposta da atualização do pedido ${id}:`, data)
+      return data
     },
     onSuccess: (data, variables) => {
-      const orderId = variables.id;
-      console.log(`Sucesso na atualização do pedido ${orderId}`, data);
+      const orderId = variables.id
+      console.log(`Sucesso na atualização do pedido ${orderId}`, data)
 
       // Invalidar todos os caches relacionados a este pedido específico
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}/items`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] })
+      queryClient.invalidateQueries({ queryKey: ["orders", String(orderId)] })
+      queryClient.invalidateQueries({ queryKey: ["orders", String(orderId), "items"] })
 
       // Também atualizar diretamente o cache para certeza
-      queryClient.setQueryData([`/api/orders/${orderId}`], data.order);
-      queryClient.setQueryData([`/api/orders/${orderId}/items`], data.items);
-
-      // Forçar atualização explícita do React Query
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ["/api/orders"] });
-        queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}`] });
-        queryClient.refetchQueries({ queryKey: [`/api/orders/${orderId}/items`] });
-      }, 100);
+      queryClient.setQueryData(["orders", String(orderId)], data.order)
+      queryClient.setQueryData(["orders", String(orderId), "items"], data.items)
 
       toast({
         title: "Pedido atualizado",
-        description: "O pedido foi atualizado com sucesso.",
-      });
+        description: "O pedido foi atualizado com sucesso. A página será atualizada com os dados mais recentes.",
+      })
 
-      // Redefinir o estado isSubmitting
-      setIsSubmitting(false);
+      // Redefinir o estado isSubmitting e hasUnsavedChanges
+      setIsSubmitting(false)
+      setHasUnsavedChanges(false)
 
-      // Não redirecionamos automaticamente, só quando o usuário clicar no botão "Concluir"
+      // Forçar uma atualização da página após um atraso para garantir que o salvamento foi concluído
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     },
     onError: (error: Error) => {
       toast({
         title: "Erro ao atualizar pedido",
         description: error.message,
         variant: "destructive",
-      });
-      setIsSubmitting(false);
+      })
+      setIsSubmitting(false)
     },
-  });
+  })
 
   // Salvar pedido
   const handleSaveOrder = async () => {
@@ -942,8 +864,8 @@ export default function OrderFormPage() {
         title: "Cliente não selecionado",
         description: "Por favor, selecione um cliente para o pedido.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     // Alerta informativo se não há produtos, mas permitir salvar mesmo assim
@@ -951,11 +873,11 @@ export default function OrderFormPage() {
       toast({
         title: "Pedido sem produtos",
         description: "O pedido será salvo sem produtos. Você poderá adicionar produtos depois.",
-      });
+      })
       // Continuamos com o salvamento
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     const orderData: InsertOrder = {
       clientId,
@@ -967,114 +889,225 @@ export default function OrderFormPage() {
       taxes: totals.taxes.toString(), // Convertido para string conforme esperado pelo InsertOrder
       total: totals.total.toString(), // Convertido para string conforme esperado pelo InsertOrder
       notes,
-    };
+    }
 
-    const itemsData = orderItems.map(item => {
-      const itemData = {
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice.toString(), // Convertido para string
-        discountId: item.discountId,
-        discountPercentage: item.discountPercentage.toString(), // Convertido para string
-        commission: item.commission.toString(), // Convertido para string
-        subtotal: item.subtotal.toString(), // Convertido para string
-        clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
-      };
-      console.log("Preparando item para envio:", itemData);
-      return itemData;
-    });
+    const itemsData = orderItems.map(
+      (item: {
+        productId: number
+        quantity: number
+        unitPrice: number
+        discountId: number | null
+        discountPercentage: number
+        commission: number
+        subtotal: number
+        product?: Product
+        clientRef?: string | null
+      }) => {
+        const itemData = {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toString(), // Convertido para string
+          discountId: item.discountId,
+          discountPercentage: item.discountPercentage.toString(), // Convertido para string
+          commission: item.commission.toString(), // Convertido para string
+          subtotal: item.subtotal.toString(), // Convertido para string
+          clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
+        }
+        console.log("Preparando item para envio:", itemData)
+        return itemData
+      },
+    )
 
     if (isEditMode && id && id !== "new") {
       // Atualizar pedido existente
-      const orderId = parseInt(id);
+      const orderId = Number.parseInt(id)
       if (!isNaN(orderId)) {
         updateOrderMutation.mutate({
           id: orderId,
           order: orderData,
-          items: itemsData
-        });
+          items: itemsData,
+        })
       } else {
         toast({
           title: "Erro",
           description: "ID do pedido inválido",
           variant: "destructive",
-        });
-        setIsSubmitting(false);
+        })
+        setIsSubmitting(false)
       }
     } else {
       // Criar novo pedido
-      createOrderMutation.mutate({ order: orderData, items: itemsData });
+      createOrderMutation.mutate({ order: orderData, items: itemsData })
     }
-  };
+  }
+
+  const handleSaveOrderWithItems = async (
+    items: Array<{
+      id?: number
+      productId: number
+      quantity: number
+      unitPrice: number
+      discountId: number | null
+      discountPercentage: number
+      commission: number
+      subtotal: number
+      product?: Product
+      clientRef?: string | null
+    }>,
+  ) => {
+    // Verificar se temos pelo menos um cliente selecionado
+    if (!clientId) {
+      toast({
+        title: "Cliente não selecionado",
+        description: "Por favor, selecione um cliente para o pedido.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Alerta informativo se não há produtos, mas permitir salvar mesmo assim
+    if (items.length === 0) {
+      toast({
+        title: "Pedido sem produtos",
+        description: "O pedido será salvo sem produtos. Você poderá adicionar produtos depois.",
+      })
+      // Continuamos com o salvamento
+    }
+
+    setIsSubmitting(true)
+
+    const orderData = {
+      clientId,
+      representativeId: representativeId || user?.id || 0,
+      status,
+      paymentTerms,
+      subtotal: totals.subtotal.toString(),
+      discount: "0",
+      taxes: totals.taxes.toString(),
+      total: totals.total.toString(),
+      notes,
+    }
+
+    const itemsData = items.map(
+      (item: {
+        productId: number
+        quantity: number
+        unitPrice: number
+        discountId: number | null
+        discountPercentage: number
+        commission: number
+        subtotal: number
+        product?: Product
+        clientRef?: string | null
+      }) => {
+        const itemData = {
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toString(),
+          discountId: item.discountId,
+          discountPercentage: item.discountPercentage.toString(),
+          commission: item.commission.toString(),
+          subtotal: item.subtotal.toString(),
+          clientRef: item.clientRef || item.product?.conversion || null,
+        }
+        console.log("Preparando item para envio:", itemData)
+        return itemData
+      },
+    )
+
+    console.log("Enviando pedido com os seguintes itens:", itemsData)
+
+    if (isEditMode && id && id !== "new") {
+      // Atualizar pedido existente
+      const orderId = Number.parseInt(id)
+      if (!isNaN(orderId)) {
+        updateOrderMutation.mutate({
+          id: orderId,
+          order: orderData,
+          items: itemsData,
+        })
+      } else {
+        toast({
+          title: "Erro",
+          description: "ID do pedido inválido",
+        })
+        setIsSubmitting(false)
+      }
+    } else {
+      // Criar novo pedido
+      createOrderMutation.mutate({ order: orderData, items: itemsData })
+    }
+  }
 
   // Update order status
   const updateOrderStatus = (newStatus: "cotacao" | "confirmado") => {
-    if (!isEditMode || !id || id === "new") return;
+    if (!isEditMode || !id || id === "new") return
 
-    const orderId = parseInt(id);
+    const orderId = Number.parseInt(id)
     if (isNaN(orderId)) {
       toast({
         title: "Erro",
         description: "ID do pedido inválido",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     updateOrderStatusMutation.mutate({
       id: orderId,
       status: newStatus,
-    });
-  };
+    })
+  }
 
   // Prepare data for PDF preview
   const preparePdfData = () => {
-    const client = clients?.find(c => c.id === clientId);
+    const client = clients?.find((c) => c.id === clientId)
 
     // Preparar os itens do pedido para o PDF com descontos
-    const pdfItems = orderItems.map(item => {
-      const discountData = discounts?.find(d => d.id === item.discountId);
+    const pdfItems = orderItems.map((item) => {
+      const discountData = discounts?.find((d) => d.id === item.discountId)
 
       // Calcular preço com desconto
-      const priceWithDiscount = item.discountPercentage > 0
-        ? item.unitPrice * (1 - item.discountPercentage / 100)
-        : item.unitPrice;
+      const priceWithDiscount =
+        item.discountPercentage > 0 ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice
 
       return {
         id: item.product?.id || item.productId,
         name: item.product?.name || `Produto #${item.productId}`,
         code: item.product?.code || String(item.productId),
         brand: item.product?.brand || null,
-        clientRef: item.clientRef || item.product?.conversion || null,
+        clientRef: showClientRefsInPrint ? item.clientRef || item.product?.conversion || null : null,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         discount: item.discountPercentage,
         discountName: discountData?.name || null,
         subtotal: priceWithDiscount * item.quantity,
-        commission: item.commission
-      };
-    });
+        commission: item.commission,
+      }
+    })
 
     // Log dos itens com suas referências
-    console.log("Preparando dados para PDF, itens do pedido:",
-      orderItems.map(item => ({
+    console.log(
+      "Preparando dados para PDF, itens do pedido:",
+      orderItems.map((item) => ({
         id: item.productId,
         name: item.product?.name,
-        clientRef: item.product?.conversion
-      }))
-    );
+        clientRef: item.product?.conversion,
+      })),
+    )
 
     // Calcular o total da comissão se o pedido for confirmado
-    const totalCommission = status === 'confirmado'
-      ? orderItems.reduce((sum, item) => {
-        const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity;
-        return sum + (totalItem * (item.commission / 100));
-      }, 0)
-      : 0;
+    const totalCommission =
+      status === "confirmado"
+        ? orderItems.reduce((sum, item) => {
+            const totalItem = item.unitPrice * (1 - item.discountPercentage / 100) * item.quantity
+            return sum + totalItem * (item.commission / 100)
+          }, 0)
+        : 0
 
     return {
       order: {
-        id: isEditMode ? parseInt(id!) : 0,
+        id: isEditMode ? Number.parseInt(id!) : 0,
         clientId: clientId || undefined,
         clientName: client?.name || "Cliente não selecionado",
         clientCnpj: client?.cnpj || "",
@@ -1088,14 +1121,42 @@ export default function OrderFormPage() {
         total: totals.total,
         representative: user?.name || "",
         totalCommission: totalCommission,
-        notes: notes
+        notes: notes,
       },
       items: pdfItems,
-    };
-  };
+    }
+  }
 
   // Loading state
-  const isLoading = isLoadingClients || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems));
+  const isLoading = isLoadingClients || (isEditMode && !isNewOrder && (isLoadingOrder || isLoadingOrderItems))
+
+  // Função para atualizar campos do formulário
+  const handleFormChange = (field: string, value: any) => {
+    switch (field) {
+      case "clientId":
+        setClientId(value)
+        break
+      case "status":
+        setStatus(value as "cotacao" | "confirmado")
+        break
+      case "paymentTerms":
+        setPaymentTerms(value)
+        break
+      case "notes":
+        setNotes(value)
+        break
+      case "taxes":
+        setTotals({
+          ...totals,
+          taxes: value,
+          total: totals.subtotal + value,
+        })
+        break
+    }
+
+    // Marcar que há alterações não salvas
+    setHasUnsavedChanges(true)
+  }
 
   return (
     <DashboardLayout>
@@ -1110,6 +1171,11 @@ export default function OrderFormPage() {
             <h1 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">
               {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
             </h1>
+            {hasUnsavedChanges && (
+              <span className="ml-2 text-sm text-amber-600 dark:text-amber-400 font-medium">
+                (Alterações não salvas)
+              </span>
+            )}
           </div>
 
           {/* Botões de ação responsivos */}
@@ -1136,12 +1202,12 @@ export default function OrderFormPage() {
                   onClick={() => {
                     // Salvar alterações e então redirecionar para a lista de pedidos
                     if (clientId) {
-                      handleSaveOrder();
+                      handleSaveOrder()
                       setTimeout(() => {
-                        navigate("/orders");
-                      }, 500);
+                        navigate("/orders")
+                      }, 500)
                     } else {
-                      navigate("/orders");
+                      navigate("/orders")
                     }
                   }}
                   variant="default"
@@ -1169,12 +1235,12 @@ export default function OrderFormPage() {
                   onClick={() => {
                     // Salvar pedido e então redirecionar para a lista de pedidos
                     if (clientId) {
-                      handleSaveOrder();
+                      handleSaveOrder()
                       setTimeout(() => {
-                        navigate("/orders");
-                      }, 500);
+                        navigate("/orders")
+                      }, 500)
                     } else {
-                      navigate("/orders");
+                      navigate("/orders")
                     }
                   }}
                   variant="default"
@@ -1194,8 +1260,8 @@ export default function OrderFormPage() {
           <PdfTemplate
             order={preparePdfData().order}
             items={preparePdfData().items}
-            onClose={() => { }}
-            showClientRefs={showClientRefsInPdf}
+            onClose={() => {}}
+            showClientRefs={showClientRefsInPrint}
           />
         </div>
 
@@ -1223,7 +1289,7 @@ export default function OrderFormPage() {
                         <ClientSearch
                           clients={clients}
                           selectedClientId={clientId}
-                          onClientSelect={setClientId}
+                          onClientSelect={(value) => handleFormChange("clientId", value)}
                           disabled={false} // Permitir edição do cliente mesmo em pedidos existentes
                         />
                       </div>
@@ -1232,7 +1298,7 @@ export default function OrderFormPage() {
                         <Label htmlFor="status">Status</Label>
                         <Select
                           value={status}
-                          onValueChange={(value) => setStatus(value as "cotacao" | "confirmado")}
+                          onValueChange={(value) => handleFormChange("status", value)}
                           disabled={false}
                         >
                           <SelectTrigger>
@@ -1260,17 +1326,7 @@ export default function OrderFormPage() {
                         </div>
                         <Select
                           value={paymentTerms}
-                          onValueChange={(value) => {
-                            setPaymentTerms(value);
-
-                            // Salvar automaticamente quando o usuário alterar a condição de pagamento
-                            if (clientId && orderItems.length > 0) {
-                              // Pequeno atraso para garantir que o estado foi atualizado
-                              setTimeout(() => {
-                                handleSaveOrder();
-                              }, 100);
-                            }
-                          }}
+                          onValueChange={(value) => handleFormChange("paymentTerms", value)}
                           disabled={false}
                         >
                           <SelectTrigger>
@@ -1308,10 +1364,7 @@ export default function OrderFormPage() {
                               <SelectItem value="BOLETO 28/42">Boleto Doc 28/42</SelectItem>
                               <SelectItem value="BOLETO 30/60/90/120D">Boleto Doc 30/60/90/120D</SelectItem>
 
-
-                              {newPaymentTerm && (
-                                <SelectItem value={newPaymentTerm}>{newPaymentTerm}</SelectItem>
-                              )}
+                              {newPaymentTerm && <SelectItem value={newPaymentTerm}>{newPaymentTerm}</SelectItem>}
                             </SelectGroup>
                           </SelectContent>
                         </Select>
@@ -1322,19 +1375,31 @@ export default function OrderFormPage() {
                         <Textarea
                           placeholder="Observações do pedido"
                           value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          onBlur={() => {
-                            // Salvar automaticamente quando o usuário terminar de editar as observações
-                            if (clientId && orderItems.length > 0) {
-                              // Pequeno atraso para garantir que o estado foi atualizado
-                              setTimeout(() => {
-                                handleSaveOrder();
-                              }, 100);
-                            }
-                          }}
+                          onChange={(e) => handleFormChange("notes", e.target.value)}
                           disabled={false}
                         />
                       </div>
+                    </div>
+
+                    {/* Botão Salvar Alterações */}
+                    <div className="mt-6 flex justify-end">
+                      <Button
+                        onClick={handleSaveOrder}
+                        disabled={isSubmitting || !hasUnsavedChanges}
+                        className="w-full sm:w-auto"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Salvar Alterações
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1348,13 +1413,13 @@ export default function OrderFormPage() {
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          id="showClientRefs"
-                          checked={showClientRefs}
-                          onChange={(e) => setShowClientRefs(e.target.checked)}
+                          id="showClientRefsInPrint"
+                          checked={showClientRefsInPrint}
+                          onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
                           className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         />
-                        <Label htmlFor="showClientRefs" className="text-sm font-normal">
-                          Exibir Ref. Cliente
+                        <Label htmlFor="showClientRefsInPrint" className="text-sm font-normal">
+                          Imprimir Ref. Cliente
                         </Label>
                       </div>
                     </div>
@@ -1362,31 +1427,16 @@ export default function OrderFormPage() {
                       <Button
                         ref={addProductButtonRef}
                         onClick={() => {
-                          // Abre a modal
-                          setAddProductModalOpen(true);
-
-                          // Limpa os campos
-                          setSelectedProductId(null);
-                          setClientRef("");
-                          setProductQuantity(1);
-                          setSelectedDiscountId(null);
-                          setShouldSaveConversion(false);
-
-                          // Dá tempo para o componente carregar antes de focar no campo de referência do cliente
-                          setTimeout(() => {
-                            const clientRefInput = document.getElementById('clientRefSearchInput');
-                            if (clientRefInput) {
-                              (clientRefInput as HTMLElement).focus();
-                            }
-                          }, 100);
+                          setTempOrderItems([])
+                          setProductsModalOpen(true)
                         }}
                         disabled={false}
                         size="sm"
                         className="md:h-10"
                       >
                         <PlusCircle className="h-4 w-4 md:mr-2" />
-                        <span className="hidden md:inline">Adicionar Produto</span>
-                        <span className="inline md:hidden">Adicionar</span>
+                        <span className="hidden md:inline">Gerenciar Produtos</span>
+                        <span className="inline md:hidden">Produtos</span>
                       </Button>
                     </div>
                   </CardHeader>
@@ -1395,7 +1445,7 @@ export default function OrderFormPage() {
                       <Table>
                         <TableHeader className="hidden md:table-header-group">
                           <TableRow>
-                            {showClientRefs && <TableHead>Ref. Cliente</TableHead>}
+                            <TableHead>Ref. Cliente</TableHead>
                             <TableHead>Produto</TableHead>
                             <TableHead>Qtde</TableHead>
                             <TableHead>Preço Tabela</TableHead>
@@ -1415,10 +1465,14 @@ export default function OrderFormPage() {
                             </TableRow>
                           ) : (
                             // Invertemos a ordem para mostrar os mais recentes primeiro
-                            [...orderItems].reverse().map((item, index) => (
-                              <TableRow key={index} className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none">
-                                {/* Referência do Cliente - Visibilidade controlada pelo checkbox */}
-                                {showClientRefs && (
+                            [...orderItems]
+                              .reverse()
+                              .map((item, index) => (
+                                <TableRow
+                                  key={index}
+                                  className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none"
+                                >
+                                  {/* Referência do Cliente */}
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
                                     <span className="md:hidden font-bold">Ref. Cliente:</span>
                                     {item.clientRef || item.product?.conversion ? (
@@ -1429,117 +1483,136 @@ export default function OrderFormPage() {
                                       <span className="text-muted-foreground">-</span>
                                     )}
                                   </TableCell>
-                                )}
 
-                                {/* Nome do Produto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Produto:</span>
-                                  <div>
-                                    <p>{item.product?.name || `Produto #${item.productId}`}</p>
-                                    <p className="text-xs text-gray-500">{item.product?.code}</p>
-                                  </div>
-                                </TableCell>
+                                  {/* Nome do Produto */}
+                                  <TableCell
+                                    className="md:table-cell p-4 md:p-2 block cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                                    onClick={() => {
+                                      // Abre a modal
+                                      setAddProductModalOpen(true)
 
-                                {/* Quantidade */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Quantidade:</span>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={item.quantity}
-                                    onChange={(e) => updateItemQuantity(index, parseInt(e.target.value))}
-                                    className="w-20 h-8"
-                                    disabled={false}
-                                  />
-                                </TableCell>
+                                      // Predefinir os valores para edição
+                                      setSelectedProductId(item.productId)
+                                      setProductQuantity(item.quantity)
+                                      setSelectedDiscountId(item.discountId || null)
+                                      setClientRef(item.product?.conversion || item.clientRef || "")
+                                      setShouldSaveConversion(true)
+                                    }}
+                                  >
+                                    <span className="md:hidden font-bold">Produto:</span>
+                                    <div>
+                                      <p className="text-primary hover:underline">
+                                        {item.product?.name || `Produto #${item.productId}`}
+                                      </p>
+                                      <p className="text-xs text-gray-500">{item.product?.code}</p>
+                                    </div>
+                                  </TableCell>
 
-                                {/* Preço Tabela - Escondido em Mobile */}
-                                <TableCell className="hidden md:table-cell">
-                                  {formatCurrency(item.unitPrice)}
-                                </TableCell>
+                                  {/* Quantidade */}
+                                  <TableCell className="md:table-cell p-4 md:p-2 block">
+                                    <span className="md:hidden font-bold">Quantidade:</span>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={item.quantity}
+                                      onChange={(e) => updateItemQuantity(index, Number.parseInt(e.target.value))}
+                                      className="w-20 h-8"
+                                      disabled={false}
+                                    />
+                                  </TableCell>
 
-                                {/* Desconto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Desconto:</span>
-                                  <DiscountSelect
-                                    value={item.discountId}
-                                    onChange={(discountId, discountPercentage, commission) =>
-                                      updateItemDiscount(index, discountId, discountPercentage, commission)
-                                    }
-                                    label=""
-                                    className="w-full md:w-32"
-                                  />
-                                </TableCell>
+                                  {/* Preço Tabela - Escondido em Mobile */}
+                                  <TableCell className="hidden md:table-cell">
+                                    {formatCurrency(item.unitPrice)}
+                                  </TableCell>
 
-                                {/* Preço com Desconto */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Preço c/ Desc.:</span>
-                                  {formatCurrency(item.discountPercentage ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice)}
-                                </TableCell>
+                                  {/* Desconto */}
+                                  <TableCell className="md:table-cell p-4 md:p-2 block">
+                                    <span className="md:hidden font-bold">Desconto:</span>
+                                    <DiscountSelect
+                                      value={item.discountId}
+                                      onChange={(discountId, discountPercentage, commission) =>
+                                        updateItemDiscount(index, discountId, discountPercentage, commission)
+                                      }
+                                      label=""
+                                      className="w-full md:w-32"
+                                    />
+                                  </TableCell>
 
-                                {/* Comissão - Escondido em Mobile */}
-                                <TableCell className="hidden md:table-cell">
-                                  {item.commission}%
-                                </TableCell>
+                                  {/* Preço com Desconto */}
+                                  <TableCell className="md:table-cell p-4 md:p-2 block">
+                                    <span className="md:hidden font-bold">Preço c/ Desc.:</span>
+                                    {formatCurrency(
+                                      item.discountPercentage
+                                        ? item.unitPrice * (1 - item.discountPercentage / 100)
+                                        : item.unitPrice,
+                                    )}
+                                  </TableCell>
 
-                                {/* Subtotal */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block">
-                                  <span className="md:hidden font-bold">Subtotal:</span>
-                                  {formatCurrency(item.subtotal)}
-                                </TableCell>
+                                  {/* Comissão - Escondido em Mobile */}
+                                  <TableCell className="hidden md:table-cell">{item.commission}%</TableCell>
 
-                                {/* Ações */}
-                                <TableCell className="md:table-cell p-4 md:p-2 block text-center md:text-right">
-                                  <span className="md:hidden font-bold">Ações:</span>
-                                  <div className="flex justify-center md:justify-end space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openCalculator(item.productId)}
-                                      className="text-blue-500 hover:text-blue-700"
-                                      title="Calculadora de preço"
-                                    >
-                                      <Calculator className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        // Predefinir os valores para edição
-                                        setSelectedProductId(item.productId);
-                                        setProductQuantity(item.quantity);
-                                        setSelectedDiscountId(item.discountId || null);
-                                        setClientRef(item.product?.conversion || item.clientRef || '');
-                                        setShouldSaveConversion(true);
+                                  {/* Subtotal */}
+                                  <TableCell className="md:table-cell p-4 md:p-2 block">
+                                    <span className="md:hidden font-bold">Subtotal:</span>
+                                    {formatCurrency(item.subtotal)}
+                                  </TableCell>
 
-                                        // Remover o item atual para ser substituído
-                                        // Com a ordenação invertida na exibição, precisamos ajustar o índice
-                                        const actualIndex = orderItems.length - 1 - index;
-                                        const updatedItems = [...orderItems];
-                                        updatedItems.splice(actualIndex, 1);
-                                        setOrderItems(updatedItems);
+                                  {/* Ações */}
+                                  <TableCell className="md:table-cell p-4 md:p-2 block text-center md:text-right">
+                                    <span className="md:hidden font-bold">Ações:</span>
+                                    <div className="flex justify-center md:justify-end space-x-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openCalculator(item.productId)}
+                                        className="text-blue-500 hover:text-blue-700"
+                                        title="Calculadora de preço"
+                                      >
+                                        <Calculator className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          // Predefinir os valores para edição
+                                          setSelectedProductId(item.productId)
+                                          setProductQuantity(item.quantity)
+                                          setSelectedDiscountId(item.discountId || null)
+                                          setClientRef(item.product?.conversion || item.clientRef || "")
+                                          setShouldSaveConversion(true)
 
-                                        // Abrir o modal para edição
-                                        setAddProductModalOpen(true);
-                                      }}
-                                      className="text-amber-500 hover:text-amber-700"
-                                      title="Editar item"
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeOrderItem(index, false)}
-                                      className="text-red-500 hover:text-red-700"
-                                      title="Excluir item"
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))
+                                          // Remover o item atual para ser substituído
+                                          // Com a ordenação invertida na exibição, precisamos ajustar o índice
+                                          const actualIndex = orderItems.length - 1 - index
+                                          const updatedItems = [...orderItems]
+                                          updatedItems.splice(actualIndex, 1)
+                                          setOrderItems(updatedItems)
+
+                                          // Marcar que há alterações não salvas
+                                          setHasUnsavedChanges(true)
+
+                                          // Abrir o modal para edição
+                                          setAddProductModalOpen(true)
+                                        }}
+                                        className="text-amber-500 hover:text-amber-700"
+                                        title="Editar item"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeOrderItem(index)}
+                                        className="text-red-500 hover:text-red-700"
+                                        title="Excluir item"
+                                      >
+                                        <Trash className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
                           )}
                         </TableBody>
                       </Table>
@@ -1565,23 +1638,9 @@ export default function OrderFormPage() {
                                   value={totals.taxes}
                                   onChange={(e) => {
                                     // Permitir apenas números e ponto decimal
-                                    const inputValue = e.target.value.replace(/[^0-9.]/g, '');
-                                    const value = parseFloat(inputValue) || 0;
-                                    const newTotals = {
-                                      ...totals,
-                                      taxes: value,
-                                      total: totals.subtotal + value
-                                    };
-                                    setTotals(newTotals);
-                                  }}
-                                  onBlur={() => {
-                                    // Salvar automaticamente quando o usuário terminar de editar
-                                    if (clientId && orderItems.length > 0) {
-                                      // Pequeno atraso para garantir que o estado foi atualizado
-                                      setTimeout(() => {
-                                        handleSaveOrder();
-                                      }, 100);
-                                    }
+                                    const inputValue = e.target.value.replace(/[^0-9.]/g, "")
+                                    const value = Number.parseFloat(inputValue) || 0
+                                    handleFormChange("taxes", value)
                                   }}
                                   className="w-24 h-6 text-right"
                                 />
@@ -1603,6 +1662,27 @@ export default function OrderFormPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Botão Salvar Alterações */}
+                    <div className="mt-6 flex justify-end">
+                      <Button
+                        onClick={handleSaveOrder}
+                        disabled={isSubmitting || !hasUnsavedChanges}
+                        className="w-full sm:w-auto"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Salvar Alterações
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1612,7 +1692,7 @@ export default function OrderFormPage() {
             <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Adicionar Produto</DialogTitle>
+                  <DialogTitle>Adicionar/Editar Produto</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
@@ -1631,7 +1711,7 @@ export default function OrderFormPage() {
                           onEnterKeyPressed={() => {
                             // Se um produto foi selecionado e tudo está OK, adicionar o produto
                             if (selectedProductId && productQuantity > 0) {
-                              addProductToOrder();
+                              addProductToOrder()
                             }
                           }}
                         />
@@ -1648,72 +1728,72 @@ export default function OrderFormPage() {
                             value={clientRef}
                             onChange={(e) => setClientRef(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && clientRef && !isSearchingByClientRef) {
-                                e.preventDefault();
-                                setIsSearchingByClientRef(true);
+                              if (e.key === "Enter" && clientRef && !isSearchingByClientRef) {
+                                e.preventDefault()
+                                setIsSearchingByClientRef(true)
                                 fetch(`/api/products/by-client-reference/${encodeURIComponent(clientRef)}`)
-                                  .then(res => {
+                                  .then((res) => {
                                     if (!res.ok) {
                                       if (res.status === 404) {
                                         toast({
                                           title: "Referência não encontrada",
                                           description: `Não encontramos um produto com a referência "${clientRef}".`,
                                           variant: "destructive",
-                                        });
+                                        })
 
-                                        setIsSearchingByClientRef(false);
-                                        return null;
+                                        setIsSearchingByClientRef(false)
+                                        return null
                                       }
-                                      throw new Error("Erro ao buscar produto");
+                                      throw new Error("Erro ao buscar produto")
                                     }
-                                    return res.json();
+                                    return res.json()
                                   })
-                                  .then(product => {
+                                  .then((product) => {
                                     if (product) {
                                       if (!product.conversion) {
-                                        product.conversion = clientRef;
+                                        product.conversion = clientRef
                                       }
 
-                                      setSelectedProductId(product.id);
+                                      setSelectedProductId(product.id)
 
                                       fetch(`/api/products/${product.id}/save-conversion`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ clientRef })
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ clientRef }),
                                       })
-                                        .then(res => res.json())
-                                        .then(updatedProduct => {
-                                          console.log("Conversão salva com sucesso:", updatedProduct);
+                                        .then((res) => res.json())
+                                        .then((updatedProduct) => {
+                                          console.log("Conversão salva com sucesso:", updatedProduct)
                                         })
-                                        .catch(error => {
-                                          console.error("Erro ao salvar conversão:", error);
-                                        });
+                                        .catch((error) => {
+                                          console.error("Erro ao salvar conversão:", error)
+                                        })
 
                                       toast({
                                         title: "Produto encontrado",
                                         description: `${product.name} (${product.code}) foi selecionado.`,
-                                      });
+                                      })
                                     }
                                   })
-                                  .catch(error => {
+                                  .catch((error) => {
                                     toast({
                                       title: "Erro",
                                       description: "Falha ao buscar produto.",
                                       variant: "destructive",
-                                    });
+                                    })
                                   })
                                   .finally(() => {
-                                    setIsSearchingByClientRef(false);
-                                  });
+                                    setIsSearchingByClientRef(false)
+                                  })
                               }
                             }}
                             autoFocus
                           />
                           <Button
                             onClick={() => {
-                              setIsSearchingByClientRef(true);
+                              setIsSearchingByClientRef(true)
                               fetch(`/api/products/by-client-reference/${encodeURIComponent(clientRef)}`)
-                                .then(res => {
+                                .then((res) => {
                                   if (!res.ok) {
                                     if (res.status === 404) {
                                       // Produto não encontrado, mostramos um toast
@@ -1721,59 +1801,58 @@ export default function OrderFormPage() {
                                         title: "Referência não encontrada",
                                         description: `Não encontramos um produto com a referência "${clientRef}".`,
                                         variant: "destructive",
-                                      });
+                                      })
 
-                                      setIsSearchingByClientRef(false);
-                                      return null;
+                                      setIsSearchingByClientRef(false)
+                                      return null
                                     }
-                                    throw new Error("Erro ao buscar produto");
+                                    throw new Error("Erro ao buscar produto")
                                   }
-                                  return res.json();
+                                  return res.json()
                                 })
-                                .then(product => {
+                                .then((product) => {
                                   if (product) {
                                     // Adicionar a referência do cliente ao produto recebido
                                     if (!product.conversion) {
-                                      product.conversion = clientRef;
+                                      product.conversion = clientRef
                                     }
                                     console.log("Produto encontrado com referência do cliente:", {
                                       produto: product.name,
                                       id: product.id,
-                                      referencia: clientRef
-                                    });
+                                      referencia: clientRef,
+                                    })
 
-                                    setSelectedProductId(product.id);
+                                    setSelectedProductId(product.id)
 
                                     // Salvar a conversão no servidor imediatamente
                                     fetch(`/api/products/${product.id}/save-conversion`, {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ clientRef })
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ clientRef }),
                                     })
-                                      .then(res => res.json())
-                                      .then(updatedProduct => {
-                                        console.log("Conversão salva com sucesso:", updatedProduct);
+                                      .then((res) => res.json())
+                                      .then((updatedProduct) => {
+                                        console.log("Conversão salva com sucesso:", updatedProduct)
                                       })
-                                      .catch(error => {
-                                        console.error("Erro ao salvar conversão:", error);
-                                      });
+                                      .catch((error) => {
+                                        console.error("Erro ao salvar conversão:", error)
+                                      })
 
                                     toast({
                                       title: "Produto encontrado",
                                       description: `${product.name} (${product.code}) foi selecionado.`,
-                                    });
+                                    })
                                   }
                                 })
-                                .catch(error => {
+                                .catch((error) => {
                                   toast({
                                     title: "Erro",
                                     description: "Falha ao buscar produto.",
-                                    variant: "destructive",
-                                  });
+                                  })
                                 })
                                 .finally(() => {
-                                  setIsSearchingByClientRef(false);
-                                });
+                                  setIsSearchingByClientRef(false)
+                                })
                             }}
                             disabled={!clientRef || isSearchingByClientRef}
                           >
@@ -1784,35 +1863,6 @@ export default function OrderFormPage() {
                     </TabsContent>
                   </Tabs>
 
-                  {/* {selectedProductId && (
-                    <div className="space-y-4 pt-2">
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="clientReferenceInput" className="min-w-[200px]">Referência do cliente</Label>
-                        <div className="flex-1">
-                          <Input 
-                            id="clientReferenceInput"
-                            type="text" 
-                            placeholder="Digite a referência deste produto para o cliente"
-                            value={clientRef}
-                            onChange={(e) => setClientRef(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="saveProdConversion"
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          checked={shouldSaveConversion}
-                          onChange={e => setShouldSaveConversion(e.target.checked)}
-                        />
-                        <Label htmlFor="saveProdConversion" className="text-sm font-normal cursor-pointer">
-                          Salvar esta referência para uso futuro
-                        </Label>
-                      </div>
-                    </div>
-                  )} */}
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="quantity">Quantidade</Label>
@@ -1820,11 +1870,11 @@ export default function OrderFormPage() {
                         type="number"
                         min="1"
                         value={productQuantity}
-                        onChange={(e) => setProductQuantity(parseInt(e.target.value) || 1)}
+                        onChange={(e) => setProductQuantity(Number.parseInt(e.target.value) || 1)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && selectedProductId && productQuantity > 0) {
-                            e.preventDefault();
-                            addProductToOrder();
+                          if (e.key === "Enter" && selectedProductId && productQuantity > 0) {
+                            e.preventDefault()
+                            addProductToOrder()
                           }
                         }}
                       />
@@ -1834,7 +1884,7 @@ export default function OrderFormPage() {
                       <DiscountSelect
                         value={selectedDiscountId}
                         onChange={(discountId, discountPercentage, commission) => {
-                          setSelectedDiscountId(discountId);
+                          setSelectedDiscountId(discountId)
                         }}
                         label=""
                         className="w-full"
@@ -1844,16 +1894,186 @@ export default function OrderFormPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button
-                    onClick={addProductToOrder}
-                    disabled={!selectedProductId || productQuantity <= 0}
-                  >
+                  <Button onClick={addProductToOrder} disabled={!selectedProductId || productQuantity <= 0}>
                     Adicionar
                   </Button>
                   <Button variant="outline" onClick={() => setAddProductModalOpen(false)}>
                     Cancelar
                   </Button>
                 </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Modal de Gerenciamento de Produtos */}
+            <Dialog open={productsModalOpen} onOpenChange={setProductsModalOpen}>
+              <DialogContent className="max-w-5xl w-[95vw]">
+                <DialogHeader>
+                  <DialogTitle>Gerenciamento de Produtos do Pedido</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Produtos Temporários</h3>
+                    <Button
+                      onClick={() => {
+                        setAddProductModalOpen(true)
+                        setSelectedProductId(null)
+                        setClientRef("")
+                        setProductQuantity(1)
+                        setSelectedDiscountId(null)
+                        setShouldSaveConversion(false)
+                      }}
+                      size="sm"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Adicionar Produto
+                    </Button>
+                  </div>
+
+                  {tempOrderItems.length === 0 ? (
+                    <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        Nenhum produto adicionado ainda. Clique em "Adicionar Produto" para começar.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Qtde</TableHead>
+                            <TableHead>Preço Unit.</TableHead>
+                            <TableHead>Desconto</TableHead>
+                            <TableHead>Subtotal</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tempOrderItems.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <div>
+                                  <p>{item.product?.name || `Produto #${item.productId}`}</p>
+                                  <p className="text-xs text-gray-500">{item.product?.code}</p>
+                                  {(item.clientRef || item.product?.conversion) && (
+                                    <p className="text-xs text-blue-500">
+                                      Ref: {item.clientRef || item.product?.conversion}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newQty = Number.parseInt(e.target.value) || 1
+                                    const newItems = [...tempOrderItems]
+                                    const discountedUnitPrice = calculateDiscountedPrice(
+                                      item.unitPrice,
+                                      item.discountPercentage,
+                                    )
+                                    newItems[index] = {
+                                      ...item,
+                                      quantity: newQty,
+                                      subtotal: Number((newQty * discountedUnitPrice).toFixed(2)),
+                                    }
+                                    setTempOrderItems(newItems)
+                                  }}
+                                  className="w-20 h-8"
+                                />
+                              </TableCell>
+                              <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
+                              <TableCell>
+                                {item.discountPercentage > 0 ? (
+                                  <span>{item.discountPercentage}%</span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>{formatCurrency(item.subtotal)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const updatedItems = [...tempOrderItems]
+                                      updatedItems.splice(index, 1)
+                                      setTempOrderItems(updatedItems)
+                                    }}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    <div>
+                      {tempOrderItems.length > 0 && (
+                        <p className="text-sm font-medium">
+                          Total de {tempOrderItems.length} produtos |{" "}
+                          {tempOrderItems.reduce((sum, item) => sum + item.quantity, 0)} unidades |{" "}
+                          {formatCurrency(tempOrderItems.reduce((sum, item) => sum + item.subtotal, 0))}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" onClick={() => setProductsModalOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Importante: Primeiro salvamos o estado em uma variável
+                          const itemsToAdd = [...tempOrderItems]
+
+                          // Verificamos se há itens para adicionar
+                          if (itemsToAdd.length === 0) {
+                            toast({
+                              title: "Nenhum produto",
+                              description: "Não há produtos para adicionar ao pedido.",
+                              variant: "destructive",
+                            })
+                            return
+                          }
+
+                          // Fechamos a modal e limpamos os itens temporários
+                          setProductsModalOpen(false)
+                          setTempOrderItems([])
+
+                          // Atualizamos o estado com os novos itens
+                          setOrderItems((prevItems) => {
+                            const updatedItems = [...prevItems, ...itemsToAdd]
+                            console.log("Novo estado de orderItems:", updatedItems)
+
+                            // Marcar que há alterações não salvas
+                            setHasUnsavedChanges(true)
+
+                            return updatedItems
+                          })
+
+                          // Feedback para o usuário
+                          toast({
+                            title: "Produtos adicionados",
+                            description: `${itemsToAdd.length} produtos foram adicionados ao pedido.`,
+                          })
+                        }}
+                        disabled={tempOrderItems.length === 0}
+                      >
+                        Incluir no Pedido
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
 
@@ -1876,6 +2096,18 @@ export default function OrderFormPage() {
                     Exibir Referências do Cliente no PDF
                   </Label>
                 </div>
+                <div className="flex items-center mb-4 space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showClientRefsInPrintModal"
+                    checked={showClientRefsInPrint}
+                    onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="showClientRefsInPrintModal" className="text-sm font-normal">
+                    Exibir Referências do Cliente na Impressão
+                  </Label>
+                </div>
 
                 <PdfTemplate
                   order={preparePdfData().order}
@@ -1887,11 +2119,7 @@ export default function OrderFormPage() {
             </Dialog>
 
             {/* Price Calculator Modal */}
-            <PriceCalculatorModal
-              open={calculatorOpen}
-              onOpenChange={setCalculatorOpen}
-              product={calculatorProduct}
-            />
+            <PriceCalculatorModal open={calculatorOpen} onOpenChange={setCalculatorOpen} product={calculatorProduct} />
           </div>
         )}
       </div>
@@ -1929,5 +2157,5 @@ export default function OrderFormPage() {
         </DialogContent>
       </Dialog>
     </DashboardLayout>
-  );
+  )
 }
