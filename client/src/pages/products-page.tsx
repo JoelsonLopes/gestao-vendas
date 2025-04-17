@@ -416,11 +416,64 @@ export default function ProductsPage() {
                 ),
               },
               {
-                header: "Categoria",
-                accessorKey: "category",
+                header: "Preço",
+                accessorKey: "price",
                 sortable: true,
                 filterable: true,
-                hidden: true, // Oculta a coluna de categoria
+                cell: (product) => {
+                  if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "price") {
+                    return (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-24 h-8"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
+                        />
+                        <button onClick={saveInlineEdit} className="text-green-600 hover:text-green-800">
+                          <Save size={16} />
+                        </button>
+                        <button onClick={cancelInlineEdit} className="text-red-600 hover:text-red-800">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex items-center">
+                      <span>{formatCurrency(Number(product.price))}</span>
+                      <div className="flex ml-2">
+                        {user?.role === "admin" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startInlineEdit(product.id, "price", product.price.toString());
+                            }}
+                            title="Editar preço"
+                          >
+                            <Edit size={14} />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPriceCalculator(product);
+                          }}
+                          title="Calcular preço com desconto"
+                        >
+                          <Calculator size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                },
               },
               {
                 header: "Marca",
@@ -521,64 +574,11 @@ export default function ProductsPage() {
                 },
               },
               {
-                header: "Preço",
-                accessorKey: "price",
+                header: "Categoria",
+                accessorKey: "category",
                 sortable: true,
                 filterable: true,
-                cell: (product) => {
-                  if (inlineEdit && inlineEdit.id === product.id && inlineEdit.field === "price") {
-                    return (
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-24 h-8"
-                          value={inlineEdit.value}
-                          onChange={(e) => setInlineEdit({ ...inlineEdit, value: e.target.value })}
-                        />
-                        <button onClick={saveInlineEdit} className="text-green-600 hover:text-green-800">
-                          <Save size={16} />
-                        </button>
-                        <button onClick={cancelInlineEdit} className="text-red-600 hover:text-red-800">
-                          <X size={16} />
-                        </button>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="flex items-center">
-                      <span>{formatCurrency(Number(product.price))}</span>
-                      <div className="flex ml-2">
-                        {user?.role === "admin" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startInlineEdit(product.id, "price", product.price.toString());
-                            }}
-                            title="Editar preço"
-                          >
-                            <Edit size={14} />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPriceCalculator(product);
-                          }}
-                          title="Calcular preço com desconto"
-                        >
-                          <Calculator size={14} />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                },
+                hidden: true, // Oculta a coluna de categoria
               },
               {
                 header: "Estoque",

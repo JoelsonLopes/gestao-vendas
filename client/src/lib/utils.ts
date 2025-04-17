@@ -98,3 +98,24 @@ export function getInitials(name: string): string {
   
   return (names[0][0] + names[names.length - 1][0]).toUpperCase();
 }
+
+/**
+ * Calcula os totais do pedido com base nos itens
+ */
+export function calculateTotals(items: any[]) {
+  const subtotal = items.reduce((total, item) => total + item.subtotal, 0);
+  
+  // Calcular a comissão total (se aplicável)
+  const totalCommission = items.reduce((total, item) => {
+    if (item.commission) {
+      return total + (item.subtotal * item.commission / 100);
+    }
+    return total;
+  }, 0);
+  
+  return {
+    subtotal,
+    totalCommission,
+    // Outros totais podem ser adicionados aqui conforme necessário
+  };
+}

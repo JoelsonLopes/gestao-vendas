@@ -406,7 +406,7 @@ export function PdfTemplate({
 
       // Preço com desconto e subtotal
       doc.setTextColor(darkGray);
-      doc.text(formatCurrency(priceWithDiscount), tableX + 145, currentY + 5);
+      doc.text(formatCurrency(item.unitPrice), tableX + 145, currentY + 5);
       doc.setFont("helvetica", "bold");
       doc.text(formatCurrency(item.subtotal), tableX + 175, currentY + 5);
 

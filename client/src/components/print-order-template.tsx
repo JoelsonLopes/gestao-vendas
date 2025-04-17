@@ -253,7 +253,7 @@ export function PrintOrderTemplate({ order, items, showClientRefs = true }: Prin
                     </td>
 
                     <td className="p-0.5 align-middle text-xs text-right font-medium">
-                      {formatCurrency(priceWithDiscount)}
+                      {formatCurrency(item.unitPrice)}
                     </td>
                     <td className="p-0.5 align-middle text-xs text-right font-bold">{formatCurrency(item.subtotal)}</td>
                   </tr>

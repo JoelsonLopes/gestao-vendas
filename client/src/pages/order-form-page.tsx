@@ -32,7 +32,7 @@ import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "
 import { DiscountSelect } from "@/components/discount-select"
 import { PdfTemplate } from "@/components/pdf-template"
 import { PriceCalculatorModal } from "@/components/price-calculator-modal"
-import { formatCurrency, calculateDiscountedPrice } from "@/lib/utils"
+import { formatCurrency, calculateDiscountedPrice, calculateTotals } from "@/lib/utils"
 import type { Client, Product, Order, OrderItem, InsertOrder, InsertOrderItem } from "@shared/schema"
 
 export default function OrderFormPage() {
@@ -810,6 +810,154 @@ export default function OrderFormPage() {
     })
   }
 
+  // Função auxiliar para calcular o preço com desconto
+  const getPriceWithDiscount = (item: any) => {
+    return item.unitPrice * (1 - item.discountPercentage / 100);
+  }
+
+  // Componente de entrada de preço formatado
+  const PriceInput = ({ value, onChange }: { value: number; onChange: (value: number) => void }) => {
+    const [displayValue, setDisplayValue] = useState(formatCurrency(value));
+    const [isEditing, setIsEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Atualiza o valor de exibição quando o valor real muda
+    useEffect(() => {
+      if (!isEditing) {
+        setDisplayValue(formatCurrency(value));
+      }
+    }, [value, isEditing]);
+
+    // Quando o campo recebe foco, mostra o valor numérico para edição
+    const handleFocus = () => {
+      setIsEditing(true);
+      setDisplayValue(value.toFixed(2).replace('.', ','));
+    };
+
+    // Quando o campo perde foco, formata o valor como moeda
+    const handleBlur = () => {
+      setIsEditing(false);
+      
+      // Tratamento especial para valores com vírgula
+      let numericValue: number;
+      
+      if (displayValue.includes(',')) {
+        // Se contém vírgula, tratar como formato brasileiro
+        const parts = displayValue.split(',');
+        const integerPart = parts[0].replace(/\D/g, '');
+        let decimalPart = parts[1] ? parts[1].replace(/\D/g, '') : '00';
+        
+        // Garantir que a parte decimal tenha 2 dígitos
+        decimalPart = decimalPart.padEnd(2, '0').substring(0, 2);
+        
+        // Construir o número como string e converter para número
+        numericValue = Number(`${integerPart}.${decimalPart}`);
+      } else {
+        // Se não contém vírgula, tratar como formato padrão
+        const cleanValue = displayValue.replace(/\D/g, '');
+        numericValue = cleanValue ? Number(cleanValue) / 100 : 0;
+      }
+      
+      if (!isNaN(numericValue)) {
+        onChange(numericValue);
+        setDisplayValue(formatCurrency(numericValue));
+      } else {
+        setDisplayValue(formatCurrency(value));
+      }
+    };
+
+    // Quando o usuário digita, atualiza o valor de exibição
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Permitir apenas números, vírgula e ponto
+      const inputValue = e.target.value.replace(/[^\d,.]/g, '');
+      
+      // Garantir que só existe uma vírgula ou ponto
+      const parts = inputValue.split(/[,.]/);
+      if (parts.length > 2) {
+        // Se houver mais de um separador decimal, manter apenas o primeiro
+        const firstPart = parts[0];
+        const secondPart = parts.slice(1).join('');
+        setDisplayValue(`${firstPart},${secondPart}`);
+      } else {
+        setDisplayValue(inputValue);
+      }
+    };
+
+    // Quando o usuário pressiona Enter, confirma a edição
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Previne o comportamento padrão do Enter
+        handleBlur();
+      }
+    };
+
+    return (
+      <Input
+        ref={inputRef}
+        type="text"
+        value={displayValue}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className="w-24 text-right"
+      />
+    );
+  };
+
+  // Função para atualizar o preço com desconto manualmente
+  const updateItemManualPrice = (index: number, manualPrice: number) => {
+    // Com a ordenação invertida na exibição, precisamos ajustar o índice
+    const actualIndex = orderItems.length - 1 - index;
+    
+    const updatedItems = [...orderItems];
+    const item = updatedItems[actualIndex];
+    
+    // Não alteramos o preço de tabela (unitPrice)
+    // Em vez disso, calculamos o desconto necessário para atingir o preço manual desejado
+    
+    // Se o preço manual for menor que o preço de tabela, calculamos o desconto necessário
+    if (manualPrice < item.unitPrice) {
+      // Fórmula: desconto = (1 - preçoManual/preçoTabela) * 100
+      const newDiscountPercentage = (1 - manualPrice / item.unitPrice) * 100;
+      item.discountPercentage = Number(newDiscountPercentage.toFixed(2));
+    } else {
+      // Se o preço manual for maior ou igual ao preço de tabela, removemos o desconto
+      item.discountPercentage = 0;
+    }
+    
+    // Recalcula o subtotal com base no novo preço com desconto e quantidade
+    const priceWithDiscount = item.unitPrice * (1 - item.discountPercentage / 100);
+    item.subtotal = Number((priceWithDiscount * item.quantity).toFixed(2));
+    
+    // Recalcula a comissão com base no novo preço com desconto
+    if (item.discountId && discounts) {
+      const discount = discounts.find(d => d.id === item.discountId);
+      if (discount) {
+        // A comissão é calculada como uma porcentagem do subtotal
+        item.commission = discount.commission;
+      }
+    }
+    
+    setOrderItems(updatedItems);
+    
+    // Recalcula os totais
+    const subtotal = updatedItems.reduce((total, item) => total + item.subtotal, 0);
+    
+    // Atualizar os totais mantendo a taxa de frete e recalculando o total
+    setTotals(prev => {
+      const total = subtotal + prev.taxes;
+      return {
+        subtotal: Number(subtotal.toFixed(2)),
+        taxes: prev.taxes,
+        total: Number(total.toFixed(2))
+      };
+    });
+    
+    // Marcar que há alterações não salvas
+    setHasUnsavedChanges(true);
+  };
+
   // Mutation para atualizar pedido existente
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, order, items }: { id: number; order: InsertOrder; items: any[] }) => {
@@ -1065,25 +1213,25 @@ export default function OrderFormPage() {
 
     // Preparar os itens do pedido para o PDF com descontos
     const pdfItems = orderItems.map((item) => {
-      const discountData = discounts?.find((d) => d.id === item.discountId)
-
-      // Calcular preço com desconto
-      const priceWithDiscount =
-        item.discountPercentage > 0 ? item.unitPrice * (1 - item.discountPercentage / 100) : item.unitPrice
-
+      const product = item.product;
+      const discount = discounts ? discounts.find((d) => d.id === item.discountId) : undefined;
+      
+      // Usar o preço com desconto atual
+      const priceWithDiscount = getPriceWithDiscount(item);
+      
       return {
-        id: item.product?.id || item.productId,
-        name: item.product?.name || `Produto #${item.productId}`,
-        code: item.product?.code || String(item.productId),
-        brand: item.product?.brand || null,
-        clientRef: showClientRefsInPrint ? item.clientRef || item.product?.conversion || null : null,
+        id: item.id || 0,
+        name: product?.name || "",
+        code: product?.code || "",
+        clientRef: item.clientRef,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unitPrice: priceWithDiscount, // Usar o preço com desconto
         discount: item.discountPercentage,
-        discountName: discountData?.name || null,
-        subtotal: priceWithDiscount * item.quantity,
+        subtotal: item.subtotal,
+        brand: product?.brand || null,
+        discountName: discount?.name || null,
         commission: item.commission,
-      }
+      };
     })
 
     // Log dos itens com suas referências
@@ -1542,11 +1690,10 @@ export default function OrderFormPage() {
                                   {/* Preço com Desconto */}
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
                                     <span className="md:hidden font-bold">Preço c/ Desc.:</span>
-                                    {formatCurrency(
-                                      item.discountPercentage
-                                        ? item.unitPrice * (1 - item.discountPercentage / 100)
-                                        : item.unitPrice,
-                                    )}
+                                    <PriceInput
+                                      value={getPriceWithDiscount(item)}
+                                      onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
+                                    />
                                   </TableCell>
 
                                   {/* Comissão - Escondido em Mobile */}
