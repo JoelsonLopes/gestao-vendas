@@ -2085,82 +2085,84 @@ export default function OrderFormPage() {
                     </div>
                   ) : (
                     <div className="overflow-x-auto border rounded-md">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Qtde</TableHead>
-                            <TableHead>Preço Unit.</TableHead>
-                            <TableHead>Desconto</TableHead>
-                            <TableHead>Subtotal</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {tempOrderItems.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <div>
-                                  <p>{item.product?.name || `Produto #${item.productId}`}</p>
-                                  <p className="text-xs text-gray-500">{item.product?.code}</p>
-                                  {(item.clientRef || item.product?.conversion) && (
-                                    <p className="text-xs text-blue-500">
-                                      Ref: {item.clientRef || item.product?.conversion}
-                                    </p>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => {
-                                    const newQty = Number.parseInt(e.target.value) || 1
-                                    const newItems = [...tempOrderItems]
-                                    const discountedUnitPrice = calculateDiscountedPrice(
-                                      item.unitPrice,
-                                      item.discountPercentage,
-                                    )
-                                    newItems[index] = {
-                                      ...item,
-                                      quantity: newQty,
-                                      subtotal: Number((newQty * discountedUnitPrice).toFixed(2)),
-                                    }
-                                    setTempOrderItems(newItems)
-                                  }}
-                                  className="w-20 h-8"
-                                />
-                              </TableCell>
-                              <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
-                              <TableCell>
-                                {item.discountPercentage > 0 ? (
-                                  <span>{item.discountPercentage}%</span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>{formatCurrency(item.subtotal)}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      const updatedItems = [...tempOrderItems]
-                                      updatedItems.splice(index, 1)
-                                      setTempOrderItems(updatedItems)
-                                    }}
-                                    className="text-red-500 hover:text-red-700"
-                                  >
-                                    <Trash className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                      <div className="max-h-[60vh] overflow-y-auto">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-white dark:bg-gray-800 z-10">
+                            <TableRow>
+                              <TableHead>Produto</TableHead>
+                              <TableHead>Qtde</TableHead>
+                              <TableHead>Preço Unit.</TableHead>
+                              <TableHead>Desconto</TableHead>
+                              <TableHead>Subtotal</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {tempOrderItems.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <div>
+                                    <p>{item.product?.name || `Produto #${item.productId}`}</p>
+                                    <p className="text-xs text-gray-500">{item.product?.code}</p>
+                                    {(item.clientRef || item.product?.conversion) && (
+                                      <p className="text-xs text-blue-500">
+                                        Ref: {item.clientRef || item.product?.conversion}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={item.quantity}
+                                    onChange={(e) => {
+                                      const newQty = Number.parseInt(e.target.value) || 1
+                                      const newItems = [...tempOrderItems]
+                                      const discountedUnitPrice = calculateDiscountedPrice(
+                                        item.unitPrice,
+                                        item.discountPercentage,
+                                      )
+                                      newItems[index] = {
+                                        ...item,
+                                        quantity: newQty,
+                                        subtotal: Number((newQty * discountedUnitPrice).toFixed(2)),
+                                      }
+                                      setTempOrderItems(newItems)
+                                    }}
+                                    className="w-20 h-8"
+                                  />
+                                </TableCell>
+                                <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
+                                <TableCell>
+                                  {item.discountPercentage > 0 ? (
+                                    <span>{item.discountPercentage}%</span>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>{formatCurrency(item.subtotal)}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        const updatedItems = [...tempOrderItems]
+                                        updatedItems.splice(index, 1)
+                                        setTempOrderItems(updatedItems)
+                                      }}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
 
