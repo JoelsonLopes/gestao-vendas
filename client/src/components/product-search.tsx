@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Search, X, Package, Loader2 } from "lucide-react";
+import { Search, X, Package, Loader2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { Product } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductSearchProps {
   selectedProductId: number | null;
@@ -35,7 +36,7 @@ export function ProductSearch({
     enabled: !!selectedProductId,
   });
   
-  // Buscar produtos
+  // Buscar produtos com lógica melhorada
   const searchProducts = async (term: string) => {
     if (!term || term.length < 1) {
       setProducts([]);
@@ -44,6 +45,7 @@ export function ProductSearch({
     
     setLoading(true);
     try {
+      // Usamos a mesma rota da API que a página de produtos utiliza
       const response = await fetch(`/api/products/search/${encodeURIComponent(term)}`);
       if (!response.ok) {
         throw new Error("Erro ao buscar produtos");
@@ -59,7 +61,7 @@ export function ProductSearch({
     }
   };
   
-  // Debounce para a busca
+  // Debounce para a busca (otimizado para 250ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchTerm.trim()) {
@@ -67,7 +69,7 @@ export function ProductSearch({
       } else {
         setProducts([]);
       }
-    }, 300);
+    }, 250);
     
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -191,16 +193,21 @@ export function ProductSearch({
             <div className="relative">
               <Input
                 id="product-search-input"
-                placeholder="Digite código, nome ou referência..."
+                placeholder="Buscar produtos por nome, código, categoria ou marca..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
                 autoFocus={true}
                 autoComplete="off"
+                className="pr-8"
               />
-              {loading && (
+              {loading ? (
                 <div className="absolute right-2 top-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="absolute right-2 top-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -210,14 +217,14 @@ export function ProductSearch({
                 Nenhum produto encontrado
               </div>
             ) : (
-              <ScrollArea className="h-[300px]">
+              <ScrollArea className="h-[350px]">
                 <div className="space-y-2">
                   {products.map((product, index) => (
                     <div
                       key={product.id}
                       className={cn(
-                        "flex items-start p-2 hover:bg-muted rounded-md cursor-pointer",
-                        index === highlightedIndex && "bg-muted"
+                        "flex items-start p-3 hover:bg-muted rounded-md cursor-pointer border",
+                        index === highlightedIndex && "bg-muted border-primary/50"
                       )}
                       onClick={() => handleProductSelect(product.id)}
                       onMouseEnter={() => setHighlightedIndex(index)}
@@ -226,20 +233,42 @@ export function ProductSearch({
                         <Package className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Código: {product.code} • {formatCurrency(Number(product.price || 0))}
+                        <div className="font-medium flex justify-between">
+                          <span>{product.name}</span>
+                          <span className="text-sm font-semibold">{formatCurrency(Number(product.price || 0))}</span>
                         </div>
-                        {product.brand && (
-                          <div className="text-xs text-muted-foreground">
-                            Marca: {product.brand}
-                          </div>
-                        )}
-                        {product.conversion && (
-                          <div className="text-xs bg-primary/10 px-2 py-0.5 rounded mt-1 text-primary inline-block">
-                            Referência: {product.conversion}
-                          </div>
-                        )}
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs bg-secondary/40">
+                            {product.code}
+                          </Badge>
+                          {product.category && (
+                            <Badge variant="secondary" className="text-xs">
+                              {product.category}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {product.brand && (
+                            <div className="text-xs bg-blue-50 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2 py-0.5 rounded">
+                              Marca: {product.brand}
+                            </div>
+                          )}
+                          {product.conversion && (
+                            <div className="text-xs bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-300 px-2 py-0.5 rounded">
+                              Ref: {product.conversion}
+                            </div>
+                          )}
+                          {product.stockQuantity !== null && product.stockQuantity !== undefined && (
+                            <div className={cn(
+                              "text-xs px-2 py-0.5 rounded",
+                              product.stockQuantity > 0 
+                                ? "bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-300" 
+                                : "bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-300"
+                            )}>
+                              Estoque: {product.stockQuantity}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -249,20 +278,10 @@ export function ProductSearch({
             
             {/* Dicas de navegação */}
             {products.length > 0 && (
-              <div className="flex gap-2 justify-center text-xs text-muted-foreground border-t pt-2">
-                <div className="flex items-center">
-                  <kbd className="px-1 py-0.5 rounded bg-muted">↑</kbd>
-                  <kbd className="px-1 py-0.5 rounded bg-muted ml-1">↓</kbd>
-                  <span className="ml-1">Navegar</span>
-                </div>
-                <div className="flex items-center">
-                  <kbd className="px-1 py-0.5 rounded bg-muted">Enter</kbd>
-                  <span className="ml-1">Selecionar</span>
-                </div>
-                <div className="flex items-center">
-                  <kbd className="px-1 py-0.5 rounded bg-muted">Esc</kbd>
-                  <span className="ml-1">Fechar</span>
-                </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                <span>Use as setas ↑↓ para navegar</span>
+                <span>Enter para selecionar</span>
+                <span>Esc para cancelar</span>
               </div>
             )}
           </div>
