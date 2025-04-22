@@ -638,12 +638,21 @@ export default function ProductsPage() {
                   </Badge>
                 ),
               },
+              {
+                header: "ID",
+                accessorKey: "id",
+                sortable: true,
+                filterable: true,
+                hidden: true,
+              },
             ]}
             data={products || []}
             keyField="id"
             searchable
             searchPlaceholder="Buscar produtos por nome, código, categoria ou marca..."
             onRowClick={user?.role === "admin" ? openEditProductModal : undefined}
+            initialSortColumn="id"
+            initialSortDirection="asc"
           />
         ) : (
           <div className="text-center p-8 border rounded-lg bg-background">
