@@ -9,7 +9,7 @@ import {
   clientHistory, type ClientHistory, type InsertClientHistory
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, and, like, ilike, or } from "drizzle-orm";
+import { eq, and, like, ilike, or, not } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -534,8 +534,31 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
+      // Nova etapa: buscar produtos que começam com o mesmo prefixo (importante para códigos como FCD2058 encontrar FCD2058B)
+      const prefixMatches = await db.select(selectAllProductColumns())
+        .from(products)
+        .where(
+          or(
+            and(
+              // O código ou conversion começa com o termo de busca...
+              or(
+                like(products.code, `${query}%`),        // Prefixo no código
+                like(products.conversion, `${query}%`)   // Prefixo na conversão
+              ),
+              // ...e não é exatamente igual (evita duplicatas com busca exata)
+              and(
+                not(eq(products.code, query)),
+                not(eq(products.conversion, query))
+              )
+            )
+          )
+        )
+        .limit(20);
+        
+      console.log(`Encontrados ${prefixMatches.length} produtos com prefixo "${query}"`);
+      
       // Combinar todos os resultados, removendo duplicatas por ID
-      const allResults = [...exactMatches, ...relatedProducts, ...productsWithMatchingCode];
+      const allResults = [...exactMatches, ...relatedProducts, ...productsWithMatchingCode, ...prefixMatches];
       const uniqueResults = Array.from(new Map(allResults.map(item => [item.id, item])).values());
       
       if (uniqueResults.length > 0) {
@@ -543,7 +566,7 @@ export class DatabaseStorage implements IStorage {
         return uniqueResults;
       }
       
-      // Se não encontrou nada com as buscas exatas, faz uma busca mais ampla com LIKE
+      // Se não encontrou nada com as buscas exatas ou prefixos, faz uma busca mais ampla com LIKE
       const result = await db.select(selectAllProductColumns())
         .from(products)
         .where(
@@ -600,7 +623,30 @@ export class DatabaseStorage implements IStorage {
           )
         );
         
-      const allMatches = [...exactMatches];
+      // Nova etapa: buscar produtos com prefixo correspondente
+      const prefixMatches = await db.select(selectAllProductColumns())
+        .from(products)
+        .where(
+          or(
+            and(
+              // O código ou conversion começa com o termo de busca...
+              or(
+                like(products.code, `${clientRef}%`),      // Prefixo no código 
+                like(products.conversion, `${clientRef}%`)  // Prefixo na conversão
+              ),
+              // ...e não é exatamente igual (evita duplicatas)
+              and(
+                not(eq(products.code, clientRef)),
+                not(eq(products.conversion, clientRef))
+              )
+            )
+          )
+        )
+        .limit(10);
+        
+      console.log(`Encontrados ${prefixMatches.length} produtos com prefixo "${clientRef}"`);
+        
+      const allMatches = [...exactMatches, ...prefixMatches];
       
       // Segunda etapa: se encontrou exatamente um produto, vamos verificar se existem produtos relacionados
       if (exactMatches.length === 1) {
@@ -635,9 +681,9 @@ export class DatabaseStorage implements IStorage {
         return uniqueMatches[0]; // Retorna o primeiro encontrado
       }
       
-      console.log(`Nenhum produto encontrado pela correspondência exata '${clientRef}', buscando similaridades`);
+      console.log(`Nenhum produto encontrado pela correspondência exata ou prefixo '${clientRef}', buscando similaridades`);
       
-      // Se não encontrou correspondência exata, tentamos uma busca mais ampla com ILIKE
+      // Se não encontrou correspondência exata ou por prefixo, tentamos uma busca mais ampla com ILIKE
       const productsWithSimilarRef = await db.select(selectAllProductColumns())
         .from(products)
         .where(
