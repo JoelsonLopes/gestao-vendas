@@ -505,17 +505,18 @@ export class DatabaseStorage implements IStorage {
           or(
             eq(products.name, query),      // Correspondência exata com nome
             eq(products.code, query),      // Correspondência exata com código
-            eq(products.conversion, query) // Correspondência exata com conversão
+            eq(products.conversion, query), // Correspondência exata com conversão
+            eq(products.barcode, query)    // Correspondência exata com código de barras
           )
         )
-        .limit(20);
+        .limit(30);
         
       // Segunda etapa: buscar produtos relacionados, onde o código pesquisado aparece como "conversion"
       // Isso fará com que, quando buscarmos por "TM4", o produto "WUNI0004" (que tem conversion = "TM4") também seja encontrado
       const relatedProducts = await db.select(selectAllProductColumns())
         .from(products)
         .where(eq(products.conversion, query))
-        .limit(20);
+        .limit(30);
         
       // Terceira etapa: buscar produtos onde o código pesquisado está como valor no campo "conversion" de outros produtos
       // Isso fará com que, quando buscarmos por "WUNI0004", o produto "TM4" também seja encontrado
@@ -543,7 +544,8 @@ export class DatabaseStorage implements IStorage {
               // O código ou conversion começa com o termo de busca...
               or(
                 like(products.code, `${query}%`),        // Prefixo no código
-                like(products.conversion, `${query}%`)   // Prefixo na conversão
+                like(products.conversion, `${query}%`),  // Prefixo na conversão
+                like(products.name, `${query}%`)         // Prefixo no nome
               ),
               // ...e não é exatamente igual (evita duplicatas com busca exata)
               and(
@@ -553,7 +555,7 @@ export class DatabaseStorage implements IStorage {
             )
           )
         )
-        .limit(20);
+        .limit(30);
         
       console.log(`Encontrados ${prefixMatches.length} produtos com prefixo "${query}"`);
       
@@ -576,10 +578,11 @@ export class DatabaseStorage implements IStorage {
             ilike(products.brand, `%${query}%`),
             ilike(products.barcode, `%${query}%`),
             ilike(products.code, `%${query}%`),
-            ilike(products.conversion, `%${query}%`) // Buscar também na referência do cliente
+            ilike(products.conversion, `%${query}%`), // Buscar também na referência do cliente
+            ilike(products.description, `%${query}%`) // Buscar também na descrição
           )
         )
-        .limit(20);
+        .limit(30);
       
       console.log(`Encontrados ${result.length} produtos para o termo "${query}" na busca ampla`);
       return result;

@@ -29,6 +29,7 @@ export function ProductSearch({
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Buscar produto selecionado pelo ID
   const { data: selectedProduct } = useQuery<Product>({
@@ -38,7 +39,7 @@ export function ProductSearch({
   
   // Buscar produtos com lógica melhorada
   const searchProducts = async (term: string) => {
-    if (!term || term.length < 1) {
+    if (!term || term.length < 2) {
       setProducts([]);
       return;
     }
@@ -61,15 +62,15 @@ export function ProductSearch({
     }
   };
   
-  // Debounce para a busca (otimizado para 250ms)
+  // Debounce para a busca (otimizado para 150ms para resposta mais rápida)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm.trim()) {
+      if (searchTerm.trim().length >= 2) {
         searchProducts(searchTerm);
       } else {
         setProducts([]);
       }
-    }, 250);
+    }, 150);
     
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -78,6 +79,14 @@ export function ProductSearch({
   useEffect(() => {
     if (!open) {
       setSearchTerm("");
+      setProducts([]);
+    } else {
+      // Focus no input quando o diálogo abrir
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 10);
     }
   }, [open]);
   
@@ -85,19 +94,6 @@ export function ProductSearch({
   useEffect(() => {
     setHighlightedIndex(0);
   }, [products]);
-  
-  // Focar no input quando abrir
-  useEffect(() => {
-    if (open) {
-      // Usar um timeout para garantir que o DOM tenha sido atualizado
-      setTimeout(() => {
-        const inputElement = document.getElementById("product-search-input");
-        if (inputElement) {
-          inputElement.focus();
-        }
-      }, 50);
-    }
-  }, [open]);
   
   const handleProductSelect = (productId: number) => {
     onProductSelect(productId);
@@ -193,26 +189,37 @@ export function ProductSearch({
             <div className="relative">
               <Input
                 id="product-search-input"
+                ref={inputRef}
                 placeholder="Buscar produtos por nome, código, categoria ou marca..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
                 autoFocus={true}
                 autoComplete="off"
-                className="pr-8"
+                className="pl-9 pr-8"
               />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </div>
               {loading ? (
-                <div className="absolute right-2 top-2">
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
-              ) : (
-                <div className="absolute right-2 top-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
+              ) : searchTerm && (
+                <div 
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                 </div>
               )}
             </div>
             
-            {searchTerm && !loading && products.length === 0 ? (
+            {searchTerm.length < 2 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                Digite pelo menos 2 caracteres para iniciar a busca
+              </div>
+            ) : (searchTerm && !loading && products.length === 0) ? (
               <div className="text-center py-4 text-muted-foreground">
                 Nenhum produto encontrado
               </div>

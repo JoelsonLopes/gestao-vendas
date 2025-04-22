@@ -782,9 +782,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
       
+      console.log(`[API] Buscando produtos com o termo: "${q}" via query param`);
       const products = await storage.searchProducts(q);
+      console.log(`[API] Encontrados ${products.length} produtos para "${q}" via query param`);
       res.json(products);
     } catch (error) {
+      console.error("Erro na busca de produtos:", error);
       res.status(500).json({ message: "Error searching products" });
     }
   });
@@ -797,9 +800,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search term is required" });
       }
       
-      console.log(`Buscando produtos com o termo: ${term}`);
+      console.log(`[API] Buscando produtos com o termo: "${term}" via URL path`);
       const products = await storage.searchProducts(term);
-      console.log(`Encontrados ${products.length} produtos para o termo "${term}"`);
+      console.log(`[API] Encontrados ${products.length} produtos para o termo "${term}" via URL path`);
       res.json(products);
     } catch (error) {
       console.error("Erro ao buscar produtos por termo:", error);
