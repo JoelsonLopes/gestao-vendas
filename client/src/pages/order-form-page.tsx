@@ -1528,27 +1528,6 @@ export default function OrderFormPage() {
                         />
                       </div>
                     </div>
-
-                    {/* Botão Salvar Alterações */}
-                    <div className="mt-6 flex justify-end">
-                      <Button
-                        onClick={handleSaveOrder}
-                        disabled={isSubmitting || !hasUnsavedChanges}
-                        className="w-full sm:w-auto"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Salvando...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Salvar Alterações
-                          </>
-                        )}
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1809,27 +1788,7 @@ export default function OrderFormPage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Botão Salvar Alterações */}
-                    <div className="mt-6 flex justify-end">
-                      <Button
-                        onClick={handleSaveOrder}
-                        disabled={isSubmitting || !hasUnsavedChanges}
-                        className="w-full sm:w-auto"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Salvando...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Salvar Alterações
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    
                   </CardContent>
                 </Card>
               </TabsContent>
