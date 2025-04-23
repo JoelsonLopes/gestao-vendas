@@ -108,6 +108,14 @@ export default function OrderFormPage() {
   const [showClientRefsInPdf, setShowClientRefsInPdf] = useState(true) // Estado para controlar a exibição das referências do cliente no PDF
   const [showClientRefsInPrint, setShowClientRefsInPrint] = useState<boolean>(true) // Estado para controlar a exibição das referências do cliente na impressão
 
+  // Estados para gerenciar preços competitivos
+  // const [competitivePrices, setCompetitivePrices] = useState<{[key: number]: boolean}>({})
+  // const [itemNotes, setItemNotes] = useState<{[key: number]: string}>({})
+  // const [competitorDetailsOpen, setCompetitorDetailsOpen] = useState(false)
+  // const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null)
+  // const [tempCompetitorName, setTempCompetitorName] = useState("")
+  // const [tempCompetitorNote, setTempCompetitorNote] = useState("")
+
   // Adicionar o estado temporário para os produtos na modal
   // Adicionar logo após os estados UI existentes
   // Adicionar estado para controlar a modal de produtos
@@ -704,8 +712,8 @@ export default function OrderFormPage() {
 
   // Remove product from order
   const removeOrderItem = (index: number) => {
-    // Com a ordenação invertida na exibição, precisamos ajustar o índice para remoção
-    const actualIndex = orderItems.length - 1 - index
+    // Usar o índice diretamente, pois não estamos mais invertendo a ordem
+    const actualIndex = index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems((prevItems) => {
@@ -727,8 +735,8 @@ export default function OrderFormPage() {
     discountPercentage: number,
     commission: number,
   ) => {
-    // Com a ordenação invertida na exibição, precisamos ajustar o índice
-    const actualIndex = orderItems.length - 1 - index
+    // Usar o índice diretamente, pois não estamos mais invertendo a ordem
+    const actualIndex = index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems((prevItems) => {
@@ -737,8 +745,6 @@ export default function OrderFormPage() {
 
       // Calcular o preço unitário com desconto primeiro
       const discountedUnitPrice = calculateDiscountedPrice(item.unitPrice, discountPercentage)
-
-      // Calcular o subtotal com base no  discountPercentage)
 
       // Calcular o subtotal com base no preço unitário já com desconto
       const discountedSubtotal = Number((item.quantity * discountedUnitPrice).toFixed(2))
@@ -773,8 +779,8 @@ export default function OrderFormPage() {
   const updateItemQuantity = (index: number, quantity: number) => {
     if (quantity <= 0) return
 
-    // Com a ordenação invertida na exibição, precisamos ajustar o índice
-    const actualIndex = orderItems.length - 1 - index
+    // Usar o índice diretamente, pois não estamos mais invertendo a ordem
+    const actualIndex = index
 
     // Usar o callback do setOrderItems para garantir que temos o estado mais recente
     setOrderItems((prevItems) => {
@@ -907,8 +913,8 @@ export default function OrderFormPage() {
 
   // Função para atualizar o preço com desconto manualmente
   const updateItemManualPrice = (index: number, manualPrice: number) => {
-    // Com a ordenação invertida na exibição, precisamos ajustar o índice
-    const actualIndex = orderItems.length - 1 - index;
+    // Usar o índice diretamente, pois não estamos mais invertendo a ordem
+    const actualIndex = index;
     
     const updatedItems = [...orderItems];
     const item = updatedItems[actualIndex];
@@ -938,6 +944,8 @@ export default function OrderFormPage() {
         item.commission = discount.commission;
       }
     }
+    
+    // Removida a lógica que marcava o preço como competitivo
     
     setOrderItems(updatedItems);
     
@@ -1148,15 +1156,21 @@ export default function OrderFormPage() {
         product?: Product
         clientRef?: string | null
       }) => {
+        // Anteriormente calculava se o item tinha preço competitivo
+        // const actualIndex = orderItems.length - 1 - idx;
+        // const isCompetitivePrice = competitivePrices[actualIndex] || false;
+        // const competitorNote = itemNotes[actualIndex] || '';
+        
         const itemData = {
           productId: item.productId,
           quantity: item.quantity,
-          unitPrice: item.unitPrice.toString(),
+          unitPrice: item.unitPrice.toString(), // Convertido para string
           discountId: item.discountId,
-          discountPercentage: item.discountPercentage.toString(),
-          commission: item.commission.toString(),
-          subtotal: item.subtotal.toString(),
-          clientRef: item.clientRef || item.product?.conversion || null,
+          discountPercentage: item.discountPercentage.toString(), // Convertido para string
+          commission: item.commission.toString(), // Convertido para string
+          subtotal: item.subtotal.toString(), // Convertido para string
+          clientRef: item.clientRef || item.product?.conversion || null, // Adiciona a referência do cliente
+          // Removidas as propriedades isCompetitivePrice e competitorNote
         }
         console.log("Preparando item para envio:", itemData)
         return itemData
@@ -1212,12 +1226,17 @@ export default function OrderFormPage() {
     const client = clients?.find((c) => c.id === clientId)
 
     // Preparar os itens do pedido para o PDF com descontos
-    const pdfItems = orderItems.map((item) => {
+    const pdfItems = orderItems.map((item, idx) => {
       const product = item.product;
       const discount = discounts ? discounts.find((d) => d.id === item.discountId) : undefined;
       
       // Usar o preço com desconto atual
       const priceWithDiscount = getPriceWithDiscount(item);
+      
+      // Não precisamos mais calcular índices para preços competitivos
+      // const actualIndex = orderItems.length - 1 - idx;
+      // const isCompetitivePrice = competitivePrices[actualIndex] || false;
+      // const competitorNote = itemNotes[actualIndex] || '';
       
       return {
         id: item.id || 0,
@@ -1230,7 +1249,8 @@ export default function OrderFormPage() {
         subtotal: item.subtotal,
         brand: product?.brand || null,
         discountName: discount?.name || null,
-        commission: item.commission,
+        commission: item.commission
+        // Propriedades removidas: isCompetitivePrice, competitorNote
       };
     })
 
@@ -1578,11 +1598,11 @@ export default function OrderFormPage() {
                             <TableHead>Preço Tabela</TableHead>
                             <TableHead>Desconto</TableHead>
                             <TableHead>Preço c/ Desc.</TableHead>
-                            <TableHead>Comissão</TableHead>
                             <TableHead>Subtotal</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
+                        
                         <TableBody>
                           {orderItems.length === 0 ? (
                             <TableRow>
@@ -1591,10 +1611,8 @@ export default function OrderFormPage() {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            // Invertemos a ordem para mostrar os mais recentes primeiro
-                            [...orderItems]
-                              .reverse()
-                              .map((item, index) => (
+                            // Exibindo na ordem original de adição, sem inverter
+                            orderItems.map((item, index) => (
                                 <TableRow
                                   key={index}
                                   className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none"
@@ -1669,14 +1687,14 @@ export default function OrderFormPage() {
                                   {/* Preço com Desconto */}
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
                                     <span className="md:hidden font-bold">Preço c/ Desc.:</span>
-                                    <PriceInput
-                                      value={getPriceWithDiscount(item)}
-                                      onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
-                                    />
+                                    <div className="flex flex-col space-y-1">
+                                      <PriceInput
+                                        value={getPriceWithDiscount(item)}
+                                        onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
+                                      />
+                                      
+                                    </div>
                                   </TableCell>
-
-                                  {/* Comissão - Escondido em Mobile */}
-                                  <TableCell className="hidden md:table-cell">{item.commission}%</TableCell>
 
                                   {/* Subtotal */}
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
@@ -1709,8 +1727,8 @@ export default function OrderFormPage() {
                                           setShouldSaveConversion(true)
 
                                           // Remover o item atual para ser substituído
-                                          // Com a ordenação invertida na exibição, precisamos ajustar o índice
-                                          const actualIndex = orderItems.length - 1 - index
+                                          // Usar o índice diretamente, pois não estamos mais invertendo a ordem
+                                          const actualIndex = index
                                           const updatedItems = [...orderItems]
                                           updatedItems.splice(actualIndex, 1)
                                           setOrderItems(updatedItems)
