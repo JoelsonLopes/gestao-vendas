@@ -357,11 +357,15 @@ export function PrintOrderTemplate({ order, items, showClientRefs = true }: Prin
       )}
 
       {/* Área para Assinaturas */}
-      <div className="footer mt-2">
-        <div className="w-[50%] mx-auto">
-          <div className="border-t border-gray-300 pt-1">
-            <p className="text-xs text-center text-gray-500">Sistema Gestão de Vendas</p>
-            <p className="text-xs text-center text-gray-500">Desenvolvido por Joelson Lopes Developer</p>
+      <div className="footer mt-4">
+        <div className="w-[100%] flex justify-center mx-auto">
+          <div className="border-t  border-gray-300 pt-1">
+          <p className="text-sm">
+            © 2025 <span className="font-semibold text-black-400">Gestão de Vendas</span>. Todos os direitos reservados.
+          </p>
+          <p className="text-sm">
+            Desenvolvido por <span className="text-blue-600 font-semibold">Joelson Lopes</span> · Full Stack Developer
+          </p>
           </div>
         </div>
       </div>
