@@ -26,8 +26,6 @@ export function ProductSearch({
 }: ProductSearchProps) {
   const [open, setOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -37,63 +35,28 @@ export function ProductSearch({
     enabled: !!selectedProductId,
   });
   
-  // Buscar produtos com lógica melhorada
-  const searchProducts = async (term: string) => {
-    if (!term || term.length < 2) {
-      setProducts([]);
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // Usamos a mesma rota da API que a página de produtos utiliza
-      const response = await fetch(`/api/products/search/${encodeURIComponent(term)}`);
-      if (!response.ok) {
-        throw new Error("Erro ao buscar produtos");
-      }
-      const data = await response.json();
-      console.log(`Encontrados ${data.length} produtos para "${term}"`);
-      setProducts(data);
-    } catch (error) {
-      console.error("Erro na busca:", error);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Buscar todos os produtos (igual à tela de produtos)
+  const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
   
-  // Debounce para a busca (otimizado para 150ms para resposta mais rápida)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm.trim().length >= 2) {
-        searchProducts(searchTerm);
-      } else {
-        setProducts([]);
-      }
-    }, 150);
-    
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  // Filtrar produtos localmente, igual à tela de produtos
+  const filteredProducts = searchTerm.trim().length < 2 ? [] : allProducts.filter(product => {
+    const term = searchTerm.trim().toLowerCase();
+    return (
+      product.name?.toLowerCase().includes(term) ||
+      product.code?.toLowerCase().includes(term) ||
+      product.brand?.toLowerCase().includes(term) ||
+      product.category?.toLowerCase().includes(term) ||
+      product.conversion?.toLowerCase().includes(term)
+    );
+  });
   
-  // Limpar a busca quando fechar o diálogo
-  useEffect(() => {
-    if (!open) {
-      setSearchTerm("");
-      setProducts([]);
-    } else {
-      // Focus no input quando o diálogo abrir
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 10);
-    }
-  }, [open]);
-  
-  // Resetar o índice destacado quando os produtos mudam
   useEffect(() => {
     setHighlightedIndex(0);
-  }, [products]);
+  }, [filteredProducts]);
   
   const handleProductSelect = (productId: number) => {
     onProductSelect(productId);
@@ -104,26 +67,22 @@ export function ProductSearch({
   };
   
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (products.length === 0) return;
+    if (filteredProducts.length === 0) return;
     
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < products.length - 1 ? prev + 1 : prev
-        );
+        setHighlightedIndex(prev => prev < filteredProducts.length - 1 ? prev + 1 : prev);
         break;
         
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev > 0 ? prev - 1 : 0
-        );
+        setHighlightedIndex(prev => prev > 0 ? prev - 1 : 0);
         break;
         
       case 'Enter':
         e.preventDefault();
-        handleProductSelect(products[highlightedIndex].id);
+        handleProductSelect(filteredProducts[highlightedIndex].id);
         break;
         
       case 'Escape':
@@ -190,7 +149,7 @@ export function ProductSearch({
               <Input
                 id="product-search-input"
                 ref={inputRef}
-                placeholder="Buscar produtos por nome, código, categoria ou marca..."
+                placeholder="Busque por nome, código, marca, categoria ou referência do cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -198,98 +157,43 @@ export function ProductSearch({
                 autoComplete="off"
                 className="pl-9 pr-8"
               />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-muted-foreground" />
-              </div>
-              {loading ? (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchTerm && (
-                <div 
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-                  onClick={() => setSearchTerm("")}
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                </div>
+              {isLoadingProducts && (
+                <Loader2 className="absolute right-2 top-2 h-5 w-5 animate-spin text-primary" />
               )}
             </div>
-            
-            {searchTerm.length < 2 ? (
-              <div className="text-center py-4 text-muted-foreground">
-                Digite pelo menos 2 caracteres para iniciar a busca
-              </div>
-            ) : (searchTerm && !loading && products.length === 0) ? (
-              <div className="text-center py-4 text-muted-foreground">
-                Nenhum produto encontrado
-              </div>
-            ) : (
-              <ScrollArea className="h-[350px]">
-                <div className="space-y-2">
-                  {products.map((product, index) => (
-                    <div
+            {filteredProducts.length > 0 ? (
+              <ScrollArea className="max-h-72 border rounded-md">
+                <ul>
+                  {filteredProducts.map((product, idx) => (
+                    <li
                       key={product.id}
                       className={cn(
-                        "flex items-start p-3 hover:bg-muted rounded-md cursor-pointer border",
-                        index === highlightedIndex && "bg-muted border-primary/50"
+                        "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-primary/10",
+                        idx === highlightedIndex && "bg-primary/10"
                       )}
                       onClick={() => handleProductSelect(product.id)}
-                      onMouseEnter={() => setHighlightedIndex(index)}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
                     >
-                      <div className="bg-primary/10 p-1 rounded-md mr-2">
-                        <Package className="h-4 w-4 text-primary" />
+                      <div className="flex flex-col flex-1">
+                        <span className="font-medium">{product.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Código: {product.code} • Marca: {product.brand || "-"} • Categoria: {product.category || "-"}
+                        </span>
+                        {product.conversion && (
+                          <span className="text-xs text-blue-600">Ref. Cliente: {product.conversion}</span>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium flex justify-between">
-                          <span>{product.name}</span>
-                          <span className="text-sm font-semibold">{formatCurrency(Number(product.price || 0))}</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs bg-secondary/40">
-                            {product.code}
-                          </Badge>
-                          {product.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {product.category}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {product.brand && (
-                            <div className="text-xs bg-blue-50 text-blue-800 dark:bg-blue-900 dark:text-blue-300 px-2 py-0.5 rounded">
-                              Marca: {product.brand}
-                            </div>
-                          )}
-                          {product.conversion && (
-                            <div className="text-xs bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-300 px-2 py-0.5 rounded">
-                              Ref: {product.conversion}
-                            </div>
-                          )}
-                          {product.stockQuantity !== null && product.stockQuantity !== undefined && (
-                            <div className={cn(
-                              "text-xs px-2 py-0.5 rounded",
-                              product.stockQuantity > 0 
-                                ? "bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-300" 
-                                : "bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-300"
-                            )}>
-                              Estoque: {product.stockQuantity}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      <Badge variant="outline">Estoque: {product.stockQuantity ?? "-"}</Badge>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </ScrollArea>
-            )}
-            
-            {/* Dicas de navegação */}
-            {products.length > 0 && (
-              <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                <span>Use as setas ↑↓ para navegar</span>
-                <span>Enter para selecionar</span>
-                <span>Esc para cancelar</span>
-              </div>
+            ) : (
+              !isLoadingProducts && searchTerm.length >= 2 && (
+                <div className="text-center text-muted-foreground text-sm py-4">
+                  Nenhum produto encontrado.
+                </div>
+              )
             )}
           </div>
         </DialogContent>

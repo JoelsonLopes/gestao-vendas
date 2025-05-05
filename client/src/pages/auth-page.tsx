@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -36,6 +37,11 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [location, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const { toast } = useToast();
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -85,6 +91,33 @@ export default function AuthPage() {
         }
       }
     });
+  };
+
+  // Handler para envio do formulário de recuperação
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotSent(false);
+    try {
+      // Chamada para endpoint de recuperação (mock, backend pode ser implementado depois)
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      setForgotSent(true);
+      toast({
+        title: "Se o email existir, enviaremos instruções para redefinir a senha.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao solicitar redefinição de senha",
+        description: String(error),
+        variant: "destructive",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -141,6 +174,15 @@ export default function AuthPage() {
                         {loginForm.formState.errors.password.message}
                       </p>
                     )}
+                    <div className="text-right mt-2">
+                      <button
+                        type="button"
+                        className="text-xs text-purple-400 hover:underline"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Esqueci minha senha
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -310,6 +352,42 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+      {/* Modal de recuperação de senha */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recuperar senha</DialogTitle>
+          </DialogHeader>
+          {forgotSent ? (
+            <div className="py-6 text-center text-green-600">
+              Se o email existir, enviaremos instruções para redefinir a senha.
+            </div>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={forgotLoading}>
+                  {forgotLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Enviar instruções
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowForgotPassword(false)}>
+                  Cancelar
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

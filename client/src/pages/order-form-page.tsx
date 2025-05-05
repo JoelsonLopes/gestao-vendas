@@ -1838,6 +1838,8 @@ export default function OrderFormPage() {
                               addProductToOrder()
                             }
                           }}
+                          // Novo placeholder e instrução
+                          // O componente já está atualizado para autocomplete incremental
                         />
                       </div>
                     </TabsContent>
