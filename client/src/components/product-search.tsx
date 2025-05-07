@@ -56,7 +56,13 @@ export function ProductSearch({
   
   useEffect(() => {
     setHighlightedIndex(0);
-  }, [filteredProducts]);
+  }, [searchTerm]);
+  
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [open]);
   
   const handleProductSelect = (productId: number) => {
     onProductSelect(productId);
