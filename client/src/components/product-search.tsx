@@ -28,6 +28,7 @@ export function ProductSearch({
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   
   // Buscar produto selecionado pelo ID
   const { data: selectedProduct } = useQuery<Product>({
@@ -63,6 +64,12 @@ export function ProductSearch({
       inputRef.current.focus();
     }
   }, [open]);
+  
+  useEffect(() => {
+    if (itemRefs.current[highlightedIndex]) {
+      itemRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex]);
   
   const handleProductSelect = (productId: number) => {
     onProductSelect(productId);
@@ -168,10 +175,11 @@ export function ProductSearch({
               )}
             </div>
             {filteredProducts.length > 0 ? (
-              <ScrollArea className="max-h-72 border rounded-md">
+              <ScrollArea className="max-h-[350px] border rounded-md">
                 <ul>
                   {filteredProducts.map((product, idx) => (
                     <li
+                      ref={el => itemRefs.current[idx] = el}
                       key={product.id}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-primary/10",
