@@ -2,7 +2,7 @@ import { users, type User, type InsertUser } from "@shared/schema";
 import { db } from "../infra/db";
 import { eq, or, and } from "drizzle-orm";
 
-export interface IUserStorage {
+export interface IUserRepository {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
@@ -14,7 +14,7 @@ export interface IUserStorage {
   deleteUser(id: number): Promise<boolean>;
 }
 
-export class UserStorage implements IUserStorage {
+export class UserRepository implements IUserRepository {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;

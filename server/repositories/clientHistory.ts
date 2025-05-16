@@ -2,12 +2,12 @@ import { clientHistory, type ClientHistory, type InsertClientHistory } from "@sh
 import { db } from "../infra/db";
 import { eq } from "drizzle-orm";
 
-export interface IClientHistoryStorage {
+export interface IClientHistoryRepository {
   addClientHistory(history: InsertClientHistory): Promise<ClientHistory>;
   getClientHistory(clientId: number): Promise<ClientHistory[]>;
 }
 
-export class ClientHistoryStorage implements IClientHistoryStorage {
+export class ClientHistoryRepository implements IClientHistoryRepository {
   async addClientHistory(history: InsertClientHistory): Promise<ClientHistory> {
     const [newHistory] = await db.insert(clientHistory).values(history).returning();
     return newHistory;

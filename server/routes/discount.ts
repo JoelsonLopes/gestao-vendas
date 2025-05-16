@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { storage } from "../storage";
-import { isAuthenticated } from "../middlewares/auth.middleware";
+import { storage } from "../repositories";
+import { isAuthenticated } from "../middlewares/auth";
 
 const router = Router();
 

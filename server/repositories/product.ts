@@ -2,7 +2,7 @@ import { products, type Product, type InsertProduct } from "@shared/schema";
 import { db } from "../infra/db";
 import { eq, or, like, ilike, not, and } from "drizzle-orm";
 
-export interface IProductStorage {
+export interface IProductRepository {
   getProduct(id: number): Promise<Product | undefined>;
   getProductByCode(code: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -11,17 +11,17 @@ export interface IProductStorage {
   searchProducts(query: string): Promise<Product[]>;
   getProductByClientReference(clientRef: string): Promise<Product | undefined>;
   saveProductConversion(productId: number, clientRef: string): Promise<Product | undefined>;
-  importProducts(products: InsertProduct[]): Promise<number>;
+  importProducts(productsList: InsertProduct[]): Promise<number>;
 }
 
-export class ProductStorage implements IProductStorage {
+export class ProductRepository implements IProductRepository {
   async getProduct(id: number): Promise<Product | undefined> {
     const [product] = await db.select().from(products).where(eq(products.id, id));
     return product || undefined;
   }
 
   async getProductByCode(code: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(or(eq(products.code, code), eq(products.name, code)));
+    const [product] = await db.select().from(products).where(eq(products.code, code));
     return product || undefined;
   }
 

@@ -2,7 +2,7 @@ import { clients, type Client, type InsertClient, clientHistory, type ClientHist
 import { db } from "../infra/db";
 import { eq, or, ilike } from "drizzle-orm";
 
-export interface IClientStorage {
+export interface IClientRepository {
   getClient(id: number): Promise<Client | undefined>;
   getClientByCode(code: string): Promise<Client | undefined>;
   createClient(client: InsertClient): Promise<Client>;
@@ -14,7 +14,7 @@ export interface IClientStorage {
   getClientHistory(clientId: number): Promise<ClientHistory[]>;
 }
 
-export class ClientStorage implements IClientStorage {
+export class ClientRepository implements IClientRepository {
   async getClient(id: number): Promise<Client | undefined> {
     const [client] = await db.select().from(clients).where(eq(clients.id, id));
     return client || undefined;

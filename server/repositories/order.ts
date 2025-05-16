@@ -2,7 +2,7 @@ import { orders, type Order, type InsertOrder, orderItems, type OrderItem, type 
 import { db, pool } from "../infra/db";
 import { eq } from "drizzle-orm";
 
-export interface IOrderStorage {
+export interface IOrderRepository {
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined>;
@@ -18,7 +18,7 @@ export interface IOrderStorage {
   getOrderItems(orderId: number): Promise<OrderItem[]>;
 }
 
-export class OrderStorage implements IOrderStorage {
+export class OrderRepository implements IOrderRepository {
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     return order || undefined;

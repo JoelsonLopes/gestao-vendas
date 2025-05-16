@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { storage } from "../storage";
-import { isAuthenticated, isAdmin } from "../middlewares/auth.middleware";
+import { storage } from "../repositories";
+import { isAuthenticated, isAdmin } from "../middlewares/auth";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 

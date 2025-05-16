@@ -2,7 +2,7 @@ import { regions, type Region, type InsertRegion } from "@shared/schema";
 import { db } from "../infra/db";
 import { eq } from "drizzle-orm";
 
-export interface IRegionStorage {
+export interface IRegionRepository {
   getRegion(id: number): Promise<Region | undefined>;
   createRegion(region: InsertRegion): Promise<Region>;
   updateRegion(id: number, regionData: Partial<InsertRegion>): Promise<Region | undefined>;
@@ -10,7 +10,7 @@ export interface IRegionStorage {
   deleteRegion(id: number): Promise<boolean>;
 }
 
-export class RegionStorage implements IRegionStorage {
+export class RegionRepository implements IRegionRepository {
   async getRegion(id: number): Promise<Region | undefined> {
     const [region] = await db.select().from(regions).where(eq(regions.id, id));
     return region || undefined;

@@ -1,12 +1,12 @@
 import { Express } from "express";
-import userRouter from "./user.routes";
-import regionRouter from "./region.routes";
-import clientRouter from "./client.routes";
-import productRouter from "./product.routes";
-import orderRouter from "./order.routes";
-import discountRouter from "./discount.routes";
-import statsRouter from "./stats.routes";
-import notificationRouter from "./notification.routes";
+import userRouter from "./user";
+import regionRouter from "./region";
+import clientRouter from "./client";
+import productRouter from "./product";
+import orderRouter from "./order";
+import discountRouter from "./discount";
+import statsRouter from "./stats";
+import notificationRouter from "./notification";
 
 export function registerDomainRoutes(app: Express) {
   // Todas as rotas de usuário (prefixo /api)

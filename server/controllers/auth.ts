@@ -2,8 +2,8 @@ import { Express } from "express";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { type User as UserType, type InsertUser } from "@shared/schema";
-import { hashPassword } from "../services/auth.service";
-import { storage } from "../storage";
+import { hashPassword } from "../services/auth.";
+import { storage } from "../repositories";
 import passport from "passport";
 
 export function setupAuthRoutes(app: Express) {

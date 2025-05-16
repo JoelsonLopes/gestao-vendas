@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { isAuthenticated, isAdmin } from "../middlewares/auth.middleware";
-import { createNotificationService, setupWebSocketServer } from "../services/websockets.service";
+import { isAuthenticated, isAdmin } from "../middlewares/auth";
+import { createNotificationService, setupWebSocketServer } from "../services/websockets";
 
 const router = Router();
 

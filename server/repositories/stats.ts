@@ -1,10 +1,10 @@
 import { type User, type Client, type Product, type Order, type OrderItem } from "@shared/schema";
-import { IClientStorage } from "./client.storage";
-import { IProductStorage } from "./product.storage";
-import { IOrderStorage } from "./order.storage";
-import { IUserStorage } from "./user.storage";
+import { IClientRepository } from "./client";
+import { IProductRepository } from "./product";
+import { IOrderRepository } from "./order";
+import { IUserRepository } from "./user";
 
-export interface IStatsStorage {
+export interface IStatsRepository {
   getOrderStats(representativeId?: number | null): Promise<any>;
   getProductStats(): Promise<any>;
   getClientStats(representativeId?: number | null): Promise<any>;
@@ -13,20 +13,20 @@ export interface IStatsStorage {
   getTopSellingProducts(limit?: number, representativeId?: number | null): Promise<any>;
 }
 
-export class StatsStorage implements IStatsStorage {
+export class StatsRepository implements IStatsRepository {
   constructor(
-    private userStorage: IUserStorage,
-    private clientStorage: IClientStorage,
-    private productStorage: IProductStorage,
-    private orderStorage: IOrderStorage
+    private userRepository: IUserRepository,
+    private clientRepository: IClientRepository,
+    private productRepository: IProductRepository,
+    private orderRepository: IOrderRepository
   ) {}
 
   async getOrderStats(representativeId: number | null = null): Promise<any> {
     let allOrders: Order[];
     if (representativeId) {
-      allOrders = await this.orderStorage.listOrdersByRepresentative(representativeId);
+      allOrders = await this.orderRepository.listOrdersByRepresentative(representativeId);
     } else {
-      allOrders = await this.orderStorage.listOrders();
+      allOrders = await this.orderRepository.listOrders();
     }
     const confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
     const quotationOrders = allOrders.filter(order => order.status === 'cotacao');
@@ -39,7 +39,7 @@ export class StatsStorage implements IStatsStorage {
   }
 
   async getProductStats(): Promise<any> {
-    const allProducts = await this.productStorage.listProducts();
+    const allProducts = await this.productRepository.listProducts();
     const activeProducts = allProducts.filter(product => product.active);
     return {
       total: allProducts.length,
@@ -50,9 +50,9 @@ export class StatsStorage implements IStatsStorage {
   async getClientStats(representativeId: number | null = null): Promise<any> {
     let allClients: Client[];
     if (representativeId) {
-      allClients = await this.clientStorage.listClientsByRepresentative(representativeId);
+      allClients = await this.clientRepository.listClientsByRepresentative(representativeId);
     } else {
-      allClients = await this.clientStorage.listClients();
+      allClients = await this.clientRepository.listClients();
     }
     const activeClients = allClients.filter(client => client.active);
     return {
@@ -64,19 +64,19 @@ export class StatsStorage implements IStatsStorage {
   async getSalesByRepresentative(representativeId: number | null = null): Promise<any> {
     let representatives: User[];
     if (representativeId) {
-      const rep = await this.userStorage.getUser(representativeId);
+      const rep = await this.userRepository.getUser(representativeId);
       representatives = rep ? [rep] : [];
     } else {
-      representatives = await this.userStorage.listRepresentatives();
+      representatives = await this.userRepository.listRepresentatives();
     }
-    const allOrders = await this.orderStorage.listOrders();
+    const allOrders = await this.orderRepository.listOrders();
     return await Promise.all(representatives.map(async (rep) => {
       const repOrders = allOrders.filter(order => order.representativeId === rep.id);
       const confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
       let totalPieces = 0;
       let totalCommission = 0;
       for (const order of confirmedOrders) {
-        const items = await this.orderStorage.getOrderItems(order.id);
+        const items = await this.orderRepository.getOrderItems(order.id);
         totalPieces += items.reduce((sum, item) => sum + item.quantity, 0);
         totalCommission += items.reduce((sum, item) => {
           const commission = item.commission ? Number(item.commission) : 0;
@@ -98,10 +98,10 @@ export class StatsStorage implements IStatsStorage {
   async getSalesByBrand(representativeId: number | null = null): Promise<any> {
     let confirmedOrders: Order[];
     if (representativeId) {
-      const repOrders = await this.orderStorage.listOrdersByRepresentative(representativeId);
+      const repOrders = await this.orderRepository.listOrdersByRepresentative(representativeId);
       confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
     } else {
-      const allOrders = await this.orderStorage.listOrders();
+      const allOrders = await this.orderRepository.listOrders();
       confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
     }
     const brandMap: Record<string, {
@@ -111,9 +111,9 @@ export class StatsStorage implements IStatsStorage {
       orders: number;
     }> = {};
     for (const order of confirmedOrders) {
-      const items = await this.orderStorage.getOrderItems(order.id);
+      const items = await this.orderRepository.getOrderItems(order.id);
       for (const item of items) {
-        const product = await this.productStorage.getProduct(item.productId);
+        const product = await this.productRepository.getProduct(item.productId);
         if (product) {
           const brand = product.brand || 'Sem Marca';
           if (!brandMap[brand]) {
@@ -142,10 +142,10 @@ export class StatsStorage implements IStatsStorage {
   async getTopSellingProducts(limit: number = 20, representativeId: number | null = null): Promise<any> {
     let confirmedOrders: Order[];
     if (representativeId) {
-      const repOrders = await this.orderStorage.listOrdersByRepresentative(representativeId);
+      const repOrders = await this.orderRepository.listOrdersByRepresentative(representativeId);
       confirmedOrders = repOrders.filter(order => order.status === 'confirmado');
     } else {
-      const allOrders = await this.orderStorage.listOrders();
+      const allOrders = await this.orderRepository.listOrders();
       confirmedOrders = allOrders.filter(order => order.status === 'confirmado');
     }
     const productMap: Record<number, {
@@ -158,9 +158,9 @@ export class StatsStorage implements IStatsStorage {
       totalCommission: number;
     }> = {};
     for (const order of confirmedOrders) {
-      const items = await this.orderStorage.getOrderItems(order.id);
+      const items = await this.orderRepository.getOrderItems(order.id);
       for (const item of items) {
-        const product = await this.productStorage.getProduct(item.productId);
+        const product = await this.productRepository.getProduct(item.productId);
         if (product) {
           if (!productMap[product.id]) {
             productMap[product.id] = {

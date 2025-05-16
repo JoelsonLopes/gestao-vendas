@@ -2,11 +2,11 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, serveStatic, log } from "./vite";
 import compression from 'compression';
-import { setupAuth } from "../services/auth.service";
-import { setupAuthRoutes } from "../controllers/auth.controller";
+import { setupAuth } from "../services/auth.";
+import { setupAuthRoutes } from "../controllers/auth";
 import { registerDomainRoutes } from "../routes/index";
 import { createServer } from "http";
-import { setupWebSocketServer, createNotificationService } from "../services/websockets.service";
+import { setupWebSocketServer, createNotificationService } from "../services/websockets";
 
 const app = express();
 
