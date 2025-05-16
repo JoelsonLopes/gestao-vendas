@@ -1,9 +1,12 @@
 import 'dotenv/config'; 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "../routes";
 import { setupVite, serveStatic, log } from "./vite";
 import compression from 'compression';
-
+import { setupAuth } from "../services/auth.service";
+import { setupAuthRoutes } from "../controllers/auth.controller";
+import { registerDomainRoutes } from "../routes/index";
+import { createServer } from "http";
+import { setupWebSocketServer, createNotificationService } from "../services/websockets.service";
 
 const app = express();
 
@@ -47,7 +50,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  // Setup autenticação (passport, sessão)
+  setupAuth(app);
+  // Setup rotas de autenticação
+  setupAuthRoutes(app);
+  // Registrar rotas de domínio
+  registerDomainRoutes(app);
+
+  // Criar servidor HTTP e WebSocket
+  const httpServer = createServer(app);
+  const wss = setupWebSocketServer(httpServer);
+  const notificationService = createNotificationService(wss);
+  app.locals.notificationService = notificationService;
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -57,21 +71,16 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup Vite ou arquivos estáticos
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // Porta padrão
   const port = 5000;
-  server.listen(port, () => {
+  httpServer.listen(port, () => {
     log(`serving on http://localhost:${port}`);
   });
-  ;
 })(); 

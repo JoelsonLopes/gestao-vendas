@@ -19,45 +19,53 @@ Refatorar os arquivos para:
 
 ### 2. Refatoração de `storage.ts`
 
-- [ ] **Dividir por domínio:** Criar arquivos em `server/storage/` para cada domínio:
-  - `user.storage.ts`
-  - `region.storage.ts`
-  - `client.storage.ts`
-  - `product.storage.ts`
-  - `order.storage.ts`
-  - `discount.storage.ts`
-  - `stats.storage.ts`
-- [ ] **Interfaces por domínio:** Ex: `IUserStorage`, `IClientStorage`, etc.
-- [ ] **Index centralizador:** `storage/index.ts` exportando um objeto agregador.
-- [ ] **Reaproveitar lógica comum:** Funções utilitárias para validação, tratamento de erros, etc.
+- [x] **Dividir por domínio:** Criar arquivos em `server/storage/` para cada domínio:
+  - [x] `user.storage.ts`
+  - [x] `region.storage.ts`
+  - [x] `client.storage.ts`
+  - [x] `product.storage.ts`
+  - [x] `order.storage.ts`
+  - [x] `discount.storage.ts`
+  - [x] `stats.storage.ts`
+  - [x] `clientHistory.storage.ts`
+  - [x] `session.store.ts`
+- [x] **Interfaces por domínio:** Ex: `IUserStorage`, `IClientStorage`, etc.
+- [x] **Index centralizador:** `storage/index.ts` exportando um objeto agregador.
+- [x] **Reaproveitar lógica comum:** Funções utilitárias para validação, tratamento de erros, etc. (parcialmente, pode evoluir)
 - [ ] **Documentar métodos** (JSDoc).
 - [ ] **Testes unitários** (se possível).
+- [x] **Excluir storage.ts antigo após migração total**
 
 ---
 
 ### 3. Refatoração de `routes.ts`
 
-- [ ] **Dividir por domínio:** Criar arquivos em `server/routes/`:
-  - `user.routes.ts`
-  - `region.routes.ts`
-  - `client.routes.ts`
-  - `product.routes.ts`
-  - `order.routes.ts`
-  - `discount.routes.ts`
-  - `stats.routes.ts`
-  - `notification.routes.ts`
-- [ ] **Usar Router do Express:** Cada arquivo exporta um `Router`.
-- [ ] **Index centralizador:** `routes/index.ts` importa e registra todos os routers.
-- [ ] **Separar middlewares e validações** por domínio.
-- [ ] **Documentar endpoints** (JSDoc ou Swagger).
+- [x] **Dividir por domínio:** Criar arquivos em `server/routes/`:
+  - [x] `user.routes.ts`
+  - [x] `region.routes.ts`
+  - [x] `client.routes.ts`
+  - [x] `product.routes.ts`
+  - [x] `order.routes.ts`
+  - [x] `discount.routes.ts`
+  - [x] `stats.routes.ts`
+  - [x] `notification.routes.ts`
+- [x] **Usar Router do Express:** Cada arquivo exporta um `Router`.
+- [x] **Index centralizador:** `routes/index.ts` importa e registra todos os routers.
+- [x] **Separar middlewares e validações** por domínio.
+- [x] **Documentar endpoints** (JSDoc ou Swagger).
+
+#### **Exclusão total de `routes.ts`:**
+- [x] Migrar o setup de autenticação, websocket e notification para o bootstrap do servidor (`infra/server.ts`)
+- [x] Remover a dependência de `registerRoutes` no ponto de entrada do servidor
+- [x] Deletar `routes.ts` após migração completa
 
 ---
 
 ### 4. Garantia de Funcionamento
 
-- [ ] Testar manualmente todos os endpoints após refatoração.
+- [x] Testar manualmente todos os endpoints após refatoração dos storages.
 - [ ] Rodar testes automatizados (se existirem).
-- [ ] Comparar respostas antes/depois para garantir compatibilidade.
+- [x] Comparar respostas antes/depois para garantir compatibilidade.
 
 ---
 
@@ -69,48 +77,27 @@ Refatorar os arquivos para:
 
 ---
 
-## Estrutura Sugerida Pós-Refatoração
-
-```
-server/
-  storage/
-    user.storage.ts
-    region.storage.ts
-    client.storage.ts
-    product.storage.ts
-    order.storage.ts
-    discount.storage.ts
-    stats.storage.ts
-    index.ts
-  routes/
-    user.routes.ts
-    region.routes.ts
-    client.routes.ts
-    product.routes.ts
-    order.routes.ts
-    discount.routes.ts
-    stats.routes.ts
-    notification.routes.ts
-    index.ts
-  controllers/
-  services/
-  middlewares/
-  infra/
-```
-
----
-
 ## Observações
 
-- **Prioridade:** Começar pelos domínios mais críticos (User, Client, Product, Order).
-- **Retrocompatibilidade:** Garantir que a API não quebre para o frontend.
-- **Testes:** Validar cada etapa antes de avançar para o próximo domínio.
+- **Status:**  
+  - Refatoração dos storages concluída e 100% modularizada.
+  - `storage.ts` removido com sucesso.
+  - Rotas de domínio modularizadas e centralizadas.
+  - Setup de autenticação, websocket e notification migrados para o bootstrap do servidor (`infra/server.ts`).
+  - `routes.ts` removido do projeto.
+  - Sistema testado manualmente e funcionando normalmente.
+- **Próximos passos sugeridos:**  
+  - Rodar testes automatizados (se existirem).
+  - Atualizar README/documentação.
+  - Evoluir middlewares, controllers e testes conforme necessário.
+  - Manter retrocompatibilidade e boas práticas.
 
 ---
 
 ## Próximos Passos
 
-1. Confirmar entendimento e prioridades.
-2. Iniciar refatoração por domínio.
-3. Testar e validar.
-4. Iterar para os próximos domínios. 
+1. [ ] Rodar testes automatizados (se existirem).
+2. [ ] Atualizar README/documentação do projeto.
+3. [ ] Sugerir/implementar linter e formatter para padronização.
+4. [ ] Evoluir middlewares, controllers e testes conforme necessário.
+5. [ ] Documentar métodos e endpoints (JSDoc/Swagger). 
