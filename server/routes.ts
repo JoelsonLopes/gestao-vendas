@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { setupWebSocketServer, createNotificationService, type NotificationService } from "./websockets";
-import { setupAuth, hashPassword } from "./auth";
+import { setupWebSocketServer, createNotificationService, type NotificationService } from "./services/websockets.service";
+import { setupAuth, hashPassword } from "./services/auth.service";
+import { setupAuthRoutes } from "./controllers/auth.controller";
 import { storage } from "./storage";
 import { z } from "zod";
 import { 
@@ -13,26 +14,13 @@ import {
   insertUserSchema, 
   type Client
 } from "@shared/schema";
-
-// Middleware to check if user is authenticated
-const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Not authenticated" });
-};
-
-// Middleware to check if user is an admin
-const isAdmin = (req: Request, res: Response, next: Function) => {
-  if (req.isAuthenticated() && req.user.role === 'admin') {
-    return next();
-  }
-  res.status(403).json({ message: "Not authorized" });
-};
+import { isAuthenticated, isAdmin } from "./middlewares/auth.middleware";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication routes
+  // Setup authentication (passport, sessão)
   setupAuth(app);
+  // Setup rotas de autenticação
+  setupAuthRoutes(app);
   
   // Create websocket server and notification service
   const httpServer = createServer(app);
@@ -42,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all users (admin only)
   app.get("/api/users", isAdmin, async (req, res) => {
     try {
-      const users = await storage.listUsers();
+      const users = await storage.user.listUsers();
       const usersWithoutPasswords = users.map(({ password, ...user }) => user);
       res.json(usersWithoutPasswords);
     } catch (error) {
@@ -53,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all pending users (admin only)
   app.get("/api/pending-users", isAdmin, async (req, res) => {
     try {
-      const pendingUsers = await storage.getPendingUsers();
+      const pendingUsers = await storage.user.getPendingUsers();
       const usersWithoutPasswords = pendingUsers.map(({ password, ...user }) => user);
       res.json(usersWithoutPasswords);
     } catch (error) {
@@ -66,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:id/approve", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const updatedUser = await storage.updateUser(userId, { approved: true });
+      const updatedUser = await storage.user.updateUser(userId, { approved: true });
       if (!updatedUser) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
@@ -82,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const success = await storage.deleteUser(userId);
+      const success = await storage.user.deleteUser(userId);
       if (!success) {
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
@@ -96,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all representatives
   app.get("/api/representatives", isAuthenticated, async (req, res) => {
     try {
-      const representatives = await storage.listRepresentatives();
+      const representatives = await storage.user.listRepresentatives();
       const repsWithoutPasswords = representatives.map(({ password, ...rep }) => rep);
       res.json(repsWithoutPasswords);
     } catch (error) {
@@ -107,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get a specific user (admin only)
   app.get("/api/users/:id", isAdmin, async (req, res) => {
     try {
-      const user = await storage.getUser(parseInt(req.params.id));
+      const user = await storage.user.getUser(parseInt(req.params.id));
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -129,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = createUserSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(validatedData.email);
+      const existingUser = await storage.user.getUserByEmail(validatedData.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already in use" });
       }
@@ -142,14 +130,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Se for representante, primeiro cria uma região com o mesmo nome
         if (validatedData.role === 'representative') {
-          const region = await storage.createRegion({
+          const region = await storage.region.createRegion({
             name: validatedData.name, // Nome da região igual ao nome do representante
             // A descrição é um campo opcional na tabela regiões
             ...(typeof validatedData.name === 'string' && { description: `Região de ${validatedData.name}` }),
           });
           
           // Depois cria o usuário com a regionId associada
-          user = await storage.createUser({
+          user = await storage.user.createUser({
             ...validatedData,
             password: hashedPassword,
             regionId: region.id, // Vincula o representante à região criada
@@ -158,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Região ${region.name} (ID: ${region.id}) criada para representante ${user.name} (ID: ${user.id})`);
         } else {
           // Caso não seja representante, cria sem região associada
-          user = await storage.createUser({
+          user = await storage.user.createUser({
             ...validatedData,
             password: hashedPassword,
           });
@@ -191,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       
       // Get the current user
-      const currentUser = await storage.getUser(id);
+      const currentUser = await storage.user.getUser(id);
       if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -207,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if updating email and if it's already in use
       if (validatedData.email && validatedData.email !== currentUser.email) {
-        const existingUser = await storage.getUserByEmail(validatedData.email);
+        const existingUser = await storage.user.getUserByEmail(validatedData.email);
         if (existingUser) {
           return res.status(400).json({ message: "Email already in use" });
         }
@@ -223,10 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.updateRegion && validatedData.name && currentUser.regionId) {
         try {
           // Verifica se a região existe
-          const region = await storage.getRegion(currentUser.regionId);
+          const region = await storage.region.getRegion(currentUser.regionId);
           if (region) {
             // Atualiza o nome da região para corresponder ao nome atualizado do representante
-            await storage.updateRegion(currentUser.regionId, {
+            await storage.region.updateRegion(currentUser.regionId, {
               name: validatedData.name
             });
           }
@@ -237,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update user
-      const user = await storage.updateUser(id, updateData);
+      const user = await storage.user.updateUser(id, updateData);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -262,21 +250,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       
       // Get the current user
-      const currentUser = await storage.getUser(id);
+      const currentUser = await storage.user.getUser(id);
       if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
       }
       
       // Prevent deactivating the last admin
       if (currentUser.role === 'admin' && currentUser.active) {
-        const adminUsers = (await storage.listUsers()).filter(u => u.role === 'admin' && u.active);
+        const adminUsers = (await storage.user.listUsers()).filter(u => u.role === 'admin' && u.active);
         if (adminUsers.length <= 1) {
           return res.status(400).json({ message: "Cannot deactivate the last admin user" });
         }
       }
       
       // Toggle the active status
-      const user = await storage.updateUser(id, { active: !currentUser.active });
+      const user = await storage.user.updateUser(id, { active: !currentUser.active });
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -294,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all regions
   app.get("/api/regions", isAuthenticated, async (req, res) => {
     try {
-      const regions = await storage.listRegions();
+      const regions = await storage.region.listRegions();
       res.json(regions);
     } catch (error) {
       res.status(500).json({ message: "Error fetching regions" });
@@ -305,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/regions", isAdmin, async (req, res) => {
     try {
       const validatedData = insertRegionSchema.parse(req.body);
-      const region = await storage.createRegion(validatedData);
+      const region = await storage.region.createRegion(validatedData);
       res.status(201).json(region);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -323,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertRegionSchema.partial().parse(req.body);
-      const region = await storage.updateRegion(id, validatedData);
+      const region = await storage.region.updateRegion(id, validatedData);
       if (!region) {
         return res.status(404).json({ message: "Region not found" });
       }
@@ -343,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/regions/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteRegion(id);
+      const success = await storage.region.deleteRegion(id);
       if (!success) {
         return res.status(404).json({ message: "Region not found" });
       }
@@ -361,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const representativeId = parseInt(req.params.id);
       
       // Verificar se o representante existe
-      const representative = await storage.getUser(representativeId);
+      const representative = await storage.user.getUser(representativeId);
       if (!representative) {
         return res.status(404).json({ message: "Representante não encontrado" });
       }
@@ -379,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verificar se todos os clientes existem
       const existingClients = await Promise.all(
-        clientIds.map(id => storage.getClient(id))
+        clientIds.map(id => storage.client.getClient(id))
       );
       
       const missingClients = clientIds.filter((_, index) => !existingClients[index]);
@@ -393,14 +381,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Atualizar cada cliente
       const results = await Promise.all(
         clientIds.map(clientId => 
-          storage.updateClient(clientId, { representativeId })
+          storage.client.updateClient(clientId, { representativeId })
         )
       );
       
       // Registrar no histórico
       await Promise.all(
         results.map(client => 
-          storage.addClientHistory({
+          storage.clientHistory.addClientHistory({
             clientId: client!.id,
             userId: req.user?.id ?? 0, // Default to 0 or handle undefined appropriately
             action: 'assigned_representative',
@@ -433,7 +421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const representativeId = parseInt(req.params.id);
       
       // Verificar se o representante existe
-      const representative = await storage.getUser(representativeId);
+      const representative = await storage.user.getUser(representativeId);
       if (!representative) {
         return res.status(404).json({ message: "Representante não encontrado" });
       }
@@ -469,11 +457,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const clientData of clients) {
         try {
           // Verificar se o cliente já existe pelo código
-          const existingClient = await storage.getClientByCode(clientData.code);
+          const existingClient = await storage.client.getClientByCode(clientData.code);
           
           if (existingClient) {
             // Atualizar cliente existente
-            const updatedClient = await storage.updateClient(existingClient.id, {
+            const updatedClient = await storage.client.updateClient(existingClient.id, {
               ...clientData,
               representativeId
             });
@@ -482,7 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               results.updated.push(updatedClient);
               
               // Registrar no histórico
-              await storage.addClientHistory({
+              await storage.clientHistory.addClientHistory({
                 clientId: updatedClient.id,
                 userId: req.user?.id ?? 0,
                 action: 'updated_via_import',
@@ -495,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } else {
             // Criar novo cliente
-            const newClient = await storage.createClient({
+            const newClient = await storage.client.createClient({
               ...clientData,
               representativeId,
               active: true
@@ -504,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             results.created.push(newClient);
             
             // Registrar no histórico
-            await storage.addClientHistory({
+            await storage.clientHistory.addClientHistory({
               clientId: newClient.id,
               userId: req.user?.id ?? 0,
               action: 'created_via_import',
@@ -550,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Não autorizado a ver clientes de outro representante" });
       }
       
-      const clients = await storage.listClientsByRepresentative(representativeId);
+      const clients = await storage.client.listClientsByRepresentative(representativeId);
       res.json(clients);
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar clientes do representante" });
@@ -563,9 +551,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let clients;
       // If rep, show only their clients
       if (req.user?.role === 'representative') {
-        clients = await storage.listClientsByRepresentative(req.user.id);
+        clients = await storage.client.listClientsByRepresentative(req.user.id);
       } else {
-        clients = await storage.listClients();
+        clients = await storage.client.listClients();
       }
       res.json(clients);
     } catch (error) {
@@ -581,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Search query is required" });
       }
       
-      let clients = await storage.searchClients(q);
+      let clients = await storage.client.searchClients(q);
       
       // If representative, filter only their clients
       if (req.user?.role === 'representative') {
@@ -598,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clients/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const client = await storage.getClient(id);
+      const client = await storage.client.getClient(id);
       
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
@@ -621,10 +609,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validatedData = insertClientSchema.parse(req.body);
       
       console.log("Criando cliente com dados:", JSON.stringify(validatedData));
-      const client = await storage.createClient(validatedData);
+      const client = await storage.client.createClient(validatedData);
       
       // Add to history
-      await storage.addClientHistory({
+      await storage.clientHistory.addClientHistory({
         clientId: client.id,
         userId: req.user?.id ?? 0,
         action: 'created',
@@ -651,7 +639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/clients/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const client = await storage.getClient(id);
+      const client = await storage.client.getClient(id);
       
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
@@ -671,10 +659,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to change representative" });
       }
       
-      const updatedClient = await storage.updateClient(id, validatedData);
+      const updatedClient = await storage.client.updateClient(id, validatedData);
       
       // Add to history
-      await storage.addClientHistory({
+      await storage.clientHistory.addClientHistory({
         clientId: id,
         userId: req.user?.id ?? 0,
         action: 'updated',
@@ -700,7 +688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clients/:id/history", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const client = await storage.getClient(id);
+      const client = await storage.client.getClient(id);
       
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
@@ -711,7 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to view this client's history" });
       }
       
-      const history = await storage.getClientHistory(id);
+      const history = await storage.clientHistory.getClientHistory(id);
       res.json(history);
     } catch (error) {
       res.status(500).json({ message: "Error fetching client history" });
@@ -724,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products", isAuthenticated, async (req, res) => {
     try {
       console.log("Buscando todos os produtos...");
-      const products = await storage.listProducts();
+      const products = await storage.product.listProducts();
       console.log(`Produtos encontrados: ${products?.length || 0}`);
       res.json(products || []);
     } catch (error) {
@@ -741,7 +729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID de produto inválido" });
       }
       
-      const product = await storage.getProduct(id);
+      const product = await storage.product.getProduct(id);
       
       if (!product) {
         return res.status(404).json({ message: "Produto não encontrado" });
@@ -762,7 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Código do produto é obrigatório" });
       }
       
-      const product = await storage.getProductByCode(code);
+      const product = await storage.product.getProductByCode(code);
       
       if (!product) {
         return res.status(404).json({ message: "Produto não encontrado com este código" });
@@ -783,7 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[API] Buscando produtos com o termo: "${q}" via query param`);
-      const products = await storage.searchProducts(q);
+      const products = await storage.product.searchProducts(q);
       console.log(`[API] Encontrados ${products.length} produtos para "${q}" via query param`);
       res.json(products);
     } catch (error) {
@@ -801,7 +789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[API] Buscando produtos com o termo: "${term}" via URL path`);
-      const products = await storage.searchProducts(term);
+      const products = await storage.product.searchProducts(term);
       console.log(`[API] Encontrados ${products.length} produtos para o termo "${term}" via URL path`);
       res.json(products);
     } catch (error) {
@@ -818,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Referência do cliente é obrigatória" });
       }
       
-      const product = await storage.getProductByClientReference(reference);
+      const product = await storage.product.getProductByClientReference(reference);
       
       if (!product) {
         return res.status(404).json({ message: "Produto não encontrado para esta referência do cliente" });
@@ -841,13 +829,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se o produto existe
-      const product = await storage.getProduct(id);
+      const product = await storage.product.getProduct(id);
       if (!product) {
         return res.status(404).json({ message: "Produto não encontrado" });
       }
       
       // Verificar se a referência já existe para outro produto
-      const existingProduct = await storage.getProductByClientReference(clientRef);
+      const existingProduct = await storage.product.getProductByClientReference(clientRef);
       if (existingProduct && existingProduct.id !== id) {
         return res.status(400).json({ 
           message: "Esta referência já está associada a outro produto", 
@@ -856,7 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Salvar a conversão
-      const updatedProduct = await storage.saveProductConversion(id, clientRef);
+      const updatedProduct = await storage.product.saveProductConversion(id, clientRef);
       res.json(updatedProduct);
     } catch (error) {
       res.status(500).json({ message: "Erro ao salvar conversão de produto" });
@@ -869,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products", isAdmin, async (req, res) => {
     try {
       const validatedData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(validatedData);
+      const product = await storage.product.createProduct(validatedData);
       res.status(201).json(product);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -886,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/products/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const product = await storage.getProduct(id);
+      const product = await storage.product.getProduct(id);
       
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
@@ -896,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertProductSchema.partial().parse(req.body);
       
       // Update product
-      const updatedProduct = await storage.updateProduct(id, validatedData);
+      const updatedProduct = await storage.product.updateProduct(id, validatedData);
       res.json(updatedProduct);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -931,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Garantir que código seja único
           if (product.code) {
-            const existingProduct = await storage.getProductByCode(product.code);
+            const existingProduct = await storage.product.getProductByCode(product.code);
             if (existingProduct) {
               throw new Error(`Produto com código '${product.code}' já existe no sistema`);
             }
@@ -979,7 +967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Importar produtos válidos
-      const count = await storage.importProducts(validatedProducts);
+      const count = await storage.product.importProducts(validatedProducts);
       
       // Retornar estatísticas detalhadas da importação
       res.status(201).json({ 
@@ -1003,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all discounts
   app.get("/api/discounts", isAuthenticated, async (req, res) => {
     try {
-      const discounts = await storage.listDiscounts();
+      const discounts = await storage.discount.listDiscounts();
       res.json(discounts);
     } catch (error) {
       res.status(500).json({ message: "Error fetching discounts" });
@@ -1018,23 +1006,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let orders;
       // If rep, show only their orders
       if (req.user && req.user.role === 'representative') {
-        orders = await storage.listOrdersByRepresentative(req.user.id);
+        orders = await storage.order.listOrdersByRepresentative(req.user.id);
       } else {
-        orders = await storage.listOrders();
+        orders = await storage.order.listOrders();
       }
       
       // Enriquecer os dados dos pedidos com informações de totalPieces e nome do cliente
       const ordersWithDetails = await Promise.all(orders.map(async (order) => {
         try {
           // Buscar itens para calcular o total de peças
-          const items = await storage.getOrderItems(order.id);
+          const items = await storage.order.getOrderItems(order.id);
           const totalPieces = items.reduce((sum, item) => sum + item.quantity, 0);
           
           // Buscar informações do cliente
           let clientName = 'Cliente';
           let clientCode = '';
           try {
-            const client = await storage.getClient(order.clientId);
+            const client = await storage.client.getClient(order.clientId);
             if (client) {
               clientName = client.name || `Cliente #${client.id}`;
               clientCode = client.code || '';
@@ -1095,7 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/orders/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const orderData = await storage.getOrderWithItems(id);
+      const orderData = await storage.order.getOrderWithItems(id);
       
       if (!orderData) {
         return res.status(404).json({ message: "Order not found" });
@@ -1117,7 +1105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/orders/:id/items", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const orderData = await storage.getOrderWithItems(id);
+      const orderData = await storage.order.getOrderWithItems(id);
       
       if (!orderData) {
         return res.status(404).json({ message: "Order not found" });
@@ -1139,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/orders/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const order = await storage.getOrder(id);
+      const order = await storage.order.getOrder(id);
       
       if (!order) {
         return res.status(404).json({ message: "Pedido não encontrado" });
@@ -1150,7 +1138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to delete this order" });
       }
       
-      const success = await storage.deleteOrder(id);
+      const success = await storage.order.deleteOrder(id);
       
       if (success) {
         res.json({ message: "Pedido excluído com sucesso" });
@@ -1177,7 +1165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get existing order
-      const existingOrder = await storage.getOrder(id);
+      const existingOrder = await storage.order.getOrder(id);
       if (!existingOrder) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -1200,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if rep has access to this client
       if (req.user?.role === 'representative') {
-        const client = await storage.getClient(validatedOrder.clientId);
+        const client = await storage.client.getClient(validatedOrder.clientId);
         if (!client || client.representativeId !== req.user.id) {
           return res.status(403).json({ message: "Not authorized to create order for this client" });
         }
@@ -1210,7 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Atualizando pedido ${id} no endpoint com dados:`, validatedOrder);
       
       // Update order
-      const updatedOrder = await storage.updateOrder(id, validatedOrder);
+      const updatedOrder = await storage.order.updateOrder(id, validatedOrder);
       console.log(`Pedido ${id} atualizado no endpoint:`, updatedOrder);
       
       // Update order items
@@ -1226,7 +1214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log(`Atualizando ${processedItems.length} itens para o pedido ${id}`);
-      const updatedItems = await storage.updateOrderItems(id, processedItems);
+      const updatedItems = await storage.order.updateOrderItems(id, processedItems);
       
       // Adicionar o clientRef de volta aos itens para o frontend
       const updatedItemsWithClientRef = updatedItems.map((item, index) => {
@@ -1267,7 +1255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clients/:id/orders", isAuthenticated, async (req, res) => {
     try {
       const clientId = parseInt(req.params.id);
-      const client = await storage.getClient(clientId);
+      const client = await storage.client.getClient(clientId);
       
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
@@ -1278,7 +1266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to view this client's orders" });
       }
       
-      const orders = await storage.listOrdersByClient(clientId);
+      const orders = await storage.order.listOrdersByClient(clientId);
       res.json(orders);
     } catch (error) {
       res.status(500).json({ message: "Error fetching client orders" });
@@ -1304,14 +1292,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if rep has access to this client
       if (req.user?.role === 'representative') {
-        const client = await storage.getClient(validatedOrder.clientId);
+        const client = await storage.client.getClient(validatedOrder.clientId);
         if (!client || client.representativeId !== req.user.id) {
           return res.status(403).json({ message: "Not authorized to create order for this client" });
         }
       }
       
       // Create order
-      const newOrder = await storage.createOrder(validatedOrder);
+      const newOrder = await storage.order.createOrder(validatedOrder);
       
       // Create order items
       const orderItems = [];
@@ -1328,7 +1316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             orderId: newOrder.id
           });
           
-          const newItem = await storage.createOrderItem(validatedItem);
+          const newItem = await storage.order.createOrderItem(validatedItem);
           
           // Se quisermos manter clientRef na resposta para o frontend,
           // podemos adicioná-lo manualmente ao objeto retornado
@@ -1369,7 +1357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid status" });
       }
       
-      const order = await storage.getOrder(id);
+      const order = await storage.order.getOrder(id);
       
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
@@ -1380,7 +1368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Not authorized to update this order status" });
       }
       
-      const updatedOrder = await storage.updateOrderStatus(id, status);
+      const updatedOrder = await storage.order.updateOrderStatus(id, status);
       res.json(updatedOrder);
     } catch (error) {
       res.status(500).json({ message: "Error updating order status" });
@@ -1396,9 +1384,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user?.id ?? 0;
       const isAdmin = req.user?.role === 'admin';
       
-      const orderStats = await storage.getOrderStats(isAdmin ? null : userId);
-      const productStats = await storage.getProductStats();
-      const clientStats = await storage.getClientStats(isAdmin ? null : userId);
+      const orderStats = await storage.stats.getOrderStats(isAdmin ? null : userId);
+      const productStats = await storage.stats.getProductStats();
+      const clientStats = await storage.stats.getClientStats(isAdmin ? null : userId);
       
       res.json({
         orders: orderStats,
@@ -1417,7 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user?.role === 'admin';
       
       // Se for admin, mostra de todos, caso contrário apenas do usuário logado
-      const salesByRep = await storage.getSalesByRepresentative(isAdmin ? null : userId);
+      const salesByRep = await storage.stats.getSalesByRepresentative(isAdmin ? null : userId);
       res.json(salesByRep);
     } catch (error) {
       res.status(500).json({ message: "Error fetching sales by representative" });
@@ -1431,7 +1419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isAdmin = req.user?.role === 'admin';
       
       // Se for admin, mostra de todos, caso contrário apenas do usuário logado
-      const salesByBrand = await storage.getSalesByBrand(isAdmin ? null : userId);
+      const salesByBrand = await storage.stats.getSalesByBrand(isAdmin ? null : userId);
       res.json(salesByBrand);
     } catch (error) {
       res.status(500).json({ message: "Error fetching sales by brand" });
@@ -1446,7 +1434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // O limite padrão é 20, mas pode ser alterado via query parameter
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      const topProducts = await storage.getTopSellingProducts(limit, isAdmin ? null : userId);
+      const topProducts = await storage.stats.getTopSellingProducts(limit, isAdmin ? null : userId);
       res.json(topProducts);
     } catch (error) {
       res.status(500).json({ message: "Error fetching top selling products" });
