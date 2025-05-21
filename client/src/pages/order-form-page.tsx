@@ -1326,6 +1326,10 @@ export default function OrderFormPage() {
     setHasUnsavedChanges(true)
   }
 
+  // Adicionar estado para edição inline da referência do cliente
+  const [editingClientRefIndex, setEditingClientRefIndex] = useState<number | null>(null)
+  const [tempClientRef, setTempClientRef] = useState<string>("")
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -1620,12 +1624,49 @@ export default function OrderFormPage() {
                                   {/* Referência do Cliente */}
                                   <TableCell className="md:table-cell p-4 md:p-2 block">
                                     <span className="md:hidden font-bold">Ref. Cliente:</span>
-                                    {item.clientRef || item.product?.conversion ? (
-                                      <span className="px-2 py-1  rounded-md bg-gray-100 dark:bg-gray-800 text-sm">
-                                        {item.clientRef || item.product?.conversion}
-                                      </span>
+                                    {editingClientRefIndex === index ? (
+                                      <Input
+                                        autoFocus
+                                        value={tempClientRef}
+                                        onChange={e => setTempClientRef(e.target.value)}
+                                        onBlur={() => {
+                                          // Salva o valor editado no estado do item
+                                          setOrderItems(prev => {
+                                            const updated = [...prev]
+                                            updated[index] = { ...updated[index], clientRef: tempClientRef }
+                                            return updated
+                                          })
+                                          setEditingClientRefIndex(null)
+                                        }}
+                                        onKeyDown={e => {
+                                          if (e.key === "Enter") {
+                                            setOrderItems(prev => {
+                                              const updated = [...prev]
+                                              updated[index] = { ...updated[index], clientRef: tempClientRef }
+                                              return updated
+                                            })
+                                            setEditingClientRefIndex(null)
+                                          } else if (e.key === "Escape") {
+                                            setEditingClientRefIndex(null)
+                                          }
+                                        }}
+                                        className="w-32 text-sm"
+                                      />
                                     ) : (
-                                      <span className="text-muted-foreground">-</span>
+                                      <span
+                                        className={
+                                          (item.clientRef || item.product?.conversion)
+                                            ? "px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                                            : "text-muted-foreground cursor-pointer hover:underline"
+                                        }
+                                        title="Clique para editar a referência do cliente"
+                                        onClick={() => {
+                                          setEditingClientRefIndex(index)
+                                          setTempClientRef(item.clientRef || item.product?.conversion || "")
+                                        }}
+                                      >
+                                        {item.clientRef || item.product?.conversion || <span className="italic">Clique para informar</span>}
+                                      </span>
                                     )}
                                   </TableCell>
 

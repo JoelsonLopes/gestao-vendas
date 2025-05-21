@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Regra: Tratamento de Erros e Warnings em TypeScript
+
+- **Nunca** utilize `// @ts-ignore` sem um comentário explicando o motivo logo acima.
+- Não ignore erros de TypeScript sem justificar claramente a razão.
+- Warnings devem ser tratados com a mesma seriedade que erros: corrija-os antes de prosseguir.
+- O uso de `// @ts-ignore` só é permitido em último caso e sempre acompanhado de explicação.
+- Exemplo correto:
+  ```ts
+  // @ts-ignore: necessário para compatibilidade com biblioteca X
+  ```
+- Exemplo incorreto:
+  ```ts
+  // @ts-ignore
+  ```
+

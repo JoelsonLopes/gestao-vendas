@@ -1,87 +1,99 @@
 # Sistema de Gestão de Vendas
 
-Um sistema moderno e completo para gestão de vendas, desenvolvido com tecnologias atuais e boas práticas de desenvolvimento.
+> **Controle total de vendas, clientes e equipes em uma plataforma moderna e acessível.**
 
-## 🚀 Tecnologias
+---
 
-Este projeto utiliza as seguintes tecnologias:
+## Descrição Geral
 
-- **Frontend:**
-  - React 18
-  - TypeScript
-  - Tailwind CSS
-  - Radix UI (Componentes acessíveis)
-  - React Query (Gerenciamento de estado e cache)
-  - Wouter (Roteamento)
-  - Recharts (Gráficos)
-  - React Hook Form (Formulários)
-  - Zod (Validação)
+O Sistema de Gestão de Vendas é uma solução completa para pequenas e médias empresas, representantes comerciais e equipes de vendas que buscam eficiência, organização e performance. Com interface intuitiva, recursos avançados e foco em acessibilidade, o sistema centraliza o controle de pedidos, clientes, produtos, usuários, regiões e relatórios em um só lugar.
 
-- **Backend:**
-  - Node.js
-  - Express
-  - TypeScript
-  - Drizzle ORM
-  - PostgreSQL
-  - Passport.js (Autenticação)
-  - WebSocket (Comunicação em tempo real)
+---
 
-- **Ferramentas de Desenvolvimento:**
-  - Vite
-  - ESBuild
-  - TypeScript
-  - Drizzle Kit
-  - Cypress (Testes)
+## Principais Funcionalidades
 
-## 📋 Pré-requisitos
+- Gestão de vendas e pedidos
+- Cadastro e gerenciamento de clientes
+- Controle de produtos e estoque
+- Dashboard com indicadores e gráficos
+- Relatórios exportáveis e detalhados
+- Gestão de usuários e permissões (admin/representante)
+- Gerenciamento de regiões e representantes
+- Processamento de pagamentos (Stripe)
+- Autenticação segura (Passport.js)
+- Interface responsiva e acessível (WCAG)
 
-- Node.js (versão LTS recomendada)
+---
+
+## Tecnologias Utilizadas
+
+**Frontend:**
+- React 18 + TypeScript
+- Tailwind CSS
+- Radix UI (componentes acessíveis)
+- React Query
+- Wouter (roteamento)
+- Recharts (gráficos)
+- React Hook Form + Zod
+
+**Backend:**
+- Node.js + Express + TypeScript
+- Drizzle ORM
+- PostgreSQL
+- Passport.js (autenticação)
+- WebSocket
+
+**Ferramentas de Desenvolvimento:**
+- Vite
+- ESBuild
+- Drizzle Kit
+- Cypress (testes E2E)
+
+---
+
+## Público-alvo
+
+- Pequenas e médias empresas
+- Representantes comerciais
+- Equipes de vendas e gestores
+
+---
+
+## Instalação e Configuração
+
+### Pré-requisitos
+- Node.js (LTS)
 - PostgreSQL
 - NPM ou Yarn
 
-## 🔧 Instalação
+### Passos
 
 1. Clone o repositório:
-```bash
-git clone [URL_DO_REPOSITÓRIO]
-cd gestao-vendas
-```
-
+   ```bash
+   git clone [URL_DO_REPOSITORIO]
+   cd gestao-vendas
+   ```
 2. Instale as dependências:
-```bash
-npm install
-```
-
+   ```bash
+   npm install
+   ```
 3. Configure as variáveis de ambiente:
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
-```env
-DATABASE_URL=sua_url_do_banco
-SESSION_SECRET=seu_secret
-```
+   Crie um arquivo `.env` na raiz com:
+   ```env
+   DATABASE_URL=sua_url_do_banco
+   SESSION_SECRET=seu_secret
+   ```
+4. Execute as migrações do banco:
+   ```bash
+   npm run db:push
+   ```
+5. Inicie o sistema:
+   - Desenvolvimento: `npm run dev`
+   - Produção: `npm run build` e `npm run start`
 
-4. Execute as migrações do banco de dados:
-```bash
-npm run db:push
-```
+---
 
-## 🚀 Executando o projeto
-
-Para desenvolvimento:
-```bash
-npm run dev
-```
-
-Para build de produção:
-```bash
-npm run build
-```
-
-Para iniciar em produção:
-```bash
-npm run start
-```
-
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 gestao-vendas/
@@ -93,46 +105,52 @@ gestao-vendas/
 └── backups/          # Backups do banco de dados
 ```
 
-## 🔐 Autenticação
+---
 
-O sistema utiliza Passport.js para autenticação, com suporte a:
-- Login local
-- Sessões persistentes
-- Proteção de rotas
+## Autenticação e Segurança
+- Login local com sessões persistentes
+- Controle de acesso por perfil (admin/representante)
+- Proteção de rotas sensíveis
+- Variáveis de ambiente para dados sensíveis
 
-## 💳 Pagamentos
+---
 
-Integração com Stripe para processamento de pagamentos.
+## Acessibilidade
+- Componentes acessíveis (Radix UI)
+- Verificador de contraste e recursos WCAG
+- Interface responsiva e navegação por teclado
 
-## 📊 Funcionalidades Principais
+---
 
-- Gestão de vendas
-- Dashboard com gráficos
-- Relatórios exportáveis
-- Gestão de usuários
-- Processamento de pagamentos
-- Interface responsiva e moderna
+## Testes
+- Testes end-to-end com Cypress
+- Para rodar:
+  ```bash
+  npm run cypress:open
+  ```
 
-## 🧪 Testes
+---
 
-O projeto utiliza Cypress para testes end-to-end. Para executar os testes:
+## Contribuição
 
-```bash
-npm run cypress:open
-```
+1. Faça um Fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/NomeDaFeature`)
+3. Commit suas mudanças seguindo o padrão de commits
+4. Push para a branch (`git push origin feature/NomeDaFeature`)
+5. Abra um Pull Request
 
-## 📝 Licença
+---
+
+## Licença
 
 Este projeto está sob a licença MIT.
 
-## 👥 Contribuição
+---
 
-1. Faça um Fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+## Contato e Suporte
 
-## 📞 Suporte
+Joelson Lopes · Full Stack Developer  
+📞 (51) 99432-5454  
+✉️ joelsonlopes.dev@gmail.com
 
-Para suporte, envie um email para [seu-email@exemplo.com] 
+--- 

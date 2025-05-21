@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Regra: Atualização de Documentação
+
+- Toda nova funcionalidade implementada deve ser explicada no arquivo `README.md`.
+- Qualquer mudança relevante (novas features, correções, refatorações) deve ser listada no `CHANGELOG.md`.
+- A documentação deve ser clara, objetiva e facilitar o entendimento para novos desenvolvedores e usuários do projeto.
+- Não finalize uma tarefa sem garantir que README e CHANGELOG estejam atualizados.
+

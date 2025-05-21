@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Regra: Padrão de Commits
+
+Cada tarefa deve resultar em **1 commit** com mensagem no formato abaixo:
+
+## Commits de Funcionalidade
+Indicam adição de algo novo:
+- `feat: [descrição da funcionalidade]`
+- Exemplo: `feat: adicionar botão de login com Google`
+
+## 🐛 Commits de Correção
+Para correções de bugs:
+- `fix: [descrição do bug resolvido]`
+- Exemplo: `fix: corrigir erro ao salvar usuário sem email`
+
+## 🎨 Commits de Estilo
+Alterações visuais/format. sem impacto funcional:
+- `style: [descrição da alteração de estilo]`
+- Exemplo: `style: ajustar indentação e remover espaços em branco`
+
+## 🧹 Commits de Refatoração
+Melhorias de estrutura sem mudar comportamento:
+- `refactor: [o que foi refatorado]`
+- Exemplo: `refactor: extrair lógica de autenticação para hook separado`
+
+## 📦 Commits de Build / Dependências
+Mudanças no build ou dependências:
+- `build: [descrição da alteração]`
+- Exemplo: `build: adicionar eslint como dependência de desenvolvimento`
+
+## 🧪 Commits de Testes
+Adição/modificação de testes automatizados:
+- `test: [descrição dos testes]`
+- Exemplo: `test: adicionar testes unitários para componente Header`
+
+## 📚 Commits de Documentação
+Atualizações de README, comentários, docs:
+- `docs: [o que foi documentado]`
+- Exemplo: `docs: adicionar instruções de instalação no README`
+
