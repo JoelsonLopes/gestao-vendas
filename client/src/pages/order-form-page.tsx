@@ -1665,7 +1665,7 @@ export default function OrderFormPage() {
                                           setTempClientRef(item.clientRef || item.product?.conversion || "")
                                         }}
                                       >
-                                        {item.clientRef || item.product?.conversion || <span className="italic">Clique para informar</span>}
+                                        {item.clientRef || item.product?.conversion || <span className="italic">Clique para informar!</span>}
                                       </span>
                                     )}
                                   </TableCell>
