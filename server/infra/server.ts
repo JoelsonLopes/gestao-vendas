@@ -7,6 +7,7 @@ import { setupAuthRoutes } from "../controllers/auth";
 import { registerDomainRoutes } from "../routes/index";
 import { createServer } from "http";
 import { setupWebSocketServer, createNotificationService } from "../services/websockets";
+import { setupEventListeners } from "../services/eventEmitter";
 
 const app = express();
 
@@ -54,6 +55,8 @@ app.use((req, res, next) => {
   setupAuth(app);
   // Setup rotas de autenticação
   setupAuthRoutes(app);
+  // Setup event listeners
+  setupEventListeners();
   // Registrar rotas de domínio
   registerDomainRoutes(app);
 
