@@ -1334,96 +1334,74 @@ export default function OrderFormPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Cabeçalho responsivo com botões adaptados para mobile */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-          <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/orders")} className="mr-2 md:mr-4">
-              <ArrowLeft className="h-4 w-4 mr-1 md:mr-2" />
-              <span className="hidden md:inline">Voltar</span>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/orders")}
+              className="h-8 w-8 sm:h-9 sm:w-9"
+            >
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">
-              {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
-            </h1>
-            {hasUnsavedChanges && (
-              <span className="ml-2 text-sm text-amber-600 dark:text-amber-400 font-medium">
-                (Alterações não salvas)
-              </span>
-            )}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">
+                {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
+              </h1>
+              {hasUnsavedChanges && (
+                <span className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-medium">
+                  (Não salvo)
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Botões de ação responsivos */}
-          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="md:px-3">
-              <Printer className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Imprimir</span>
+          {/* Botões de ação responsivos - Grid em mobile */}
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.print()} 
+              className="w-full sm:w-auto"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              <span className="text-xs sm:text-sm">Imprimir</span>
             </Button>
 
-            {isEditMode ? (
-              <>
-                <Button size="sm" onClick={handleSaveOrder} disabled={isSubmitting} className="md:px-3">
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 md:mr-2" />
-                  )}
-                  <span className="hidden md:inline">Salvar Alterações</span>
-                  <span className="inline md:hidden">Salvar</span>
-                </Button>
+            <Button 
+              size="sm" 
+              onClick={handleSaveOrder} 
+              disabled={isSubmitting} 
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              <span className="text-xs sm:text-sm">
+                {isEditMode ? "Salvar" : "Criar"}
+              </span>
+            </Button>
 
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    // Salvar alterações e então redirecionar para a lista de pedidos
-                    if (clientId) {
-                      handleSaveOrder()
-                      setTimeout(() => {
-                        navigate("/orders")
-                      }, 500)
-                    } else {
-                      navigate("/orders")
-                    }
-                  }}
-                  variant="default"
-                  className="md:px-3"
-                >
-                  <CheckCircle className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Finalizar e Voltar</span>
-                  <span className="inline md:hidden">Finalizar</span>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" onClick={handleSaveOrder} disabled={isSubmitting} className="md:px-3">
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 md:mr-2" />
-                  )}
-                  <span className="hidden md:inline">Salvar Pedido</span>
-                  <span className="inline md:hidden">Salvar</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    // Salvar pedido e então redirecionar para a lista de pedidos
-                    if (clientId) {
-                      handleSaveOrder()
-                      setTimeout(() => {
-                        navigate("/orders")
-                      }, 500)
-                    } else {
-                      navigate("/orders")
-                    }
-                  }}
-                  variant="default"
-                  className="md:px-3"
-                >
-                  <CheckCircle className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Finalizar e Voltar</span>
-                  <span className="inline md:hidden">Finalizar</span>
-                </Button>
-              </>
-            )}
+            <Button
+              size="sm"
+              onClick={() => {
+                if (clientId) {
+                  handleSaveOrder()
+                  setTimeout(() => {
+                    navigate("/orders")
+                  }, 500)
+                } else {
+                  navigate("/orders")
+                }
+              }}
+              variant="default"
+              className="w-full sm:w-auto"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              <span className="text-xs sm:text-sm">Concluir</span>
+            </Button>
           </div>
         </div>
 
@@ -1442,20 +1420,25 @@ export default function OrderFormPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-6 print:hidden">
-            <Tabs defaultValue="details">
-              <TabsList>
-                <TabsTrigger value="details">Detalhes do Pedido</TabsTrigger>
-                <TabsTrigger value="products">Produtos</TabsTrigger>
+          <div className="space-y-4 sm:space-y-6 print:hidden">
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-auto">
+                <TabsTrigger value="details" className="text-xs sm:text-sm px-2 py-2">
+                  <span className="hidden sm:inline">Detalhes do Pedido</span>
+                  <span className="sm:hidden">Detalhes</span>
+                </TabsTrigger>
+                <TabsTrigger value="products" className="text-xs sm:text-sm px-2 py-2">
+                  Produtos
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="space-y-4 pt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Informações do Pedido</CardTitle>
+              <TabsContent value="details" className="space-y-4 mt-4">
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="pb-4 px-4 sm:px-6">
+                    <CardTitle className="text-lg sm:text-xl">Informações do Pedido</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <CardContent className="px-4 sm:px-6">
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
                       <div className="col-span-1 sm:col-span-2">
                         <Label htmlFor="client">Cliente *</Label>
                         <ClientSearch
@@ -1556,25 +1539,25 @@ export default function OrderFormPage() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="products" className="space-y-4 pt-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="flex items-center space-x-4">
-                      <CardTitle>Produtos do Pedido</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="showClientRefsInPrint"
-                          checked={showClientRefsInPrint}
-                          onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="showClientRefsInPrint" className="text-sm font-normal">
-                          Imprimir Ref. Cliente
-                        </Label>
+              <TabsContent value="products" className="space-y-4 mt-4">
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="px-4 sm:px-6 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <CardTitle className="text-lg sm:text-xl">Produtos do Pedido</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="showClientRefsInPrint"
+                            checked={showClientRefsInPrint}
+                            onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <Label htmlFor="showClientRefsInPrint" className="text-xs sm:text-sm font-normal text-gray-600 dark:text-gray-400">
+                            Ref. na impressão
+                          </Label>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex space-x-2">
                       <Button
                         ref={addProductButtonRef}
                         onClick={() => {
@@ -1583,27 +1566,147 @@ export default function OrderFormPage() {
                         }}
                         disabled={false}
                         size="sm"
-                        className="md:h-10"
+                        className="w-full sm:w-auto"
                       >
-                        <PlusCircle className="h-4 w-4 md:mr-2" />
-                        <span className="hidden md:inline">Gerenciar Produtos</span>
-                        <span className="inline md:hidden">Produtos</span>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        <span className="text-xs sm:text-sm">Gerenciar Produtos</span>
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="relative overflow-x-auto">
+                  <CardContent className="px-4 sm:px-6">
+                    {/* Mobile: Cards Layout | Desktop: Table Layout */}
+                    <div className="block sm:hidden space-y-3">
+                      {orderItems.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <p className="text-sm">Nenhum produto adicionado</p>
+                          <p className="text-xs mt-1">Toque em "Gerenciar Produtos" para começar</p>
+                        </div>
+                      ) : (
+                        orderItems.map((item, index) => (
+                          <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+                            {/* Produto e Ref Cliente */}
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{item.product?.name || `Produto #${item.productId}`}</p>
+                                <p className="text-xs text-gray-500">{item.product?.code}</p>
+                                <div className="mt-1">
+                                  {editingClientRefIndex === index ? (
+                                    <Input
+                                      autoFocus
+                                      value={tempClientRef}
+                                      onChange={e => setTempClientRef(e.target.value)}
+                                      onBlur={() => {
+                                        setOrderItems(prev => {
+                                          const updated = [...prev]
+                                          updated[index] = { ...updated[index], clientRef: tempClientRef }
+                                          return updated
+                                        })
+                                        setEditingClientRefIndex(null)
+                                      }}
+                                      onKeyDown={e => {
+                                        if (e.key === "Enter") {
+                                          setOrderItems(prev => {
+                                            const updated = [...prev]
+                                            updated[index] = { ...updated[index], clientRef: tempClientRef }
+                                            return updated
+                                          })
+                                          setEditingClientRefIndex(null)
+                                        } else if (e.key === "Escape") {
+                                          setEditingClientRefIndex(null)
+                                        }
+                                      }}
+                                      className="h-7 text-xs"
+                                      placeholder="Ref. Cliente"
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setEditingClientRefIndex(index)
+                                        setTempClientRef(item.clientRef || item.product?.conversion || "")
+                                      }}
+                                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                      Ref: {item.clientRef || item.product?.conversion || "Adicionar"}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Ações */}
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openCalculator(item.productId)}
+                                  className="h-8 w-8"
+                                >
+                                  <Calculator className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeOrderItem(index)}
+                                  className="h-8 w-8 text-red-500"
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Quantidade e Preço */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Qtde</p>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => updateItemQuantity(index, Number.parseInt(e.target.value))}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Desconto</p>
+                                <DiscountSelect
+                                  value={item.discountId}
+                                  onChange={(discountId, discountPercentage, commission) =>
+                                    updateItemDiscount(index, discountId, discountPercentage, commission)
+                                  }
+                                  label=""
+                                  className="h-8"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Preço Unit.</p>
+                                <PriceInput
+                                  value={getPriceWithDiscount(item)}
+                                  onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Subtotal */}
+                            <div className="flex justify-between items-center pt-2 border-t">
+                              <span className="text-xs text-gray-500">Subtotal</span>
+                              <span className="font-medium">{formatCurrency(item.subtotal)}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Desktop Table - Hidden on Mobile */}
+                    <div className="hidden sm:block relative overflow-x-auto">
                       <Table>
-                        <TableHeader className="hidden md:table-header-group">
+                        <TableHeader>
                           <TableRow>
-                            <TableHead>Ref. Cliente</TableHead>
+                            <TableHead className="w-32">Ref. Cliente</TableHead>
                             <TableHead>Produto</TableHead>
-                            <TableHead>Qtde</TableHead>
-                            <TableHead>Preço Tabela</TableHead>
-                            <TableHead>Desconto</TableHead>
-                            <TableHead>Preço c/ Desc.</TableHead>
-                            <TableHead>Subtotal</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                            <TableHead className="w-20">Qtde</TableHead>
+                            <TableHead className="w-28">Preço Tab.</TableHead>
+                            <TableHead className="w-32">Desconto</TableHead>
+                            <TableHead className="w-32">Preço c/ Desc.</TableHead>
+                            <TableHead className="w-28">Subtotal</TableHead>
+                            <TableHead className="text-right w-28">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         
@@ -1615,15 +1718,10 @@ export default function OrderFormPage() {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            // Exibindo na ordem original de adição, sem inverter
                             orderItems.map((item, index) => (
-                                <TableRow
-                                  key={index}
-                                  className="md:table-row border md:border-none rounded-lg block mb-4 md:mb-0 shadow-md md:shadow-none"
-                                >
-                                  {/* Referência do Cliente */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block">
-                                    <span className="md:hidden font-bold">Ref. Cliente:</span>
+                              <TableRow key={index}>
+                                {/* Referência do Cliente */}
+                                <TableCell>
                                     {editingClientRefIndex === index ? (
                                       <Input
                                         autoFocus
@@ -1672,12 +1770,9 @@ export default function OrderFormPage() {
 
                                   {/* Nome do Produto */}
                                   <TableCell
-                                    className="md:table-cell p-4 md:p-2 block cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                                     onClick={() => {
-                                      // Abre a modal
                                       setAddProductModalOpen(true)
-
-                                      // Predefinir os valores para edição
                                       setSelectedProductId(item.productId)
                                       setProductQuantity(item.quantity)
                                       setSelectedDiscountId(item.discountId || null)
@@ -1685,7 +1780,6 @@ export default function OrderFormPage() {
                                       setShouldSaveConversion(true)
                                     }}
                                   >
-                                    <span className="md:hidden font-bold">Produto:</span>
                                     <div>
                                       <p className="text-primary hover:underline">
                                         {item.product?.name || `Produto #${item.productId}`}
@@ -1695,58 +1789,49 @@ export default function OrderFormPage() {
                                   </TableCell>
 
                                   {/* Quantidade */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block">
-                                    <span className="md:hidden font-bold">Quantidade:</span>
+                                  <TableCell>
                                     <Input
                                       type="number"
                                       min="1"
                                       value={item.quantity}
                                       onChange={(e) => updateItemQuantity(index, Number.parseInt(e.target.value))}
-                                      className="w-20 h-8"
-                                      disabled={false}
+                                      className="w-16 h-8"
                                     />
                                   </TableCell>
 
-                                  {/* Preço Tabela - Escondido em Mobile */}
-                                  <TableCell className="hidden md:table-cell">
+                                  {/* Preço Tabela */}
+                                  <TableCell>
                                     {formatCurrency(item.unitPrice)}
                                   </TableCell>
 
                                   {/* Desconto */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block">
-                                    <span className="md:hidden font-bold">Desconto:</span>
+                                  <TableCell>
                                     <DiscountSelect
                                       value={item.discountId}
                                       onChange={(discountId, discountPercentage, commission) =>
                                         updateItemDiscount(index, discountId, discountPercentage, commission)
                                       }
                                       label=""
-                                      className="w-full md:w-32"
+                                      className="w-28"
                                     />
                                   </TableCell>
 
                                   {/* Preço com Desconto */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block">
-                                    <span className="md:hidden font-bold">Preço c/ Desc.:</span>
-                                    <div className="flex flex-col space-y-1">
-                                      <PriceInput
-                                        value={getPriceWithDiscount(item)}
-                                        onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
-                                      />
-                                      
-                                    </div>
+                                  <TableCell>
+                                    <PriceInput
+                                      value={getPriceWithDiscount(item)}
+                                      onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
+                                    />
                                   </TableCell>
 
                                   {/* Subtotal */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block">
-                                    <span className="md:hidden font-bold">Subtotal:</span>
+                                  <TableCell>
                                     {formatCurrency(item.subtotal)}
                                   </TableCell>
 
                                   {/* Ações */}
-                                  <TableCell className="md:table-cell p-4 md:p-2 block text-center md:text-right">
-                                    <span className="md:hidden font-bold">Ações:</span>
-                                    <div className="flex justify-center md:justify-end space-x-1">
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end space-x-1">
                                       <Button
                                         variant="ghost"
                                         size="sm"
@@ -1805,9 +1890,9 @@ export default function OrderFormPage() {
 
                     {/* Order Summary */}
                     {orderItems.length > 0 && (
-                      <div className="mt-8 flex justify-end">
-                        <div className="w-full sm:w-1/2 lg:w-1/3 bg-gray-50 dark:bg-gray-700 rounded-md p-4">
-                          <h3 className="font-medium text-lg mb-2 md:hidden">Resumo do Pedido</h3>
+                      <div className="mt-6 sm:mt-8">
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 sm:p-6 sm:ml-auto sm:w-96">
+                          <h3 className="font-medium text-base sm:text-lg mb-3">Resumo do Pedido</h3>
                           <dl className="space-y-2">
                             <div className="flex justify-between items-center">
                               <dt className="text-sm text-gray-500 dark:text-gray-400">Subtotal (com desconto)</dt>
@@ -1855,12 +1940,14 @@ export default function OrderFormPage() {
 
             {/* Add Product Modal */}
             <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
-              <DialogContent>
+              <DialogContent className="sm:max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Adicionar/Editar Produto</DialogTitle>
+                  <DialogTitle className="text-lg sm:text-xl">
+                    {selectedProductId ? "Editar Produto" : "Adicionar Produto"}
+                  </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-2 sm:py-4">
                   <Tabs defaultValue="code" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="code">Código do Produto</TabsTrigger>
@@ -2073,12 +2160,12 @@ export default function OrderFormPage() {
 
             {/* Modal de Gerenciamento de Produtos */}
             <Dialog open={productsModalOpen} onOpenChange={setProductsModalOpen}>
-              <DialogContent className="max-w-5xl w-[95vw]">
-                <DialogHeader>
-                  <DialogTitle>Gerenciamento de Produtos do Pedido</DialogTitle>
+              <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-lg sm:text-xl">Gerenciar Produtos</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                <div className="space-y-4 flex-1 overflow-y-auto">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Produtos Temporários</h3>
                     <Button
