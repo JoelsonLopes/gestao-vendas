@@ -120,103 +120,67 @@ export default function ClientsPage() {
   // Import clients mutation
   const importClientsMutation = useMutation({
     mutationFn: async (clients: any[]) => {
-      // Process one by one to ensure proper validation
-      const successfulImports = [];
-      const errors = [];
-      
-      for (const client of clients) {
-        try {
-          // Mapear os campos da estrutura importada para a estrutura esperada pela API
-          console.log("Processando cliente:", client);
-          
-          const clientData = {
-            // Dados obrigatórios com valores padrão
-            name: client.name || "",
-            code: client.code || "",
-            cnpj: client.cnpj || "",
-            city: client.city || "",
-            phone: client.phone || "",
-            // Campos opcionais mas úteis
-            address: client.address || "",
-            state: client.state || "",
-            email: client.email || "",
-            // Para representantes, usar o ID do usuário logado
-            representativeId: client.representativeId 
-              ? parseInt(client.representativeId) 
-              : (user?.role === "representative" ? user.id : undefined),
-            regionId: client.regionId ? parseInt(client.regionId) : undefined,
-            active: true
-          };
-          
-          // Verificar campos obrigatórios
-          if (!clientData.name) {
-            throw new Error(`Nome do cliente não informado`);
-          }
-          
-          if (!clientData.code) {
-            // Gerar código baseado no nome se estiver vazio
-            clientData.code = `CL${Date.now().toString().substring(5)}`;
-          }
-          
-          // CNPJ é obrigatório para clientes brasileiros
-          if (!clientData.cnpj) {
-            throw new Error(`CNPJ não informado para o cliente: ${clientData.name}`);
-          }
-          
-          // Formatação do CNPJ (remover caracteres não numéricos)
-          clientData.cnpj = clientData.cnpj.toString().replace(/\D/g, "");
-          
-          // Validação mínima de CNPJ (pelo menos 14 dígitos)
-          if (clientData.cnpj.length < 14) {
-            clientData.cnpj = clientData.cnpj.padStart(14, '0');
-          }
-          
-          console.log("Dados do cliente formatados:", clientData);
-          
-          const response = await apiRequest("POST", "/api/clients", clientData);
-          const responseData = await response.json();
-          successfulImports.push(responseData);
-        } catch (error: any) {
-          // Capturar erro específico ou mensagem genérica se for objeto vazio
-          let errorMessage = "Erro desconhecido";
-          
-          if (error instanceof Error) {
-            errorMessage = error.message || "Erro na importação";
-          } else if (typeof error === 'string') {
-            errorMessage = error;
-          } else if (error && Object.keys(error).length === 0) {
-            errorMessage = "Erro de formato ou validação de dados";
-          }
-          
-          errors.push({ 
-            name: client.name || "Cliente sem nome", 
-            error: errorMessage
-          });
-          
-          console.error("Erro ao importar cliente:", client, error);
+      // Preparar os dados dos clientes para importação
+      const formattedClients = clients.map(client => {
+        const clientData = {
+          name: client.name || "",
+          code: client.code || `CL${Date.now().toString().substring(5)}${Math.random().toString(36).substring(7)}`,
+          cnpj: (client.cnpj || "").toString().replace(/\D/g, "").padStart(14, '0'),
+          city: client.city || "",
+          phone: client.phone || "",
+          address: client.address || "",
+          state: client.state || "",
+          email: client.email || "",
+          regionId: client.regionId ? parseInt(client.regionId) : undefined,
+          active: true
+        };
+
+        // Validações básicas
+        if (!clientData.name) {
+          throw new Error(`Nome do cliente não informado`);
         }
+        
+        if (!clientData.cnpj || clientData.cnpj.length < 14) {
+          throw new Error(`CNPJ inválido para o cliente: ${clientData.name}`);
+        }
+
+        return clientData;
+      });
+
+      // Preparar o payload para a nova rota de importação
+      const payload: any = {
+        clients: formattedClients
+      };
+
+      // Se for admin e tiver representativeId, adicionar ao payload
+      if (user?.role === "admin" && clients[0]?.representativeId) {
+        payload.representativeId = parseInt(clients[0].representativeId);
       }
 
-      // Retornar informações de sucesso e erros
-      return {
-        successCount: successfulImports.length,
-        errors
-      };
+      // Fazer a requisição para a nova rota
+      const response = await apiRequest("POST", "/api/clients/import", payload);
+      const result = await response.json();
+      
+      return result;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       setImportModalOpen(false);
       
-      if (result.errors.length > 0) {
+      // A nova API retorna: { message, results: { created, updated, errors } }
+      const { created = [], updated = [], errors = [] } = result.results || {};
+      const totalSuccess = created.length + updated.length;
+      
+      if (errors.length > 0) {
         toast({
-          title: "Importação parcial",
-          description: `${result.successCount} clientes importados com sucesso. ${result.errors.length} falhas.`,
-          variant: "destructive",
+          title: "Importação com avisos",
+          description: result.message || `${totalSuccess} clientes processados. ${errors.length} erros.`,
+          variant: "default",
         });
       } else {
         toast({
-          title: "Clientes importados",
-          description: `${result.successCount} clientes foram importados com sucesso`,
+          title: "Importação concluída",
+          description: result.message || `${totalSuccess} clientes importados com sucesso`,
         });
       }
     },
@@ -302,18 +266,14 @@ export default function ClientsPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Clientes</h1>
           <div className="flex gap-2">
-            {user?.role === "admin" && (
-              <>
-                <Button onClick={() => setImportModalOpen(true)} variant="outline">
-                  <Import className="mr-2 h-4 w-4" />
-                  Importar
-                </Button>
-                <Button onClick={openNewClientModal}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Novo Cliente
-                </Button>
-              </>
-            )}
+            <Button onClick={() => setImportModalOpen(true)} variant="outline">
+              <Import className="mr-2 h-4 w-4" />
+              Importar
+            </Button>
+            <Button onClick={openNewClientModal}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Novo Cliente
+            </Button>
           </div>
         </div>
 
@@ -368,7 +328,7 @@ export default function ClientsPage() {
             keyField="id"
             searchable
             searchPlaceholder="Buscar clientes por nome, CNPJ ou código..."
-            onRowClick={user?.role === "admin" ? openEditClientModal : undefined}
+            onRowClick={openEditClientModal}
           />
         )}
 
