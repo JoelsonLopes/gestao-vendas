@@ -1346,13 +1346,13 @@ export default function OrderFormPage() {
             </Button>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
               <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">
-                {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
-              </h1>
-              {hasUnsavedChanges && (
+              {isEditMode ? `Pedido #${id}` : "Novo Pedido"}
+            </h1>
+            {hasUnsavedChanges && (
                 <span className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-medium">
                   (Não salvo)
-                </span>
-              )}
+              </span>
+            )}
             </div>
           </div>
 
@@ -1366,42 +1366,42 @@ export default function OrderFormPage() {
             >
               <Printer className="h-4 w-4 mr-2" />
               <span className="text-xs sm:text-sm">Imprimir</span>
-            </Button>
+                </Button>
 
-            <Button 
-              size="sm" 
+                <Button
+                  size="sm"
               onClick={handleSaveOrder} 
               disabled={isSubmitting} 
               className="w-full sm:w-auto"
             >
-              {isSubmitting ? (
+                  {isSubmitting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
+                  ) : (
                 <Save className="h-4 w-4 mr-2" />
-              )}
+                  )}
               <span className="text-xs sm:text-sm">
                 {isEditMode ? "Salvar" : "Criar"}
               </span>
-            </Button>
+                </Button>
 
-            <Button
-              size="sm"
-              onClick={() => {
-                if (clientId) {
-                  handleSaveOrder()
-                  setTimeout(() => {
-                    navigate("/orders")
-                  }, 500)
-                } else {
-                  navigate("/orders")
-                }
-              }}
-              variant="default"
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (clientId) {
+                      handleSaveOrder()
+                      setTimeout(() => {
+                        navigate("/orders")
+                      }, 500)
+                    } else {
+                      navigate("/orders")
+                    }
+                  }}
+                  variant="default"
               className="w-full sm:w-auto"
-            >
+                >
               <CheckCircle className="h-4 w-4 mr-2" />
               <span className="text-xs sm:text-sm">Concluir</span>
-            </Button>
+                </Button>
           </div>
         </div>
 
@@ -1545,19 +1545,19 @@ export default function OrderFormPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         <CardTitle className="text-lg sm:text-xl">Produtos do Pedido</CardTitle>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="showClientRefsInPrint"
-                            checked={showClientRefsInPrint}
-                            onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="showClientRefsInPrint"
+                          checked={showClientRefsInPrint}
+                          onChange={(e) => setShowClientRefsInPrint(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
                           <Label htmlFor="showClientRefsInPrint" className="text-xs sm:text-sm font-normal text-gray-600 dark:text-gray-400">
                             Ref. na impressão
-                          </Label>
-                        </div>
+                        </Label>
                       </div>
+                    </div>
                       <Button
                         ref={addProductButtonRef}
                         onClick={() => {
@@ -1720,7 +1720,7 @@ export default function OrderFormPage() {
                           ) : (
                             orderItems.map((item, index) => (
                               <TableRow key={index}>
-                                {/* Referência do Cliente */}
+                                  {/* Referência do Cliente */}
                                 <TableCell>
                                     {editingClientRefIndex === index ? (
                                       <Input
@@ -1818,10 +1818,10 @@ export default function OrderFormPage() {
 
                                   {/* Preço com Desconto */}
                                   <TableCell>
-                                    <PriceInput
-                                      value={getPriceWithDiscount(item)}
-                                      onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
-                                    />
+                                      <PriceInput
+                                        value={getPriceWithDiscount(item)}
+                                        onChange={(newPrice) => updateItemManualPrice(index, newPrice)}
+                                      />
                                   </TableCell>
 
                                   {/* Subtotal */}
@@ -2166,7 +2166,7 @@ export default function OrderFormPage() {
                 </DialogHeader>
 
                 <div className="space-y-4 flex-1 overflow-y-auto">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-2">
                     <h3 className="text-lg font-medium">Produtos Temporários</h3>
                     <Button
                       onClick={() => {
@@ -2179,7 +2179,7 @@ export default function OrderFormPage() {
                       }}
                       size="sm"
                     >
-                      <PlusCircle className="h-4 w-4 mr-2" />
+                      <PlusCircle className="h-2 w-4 mr-2" />
                       Adicionar Produto
                     </Button>
                   </div>
@@ -2283,7 +2283,7 @@ export default function OrderFormPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex p-2 space-x-2">
                       <Button variant="outline" onClick={() => setProductsModalOpen(false)}>
                         Cancelar
                       </Button>
